@@ -13,6 +13,11 @@
  * What platform.c offers: docs/API.md. The chip's rules: docs/RULES.md. */
 #include "platform.c"
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
+#include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
+
+/* Externally visible only so CI can verify this small control state stays in
+ * ordinary RAM and does not consume song/DSP pool space. WP2.3 leaves it stopped. */
+FmtTransport fmt_transport_runtime;
 
 /* ---- the sound (runs in the audio ISR: keep it short, no flash, no screen) */
 #define NV 4u                                   /* voices */
@@ -36,6 +41,11 @@ static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32
 static void app_audio(int32_t *out, uint32_t n)
 {
     uint32_t v, i;
+
+    /* Timing is wired into the real frame domain now, but remains stopped in
+     * WP2.3. WP2.4 will own row dispatch and audible use of step boundaries. */
+    (void)fmt_transport_advance(&fmt_transport_runtime, n);
+
     for (v = 0; v < NV; v++) {
         uint32_t ph = voice[v].ph, step = voice[v].inc;
         int32_t amp = voice[v].amp, g = voice[v].gate;
@@ -145,6 +155,7 @@ static void app_main(void)
     uint8_t held[27] = {0};                     /* the note each key plays */
 
     fmt_store_reset();                          /* WP2.2: deterministic empty 16-pattern tracker store */
+    fmt_transport_reset(&fmt_transport_runtime);/* WP2.3: stopped, step 0, phase 0, 120 BPM */
     settings_load(&set, sizeof set);
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
 
