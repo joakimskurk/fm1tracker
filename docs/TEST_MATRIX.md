@@ -40,20 +40,29 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 
 ## Phase 2 tracker core
 
-| Check | Automated host test | Host interaction | Hardware |
-|---|---:|---:|---:|
-| Step accessor rejects out-of-range track/pattern/step | required | n/a | n/a |
-| Pattern wrap is exactly 64 steps | required | observable | later |
-| Four 16-step pages map to 1–64 without overlap/gaps | required | required | required |
-| Integer clock has no cumulative drift over long run | required | optional | preferred |
-| STEP REC inserts note at cursor | required | required | required |
-| Note entry advances exactly one logical step | required | required | required |
-| REST creates empty step and advances once | required | required | required |
-| TIE semantics deterministic | required | required | required |
-| NOTE OFF semantics deterministic | required | required | required |
-| Track switch never writes previous track accidentally | required | required | required |
-| Edit while stopped is deterministic | required | required | required |
-| Tracker display uses bounded/dirty redraw | inspect/test | observable | required |
+| Check | Automated host test | Firmware build | Hardware | Status |
+|---|---:|---:|---:|---|
+| V0.1 dimensions/constants are compile-time enforced | required | required | n/a | ✅ WP2.1 run `39985124933` |
+| `FmtStep` is exactly 8 B and `FmtPattern` exactly 4,096 B | required | required | n/a | ✅ |
+| Empty-step defaults/sentinels deterministic | required | compile | n/a | ✅ |
+| Step accessor rejects out-of-range track/pattern/step | required | compile | n/a | ✅ WP2.1 |
+| Compile-time song core + conservative lock budget fits 96 KiB target | required | compile | n/a | ✅ 82,280 B / 98,304 B budgeted; allocator not frozen |
+| WP2.1 changes no runtime image/audio behavior | required | required | n/a | ✅ host WAV/bin/fwsc bit-identical to Phase 1 |
+| WP2.1 resource delta recorded | n/a | required | n/a | ✅ image 0 B, normal RAM 0 B, pool 0 B |
+| Pattern store allocation/placement is bounds-safe | required | required | optional | ⬜ WP2.2 |
+| Pattern wrap is exactly 64 steps | required | required later | later | ⬜ WP2.3/WP2.4 |
+| Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ⬜ WP2.5 |
+| Integer clock has no cumulative drift over long run | required | required | preferred | ⬜ WP2.3 |
+| STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
+| Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
+| REST creates empty step and advances once | required | required | required | ⬜ WP2.8 |
+| TIE semantics deterministic | required | required | required | ⬜ WP2.8 |
+| NOTE OFF semantics deterministic | required | required | required | ⬜ WP2.8 |
+| Track switch never writes previous track accidentally | required | required | required | ⬜ WP2.6/integration |
+| Edit while stopped is deterministic | required | required | required | ⬜ later Phase 2 |
+| Tracker display uses bounded/dirty redraw | inspect/test | required | required | ⬜ WP2.9 |
+
+WP2.1 compile-time-model evidence is recorded in `WP2_1_VERIFICATION.md`.
 
 ## Phase 3 p-locks/effects
 
