@@ -1,0 +1,69 @@
+name: WP1.3 pristine baseline verification
+
+on:
+  push:
+    branches:
+      - phase1/dinghy-baseline
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pristine-host-and-build-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pristine baseline
+        uses: actions/checkout@v4
+
+      - name: Install host dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run pristine host harness
+        run: ./tests/run_host.sh
+
+      - name: Verify host artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/host/dinghy.wav
+          mapfile -t screens < <(find build/host -maxdepth 1 -type f -name 'dinghy-*.png' -print | sort)
+          test "${#screens[@]}" -gt 0
+          echo "HOST_ARTIFACTS_OK=1"
+          stat -c '%n %s bytes' build/host/dinghy.wav "${screens[@]}"
+          sha256sum build/host/dinghy.wav "${screens[@]}"
+
+      - name: Install pinned-platform JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Attempt pristine device build and verify external SDK gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          set +e
+          JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain" \
+          AC79_SDK="$RUNNER_TEMP/ac79-sdk-not-vendored" \
+          ./build.sh >build/wp1_3_device_attempt.log 2>&1
+          rc=$?
+          set -e
+          cat build/wp1_3_device_attempt.log
+          test "$rc" -ne 0
+          grep -F "no JieLi AC79 SDK" build/wp1_3_device_attempt.log
+          echo "DEVICE_BUILD_BLOCKER=external AC79 SDK checkout required"
+
+      - name: Upload WP1.3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp1-3-pristine-evidence
+          path: |
+            build/host/dinghy.wav
+            build/host/dinghy-*.png
+            build/wp1_3_device_attempt.log
+          if-no-files-found: error
+          retention-days: 14
