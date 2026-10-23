@@ -1,0 +1,21 @@
+# Stop the default proof transport, enter SEQ and select global step 5.
+100 btn 12
+200 btn 11
+250 keys 128
+300 keys 0
+
+# Screenshot at 1000 ms: ordinary SEQ, cursor step 5, stopped transport,
+# proof-lane notes visible in rows 1 and 5.
+
+# Enter STEP REC and write REST/TIE/OFF into steps 5/6/7.
+1100 btn 13
+1200 btndown 2
+1250 btnup 2
+1300 btn 3
+1350 btndown 2
+1400 btn 3
+1450 btnup 2
+
+# Screenshot at 3000 ms: STEP REC, cursor step 8, rows 5/6/7 show
+# REST/TIE/OFF while row 8 is the selected empty target.
+3100 end
