@@ -68,7 +68,7 @@ Exit:
 
 Status: **COMPLETE — 2026-10-23**
 
-Verification record: `WP1_3_VERIFICATION.md`. Host build/run and artifacts are verified. The JieLi toolchain is verified. Device firmware build remains environment-blocked only by the separately required AC79 SDK checkout; no physical FM-1 test has been performed.
+Verification record: `WP1_3_VERIFICATION.md`. Host build/run and artifacts are verified. The JieLi toolchain is verified. The pristine device build was environment-blocked at this package boundary; the equivalent protected baseline is fully device-built after the identity layer in WP1.5.
 
 ## WP1.4 — FM1Tracker identity rename
 
@@ -86,7 +86,7 @@ Exit:
 
 Status: **COMPLETE — 2026-10-23**
 
-Result: fixed identity `FM-1_987`; host screen/artifacts identify FM1Tracker; host WAV is bit-identical to WP1.3; protected Dinghy/HAL/loader/build implementation remains unchanged. Full renamed device package execution is explicitly deferred to WP1.5 under D017 because the external AC79 SDK checkout is still unavailable. Evidence: `WP1_4_VERIFICATION.md`.
+Result: fixed identity `FM-1_987`; host screen/artifacts identify FM1Tracker; host WAV is bit-identical to WP1.3; protected Dinghy/HAL/loader/build implementation remains unchanged. Evidence: `WP1_4_VERIFICATION.md`.
 
 ## WP1.5 — renamed baseline verification and budget capture
 
@@ -104,16 +104,46 @@ Exit:
 - memory/code/timing baseline is in repo;
 - Phase 2 can begin without changing platform plumbing.
 
-Status: **READY TO START — 2026-10-23**
+Status: **COMPLETE — 2026-10-23**
 
-First action: audit what WP1.4 evidence can be reused, then attempt the renamed device build with the verified JieLi toolchain and a separately obtained AC79 SDK checkout if available. If the SDK remains unavailable, record the exact blocker and complete every host/static budget measurement that does not require fabricating or vendoring SDK material.
+Verified result:
+- official external AC79 SDK tag/commit pinned and hash-checked;
+- renamed host baseline passes and remains audio-identical to WP1.3;
+- renamed firmware/package build passes with identity `FM-1_987`;
+- inherited build safety checks pass;
+- app image: 55,088 B / 581,564 B;
+- normal RAM: 12,368 B / 98,304 B;
+- pool RAM: 30,720 B / 344,064 B;
+- nominal 256-frame/44.1 kHz callback period: 5.804988662 ms;
+- actual physical-hardware render time remains unmeasured because no FM-1 is currently available.
+
+Evidence: `WP1_5_VERIFICATION.md`.
+
+**Phase 1 is COMPLETE.**
 
 ---
 
 # Phase 2 — tracker core
 
 ## WP2.1 — compile-time data model
-Implement V0.1 structs/constants/accessors with static size assertions and no UI/audio changes.
+
+**Goal:** implement the already-approved V0.1 tracker structures/constants/accessors without changing UI or audio behavior.
+
+Deliverables:
+- compile-time constants for 8 tracks, 64 steps/pattern, 16 patterns and max four p-locks/step;
+- V0.1 song/pattern/track/step structures from `DATA_MODEL_V0.1.md`;
+- bounds-safe accessors appropriate to this layer;
+- static size/budget assertions;
+- host tests for sizes, defaults and access bounds;
+- measured memory delta versus the Phase 1 baseline where buildable.
+
+Exit:
+- data model compiles on host/device;
+- sizes and bounds are deterministic and tested;
+- no UI/audio/transport behavior is introduced;
+- the implementation stays inside the documented pool/RAM budget.
+
+Status: **READY TO START**
 
 ## WP2.2 — bounds-safe pattern store
 Allocate pattern/song state in the intended memory region and test all access boundaries.
