@@ -1,0 +1,17 @@
+# Performance key auditions normally.
+100 keys 1
+150 keys 0
+
+# Enter SEQ. White and black note keys are consumed/ignored by pattern input.
+200 btn 11
+250 keys 1
+300 keys 0
+350 keys 2
+400 keys 0
+
+# Return HOME, start a manual note, then enter SEQ while it is held.
+550 btn 8
+600 keys 1
+650 btn 11
+700 keys 0
+800 end
