@@ -1,0 +1,21 @@
+# Black key auditions normally in PERFORMANCE.
+100 keys 2
+150 keys 0
+
+# Enter SEQ. Designated black key selects a track; white key selects a step;
+# reserved black key is consumed. None may audition or emit MIDI here.
+200 btn 11
+250 keys 2
+300 keys 0
+350 keys 1
+400 keys 0
+450 keys 1048576
+500 keys 0
+
+# Return HOME, start the same black performance note, then enter SEQ while held.
+# Release must still terminate the manual note after the context change.
+550 btn 8
+600 keys 2
+650 btn 11
+700 keys 0
+800 end
