@@ -61,6 +61,22 @@ Git remains the detailed history. This file records milestone-level changes only
 
 The clean platform/identity/build baseline is now reproducible and budgeted. No tracker implementation has been mixed into Phase 1.
 
+## 2026-10-23 - Phase 2 tracker core
+
+### WP2.1 - Compile-time tracker data model
+
+- Added the FM1Tracker-owned V0.1 compile-time model in `firmware/src/fmt_model.h`.
+- Frozen 8 tracks, 64 steps/pattern, 16 pattern slots, 128 order entries, 16 instruments and the existing four-lock-per-step semantic limit.
+- Enforced the 8-byte `FmtStep` representation and 4,096-byte `FmtPattern` at compile time.
+- Added deterministic empty-step defaults plus null-safe/bounds-safe pattern and step accessors.
+- Added host tests for constants, sentinels, exact sizes, first/last valid accesses and out-of-range rejection.
+- Defined a non-instantiated 65,896-byte `FmtSong` core shape for sizing only; actual song/pattern storage remains WP2.2.
+- Kept the p-lock allocator/list representation unfrozen; a conservative 16,384-byte future lock budget keeps the budgeted model at 82,280 B within the 96 KiB editable-song target.
+- Verified the model through the JieLi device cross-build and inherited safety checks.
+- Proved WP2.1 adds no runtime footprint: image delta 0 B, normal RAM delta 0 B, pool delta 0 B.
+- Host WAV, `fm1tracker.bin` and `fm1tracker-0.1.fwsc` remain byte-identical to Phase 1.
+- Detailed evidence: `docs/WP2_1_VERIFICATION.md`.
+
 ### Next
 
-**WP2.1 — compile-time tracker data model.** Implement only the approved V0.1 constants/structures/accessors/static size assertions and host/device compile tests before any transport, UI or audio behavior is added.
+**WP2.2 — bounds-safe pattern store.** Allocate the approved model in the intended memory region and test runtime storage/access boundaries. It remains a separate work package and has not started yet.
