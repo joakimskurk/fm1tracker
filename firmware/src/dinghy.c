@@ -273,7 +273,7 @@ static void app_main(void)
 
     for (;;) {
         uint32_t keys, down, up, rel, b, lit = 0, base, write_key;
-        uint8_t st, d1, d2;
+        uint8_t st, d1, d2, lowest_key;
         int pattern_mode, step_rec_mode;
         platform_poll();
 
@@ -334,17 +334,12 @@ static void app_main(void)
         prev = keys;
 
         /* D024 monophonic write rule: for the first poll of an unlatched
-         * gesture, the lowest newly pressed key is the one stored. All downs
-         * still audition below. */
+         * gesture, the tested selector chooses the lowest newly pressed key.
+         * All downs still audition below. */
         write_key = FMT_PATTERN_INPUT_KEY_COUNT;
-        if (step_rec_mode && !fmt_step_record_runtime.gesture_latched) {
-            for (k = 0u; k < FMT_PATTERN_INPUT_KEY_COUNT; k++) {
-                if (down >> k & 1u) {
-                    write_key = k;
-                    break;
-                }
-            }
-        }
+        if (step_rec_mode && !fmt_step_record_runtime.gesture_latched &&
+            fmt_step_record_lowest_key(down, &lowest_key))
+            write_key = lowest_key;
 
         for (k = 0; k < 27u; k++) {
             /* A release always terminates an audition note that this physical
