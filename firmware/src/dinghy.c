@@ -17,6 +17,7 @@
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
 #include "fmt_step_record.c"                   /* WP2.7/2.8: stopped STEP REC note/special entry */
+#include "fmt_tracker_screen.c"                /* WP2.9: bounded read-only tracker presentation */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
@@ -24,6 +25,7 @@ FmtTransport fmt_transport_runtime;
 FmtPlayback fmt_playback_runtime;
 FmtPatternInput fmt_pattern_input_runtime;
 FmtStepRecord fmt_step_record_runtime;
+FmtTrackerScreen fmt_tracker_screen_runtime;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -219,11 +221,15 @@ static int quiet(void)
     return 1;
 }
 
-/* ---- the screen: the name, the last note big, the keyboard with what sounds, the octave */
+/* ---- screens ---- */
 #define C_ACC RGB(180, 140, 255)
 #define C_KEY RGB(210, 210, 210)
 #define C_OFF RGB(90, 90, 90)
 #define KEY0 53u
+#define TRACKER_HEADER_H 64u
+#define TRACKER_ROW_H 18u
+#define TRACKER_FOOTER_Y 208u
+#define TRACKER_FOOTER_H 32u
 static int black(uint32_t note) { return (0x54Au >> (note % 12u)) & 1u; }
 
 static void draw_note(void)
@@ -265,6 +271,76 @@ static void draw_status(int32_t oct)
     draw_text_box(0, 212, 240, &FONT_S, s, C_OFF, 1);
 }
 
+static void draw_home_static(void)
+{
+    lcd_fill(0, 0, 240, 240, C_BLACK);
+    draw_text_box(0, 18, 240, &FONT_L, APP_NAME, C_ACC, 1);
+    draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);
+}
+
+static void draw_tracker_header(void)
+{
+    char line1[32], line2[32], line3[32];
+
+    fmt_tracker_screen_header_line1(&fmt_tracker_screen_runtime, line1);
+    fmt_tracker_screen_header_line2(&fmt_tracker_screen_runtime, line2);
+    fmt_tracker_screen_header_line3(line3);
+
+    cv_begin(240, TRACKER_HEADER_H, C_BLACK);
+    cv_text(5, 1, &FONT_S, line1,
+            fmt_tracker_screen_runtime.step_rec ? C_WHITE : C_ACC);
+    cv_text(5, 21, &FONT_S, line2, C_KEY);
+    cv_text(25, 41, &FONT_S, line3, C_OFF);
+    cv_rect(0, 62, 240, 1, C_OFF);
+    cv_blit(0, 0);
+}
+
+static void draw_tracker_row(uint8_t row)
+{
+    char markers[3], text[32], one[2];
+    uint16_t text_color;
+
+    if (row >= FMT_TRACKER_SCREEN_ROWS)
+        return;
+
+    fmt_tracker_screen_markers(&fmt_tracker_screen_runtime, row, markers);
+    fmt_tracker_screen_row_text(&fmt_tracker_screen_runtime, row, text);
+    text_color = markers[0] == '>' ? C_WHITE : C_KEY;
+
+    cv_begin(240, TRACKER_ROW_H, C_BLACK);
+    one[1] = 0;
+    one[0] = markers[0];
+    cv_text(2, 1, &FONT_S, one, C_WHITE);
+    one[0] = markers[1];
+    cv_text(12, 1, &FONT_S, one, C_ACC);
+    cv_text(25, 1, &FONT_S, text, text_color);
+    cv_blit(0, TRACKER_HEADER_H + (uint32_t)row * TRACKER_ROW_H);
+}
+
+static void draw_tracker_footer(void)
+{
+    char text[32];
+
+    fmt_tracker_screen_footer(&fmt_tracker_screen_runtime, text);
+    cv_begin(240, TRACKER_FOOTER_H, C_BLACK);
+    cv_rect(0, 0, 240, 1, C_OFF);
+    cv_text(5, 8, &FONT_S, text,
+            fmt_tracker_screen_runtime.step_rec ? C_WHITE : C_OFF);
+    cv_blit(0, TRACKER_FOOTER_Y);
+}
+
+static void draw_tracker_region(uint8_t region)
+{
+    uint8_t row;
+
+    if (region == FMT_TRACKER_SCREEN_REGION_HEADER)
+        draw_tracker_header();
+    else if (region == FMT_TRACKER_SCREEN_REGION_FOOTER)
+        draw_tracker_footer();
+    else if (fmt_tracker_screen_region_to_row(region, &row))
+        draw_tracker_row(row);
+}
+
 static void app_main(void)
 {
     struct { int8_t oct; } set = {0};
@@ -278,6 +354,7 @@ static void app_main(void)
     fmt_playback_reset(&fmt_playback_runtime);
     fmt_pattern_input_reset(&fmt_pattern_input_runtime);
     fmt_step_record_reset(&fmt_step_record_runtime);
+    fmt_tracker_screen_reset(&fmt_tracker_screen_runtime);
     tracker_play_requested = 1u;
     tracker_transport_stopped = 1u;
     tracker_ready = 1u;
@@ -285,9 +362,7 @@ static void app_main(void)
     settings_load(&set, sizeof set);
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
 
-    lcd_fill(0, 0, 240, 240, C_BLACK);
-    draw_text_box(0, 18, 240, &FONT_L, APP_NAME, C_ACC, 1);
-    draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);
+    draw_home_static();
 
     for (;;) {
         uint32_t keys, down, up, rel, b, lit = 0, base, write_key;
@@ -408,9 +483,39 @@ static void app_main(void)
         fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
         fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
 
-        if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }
-        if (last_note != note_drawn) { note_drawn = last_note; draw_note(); }
-        if (set.oct != oct_drawn) { oct_drawn = set.oct; draw_status(set.oct); }
+        /* D026 screen ownership. Tracker drawing is strictly main-loop work and
+         * at most two of the ten bounded regions can be blitted per poll. */
+        if (pattern_mode) {
+            uint32_t draws;
+            uint8_t region;
+
+            (void)fmt_tracker_screen_sync(&fmt_tracker_screen_runtime,
+                                          &fmt_pattern_input_runtime,
+                                          &fmt_step_record_runtime,
+                                          &fmt_transport_runtime);
+            for (draws = 0u; draws < FMT_TRACKER_SCREEN_MAX_REGIONS_PER_POLL; draws++) {
+                if (!fmt_tracker_screen_take_region(&fmt_tracker_screen_runtime, &region))
+                    break;
+                draw_tracker_region(region);
+            }
+        } else {
+            int was_tracker_screen = fmt_tracker_screen_runtime.active != 0u;
+
+            if (was_tracker_screen) {
+                (void)fmt_tracker_screen_sync(&fmt_tracker_screen_runtime,
+                                              &fmt_pattern_input_runtime,
+                                              &fmt_step_record_runtime,
+                                              &fmt_transport_runtime);
+                draw_home_static();
+                lit_drawn = ~0u;
+                note_drawn = ~0u;
+                oct_drawn = 99;
+            }
+
+            if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }
+            if (last_note != note_drawn) { note_drawn = last_note; draw_note(); }
+            if (set.oct != oct_drawn) { oct_drawn = set.oct; draw_status(set.oct); }
+        }
 
         if (dirty && quiet() && fm1_ms - t_change > 2000u) {
             settings_save(&set, sizeof set);
