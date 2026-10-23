@@ -48,6 +48,10 @@ control_sha="$(sha256sum build/host/fm1tracker_wp2_10_home_control-3000.ppm | aw
 echo "WP2_10_INTEGRATION_TRACKER_SHA256=$tracker_sha"
 echo "WP2_10_INTEGRATION_HOME_SHA256=$home_sha"
 echo "WP2_10_HOME_CONTROL_SHA256=$control_sha"
-test "$home_sha" = "$control_sha"
 
+test "$tracker_sha" = "a993551ce922d90186080bf554b82477b4336e160a6b301c446f0d275569b6d7"
+test "$home_sha" = "ea33024427340416c17a73ecfb2303e37262b8c61e2f2d30ca06265ba6e0b899"
+test "$control_sha" = "$home_sha"
+
+echo "WP2_10_REVIEWED_INTEGRATION_SCREEN_OK=1"
 echo "WP2_10_FULL_APP_HOST_OK=1 midi_note_pairs=4 traversed_steps=64 selected_track=8"
