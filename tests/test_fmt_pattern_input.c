@@ -52,6 +52,7 @@ static void test_reset_and_context(void)
 
     assert(!fmt_pattern_input_select_key(&input, WHITE_KEYS[5]));
     assert(!fmt_pattern_input_select_track_key(&input, TRACK_KEYS[5]));
+    assert(!fmt_pattern_input_advance_step(&input));
     assert(input.local_step == 0u);
     assert(input.selected_track == 0u);
     assert(!fmt_pattern_input_page_next(&input));
@@ -69,6 +70,7 @@ static void test_reset_and_context(void)
     assert(input.selected_track == 5u);
     assert(!fmt_pattern_input_select_key(&input, WHITE_KEYS[9]));
     assert(!fmt_pattern_input_select_track_key(&input, TRACK_KEYS[2]));
+    assert(!fmt_pattern_input_advance_step(&input));
     assert(input.local_step == 5u);
     assert(input.selected_track == 5u);
 
@@ -83,6 +85,7 @@ static void test_reset_and_context(void)
     assert(!fmt_pattern_input_select_track_key(NULL, 1u));
     assert(!fmt_pattern_input_page_prev(NULL));
     assert(!fmt_pattern_input_page_next(NULL));
+    assert(!fmt_pattern_input_advance_step(NULL));
     assert(fmt_pattern_input_global_step(NULL) == 0u);
 }
 
@@ -243,6 +246,37 @@ static void test_track_selection_preserves_step_and_reserved_keys(void)
     assert(input.selected_track == 7u);
 }
 
+static void test_cursor_advance_exactly_once_and_wraps(void)
+{
+    FmtPatternInput input;
+    uint32_t step;
+
+    fmt_pattern_input_reset(&input);
+    fmt_pattern_input_enter_pattern(&input);
+    assert(fmt_pattern_input_select_track_key(&input, TRACK_KEYS[4]));
+
+    for (step = 0u; step < FMT_STEPS_PER_PATTERN; step++) {
+        assert(fmt_pattern_input_global_step(&input) == step);
+        assert(input.selected_track == 4u);
+        assert(fmt_pattern_input_advance_step(&input));
+        assert(input.selected_track == 4u);
+        assert(fmt_pattern_input_global_step(&input) == (uint8_t)((step + 1u) % FMT_STEPS_PER_PATTERN));
+    }
+
+    assert(input.page == 0u);
+    assert(input.local_step == 0u);
+    assert(input.selected_track == 4u);
+
+    input.page = FMT_PATTERN_INPUT_PAGE_COUNT;
+    assert(!fmt_pattern_input_advance_step(&input));
+    input.page = 0u;
+    input.local_step = FMT_PATTERN_INPUT_STEPS_PER_PAGE;
+    assert(!fmt_pattern_input_advance_step(&input));
+    input.local_step = 0u;
+    input.selected_track = FMT_PATTERN_INPUT_TRACK_COUNT;
+    assert(!fmt_pattern_input_advance_step(&input));
+}
+
 int main(void)
 {
     test_reset_and_context();
@@ -250,6 +284,7 @@ int main(void)
     test_all_64_addresses_and_store_integrity();
     test_clamped_pages_preserve_local_step_and_track();
     test_track_selection_preserves_step_and_reserved_keys();
+    test_cursor_advance_exactly_once_and_wraps();
 
     puts("FMT_PATTERN_INPUT_TESTS_OK=1");
     printf("state_bytes=%u pages=%u steps_per_page=%u total_steps=%u white_keys=%u tracks=%u track_keys=%u reserved_black=%u\n",
