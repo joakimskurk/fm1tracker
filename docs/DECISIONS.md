@@ -265,3 +265,16 @@ Status: accepted for the WP2.5 input layer; hardware ergonomics remain provision
 **Reason:** The explicit SEQ/HOME context preserves the baseline keyboard instrument outside pattern editing and makes the white-key reinterpretation intentional. Clamped page navigation prevents a repeated previous/next gesture from unexpectedly jumping between opposite ends of the 64-step pattern, while preserving the local physical key position gives a simple and learnable relation between pages. The exact hardware ergonomics can still be superseded after Phase 7 physical testing without changing pattern data or timing semantics.
 
 **Consequence:** WP2.5 must host-test all 64 global mappings, all 27 physical note-key indexes, clamped page boundaries, local-index preservation, context transitions and proof that step selection does not mutate the song store. It may add only small bounded ordinary-RAM cursor state and main-loop input handling. Black-key track selection remains WP2.6, note writes remain WP2.7 and no tracker screen is added here.
+
+## D023 — WP2.6 maps the first eight physical black keys to tracks 1–8 in SEQ context
+
+Date: 2026-10-23  
+Status: accepted for the WP2.6 prototype; hardware ergonomics remain provisional
+
+**Decision:** WP2.6 extends `FmtPatternInput` with one selected-track byte `0..7`. Reset selects logical track 0 (track 1 in the UI). The first eight physical black note-key indexes in ascending keyboard order are `1,3,5,8,10,13,15,17`; in the FM-1 F3..G5 span these are F#3, G#3, A#3, C#4, D#4, F#4, G#4 and A#4. They map bijectively to logical tracks `0..7`. The remaining black-key indexes `20,22,25` are reserved and rejected in WP2.6.
+
+Track selection is active only in the explicit D022 SEQ/pattern-edit context. In PERFORMANCE context all note keys, including all black keys, retain normal audition/MIDI behavior. Entering HOME or SEQ does not reset the selected track; the current track survives context changes. Selecting a track does not alter page or local/global step state, does not mutate `FmtSong`, and does not alter the WP2.4 proof playback lane, which remains fixed to pattern 0 / logical track 0.
+
+**Reason:** Using the first eight black keys preserves the direct left-to-right hardware relationship already proposed by D009 while leaving the final three black keys available for later fast helpers. Keeping track selection purely in the editor cursor state prevents this prototype from accidentally becoming multitrack audio or STEP REC work. Preserving the track across HOME/SEQ avoids unnecessary navigation loss while still giving reset a deterministic track-1 default.
+
+**Consequence:** WP2.6 must test all eight mappings, all three reserved black keys, invalid indexes, PERFORMANCE-context rejection by the selector API, D022 white-key/page regression, context preservation, no page/step movement on track changes, byte-identical song-store state and unchanged frozen WP2.4 audio. Physical ergonomics remain unverified until Phase 7 and may supersede this provisional hardware mapping without changing tracker data.
