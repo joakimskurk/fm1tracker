@@ -58,7 +58,10 @@ int fmt_playback_start(FmtPlayback *playback,
                        FmtTransport *transport,
                        FmtPlaybackEvent *event)
 {
-    if (!playback || !transport || !event || playback->started || transport->running)
+    if (!event)
+        return 0;
+    fmt_playback_event_clear(event);
+    if (!playback || !transport || playback->started || transport->running)
         return 0;
 
     fmt_playback_event_for_step(transport->step, event);
@@ -71,10 +74,12 @@ int fmt_playback_end_frame(FmtPlayback *playback,
                            FmtTransport *transport,
                            FmtPlaybackEvent *event)
 {
-    if (!playback || !transport || !event || !playback->started || !transport->running)
+    if (!event)
+        return 0;
+    fmt_playback_event_clear(event);
+    if (!playback || !transport || !playback->started || !transport->running)
         return 0;
 
-    fmt_playback_event_clear(event);
     if (!fmt_transport_tick_frame(transport))
         return 0;
 
