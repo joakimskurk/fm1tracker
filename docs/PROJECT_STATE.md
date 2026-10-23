@@ -12,143 +12,102 @@ State: **IN PROGRESS**
 
 Phase 2 parent issue: #8
 
-Current Phase 2 branch:
-
-`phase2/tracker-core`
+Current branch: `phase2/tracker-core`
 
 Phase 2 branch start / completed Phase 1 head:
 
 `3ed4b65d7cda15c5831533f153f91e9014a9fde7`
 
-WP2.1 and WP2.2 are complete. No WP2.3 implementation has started yet.
+WP2.1 and WP2.2 are complete.
 
 ## Current milestone
 
 **WP2.3 - integer transport clock**
 
-State: **READY TO START**
+State: **IN PROGRESS — 2026-10-23**
 
 GitHub issue: #11
 
-Goal from the approved Phase 2 sequence:
+WP2.3 start head:
 
-Implement a deterministic integer/fixed-point transport clock for the V0.1 1/16-note grid, including exact 0..63 step wrap and long-run drift/error tests. It must remain timing/state only: no audible playback, event dispatch, STEP REC, REST, tracker UI or synth behavior.
+`5d8fd495bdb4877cb15670801a86610ac18d7eaa`
 
-Before WP2.3 code changes, follow `EXECUTION_PROTOCOL.md`: mark WP2.3 `IN PROGRESS`, record exact objective/non-goals/files/tests, then implement only the transport package.
+### Exact objective
+
+Implement only the deterministic V0.1 transport timing/state layer for the fixed 1/16-note grid in the 44.1 kHz frame domain. The package must prove exact `0..63` step wrap, deterministic reset/start/stop behavior and no cumulative timing drift.
+
+### Timing decision
+
+D020 is accepted before implementation.
+
+For a 1/16-note grid:
+
+`frames_per_step = 44100 * 15 / BPM`
+
+WP2.3 therefore uses an integer phase threshold of `661500 = 44100 * 15`. Each rendered frame adds the current integer BPM to a 32-bit phase accumulator. Crossing the threshold subtracts 661500 and advances the current step exactly once.
+
+Properties:
+
+- no floating point;
+- no runtime division;
+- no runtime 64-bit arithmetic;
+- exact fractional remainder is retained automatically;
+- a 16-bit BPM cannot cross more than one step in one frame;
+- the exact frame of each future step boundary is observable without implementing playback yet.
+
+Runtime transport reset state is stopped, step 0, phase 0, 120 BPM. Stop preserves phase/step; start resumes. BPM 0 is rejected rather than overloaded as a stop command.
+
+### Expected implementation files
+
+- `firmware/src/fmt_transport.h` — bounded transport state/API/constants;
+- `firmware/src/fmt_transport.c` — reset/start/stop/tempo/tick/advance implementation;
+- `firmware/src/dinghy.c` — minimal integration only: one small runtime transport object, reset once, bounded advance from the audio callback while it remains stopped in WP2.3;
+- `tests/test_fmt_transport.c` and runner — host timing/wrap/state/drift tests;
+- `.github/workflows/wp2_3_transport_verify.yml` — regression/device/resource evidence;
+- documentation/status files only as required for package closeout.
+
+### Required verification
+
+1. reset is deterministic: stopped, step 0, phase 0, 120 BPM;
+2. stopped advance changes nothing;
+3. start/stop/resume preserves exact phase and current step;
+4. BPM 0 is rejected and a valid tempo change preserves phase progress;
+5. step 63 wraps exactly to step 0;
+6. representative tempos including fractional-frame durations match an independent host reference over long runs with no accumulated interval-rounding drift;
+7. existing WP2.1 model tests and WP2.2 store tests remain green;
+8. host WAV remains byte-identical to the Phase 1/WP2.1/WP2.2 baseline;
+9. full device build and inherited safety checks remain green;
+10. package identity remains `FM-1_987`;
+11. actual image, normal-RAM and pool deltas are recorded against WP2.2.
+
+### Strict non-goals
+
+- no audible note playback or voice triggering — WP2.4;
+- no row/event dispatch or sequencer-to-audio queue;
+- no STEP REC, REST, TIE or NOTE-OFF editing;
+- no 16-step page input, track-selection UI or tracker screen;
+- no swing, polymeter or general microtiming;
+- no p-lock allocator/effects;
+- no synth-engine work;
+- no persistence/serialization;
+- no HAL/loader/update redesign;
+- no Furnace source/core import.
+
+Do not begin WP2.4 in the same package.
 
 ## Completed WP2.2 checkpoint
 
-**WP2.2 - bounds-safe pattern store**
+**WP2.2 - bounds-safe pattern store** — COMPLETE 2026-10-23
 
-State: **COMPLETE - 2026-10-23**
-
-GitHub issue: #10
-
-WP2.2 start head:
-
-`11b8b9bd48e9b4b53ed8008c160b40297e1d15c4`
+Issue #10. Durable evidence: `docs/WP2_2_VERIFICATION.md`.
 
 Final verified implementation/workflow commit:
 
 `e180ac8cb5ba7a68fd3932883c988ad9ed67003b`
 
-GitHub Actions:
+Actions run `39986704633`, job `120527634095`: **SUCCESS**.
 
-- run: `39986704633`;
-- job: `120527634095` (`pattern-store`);
-- result: **SUCCESS**.
-
-Durable evidence:
-
-`docs/WP2_2_VERIFICATION.md`
-
-### What WP2.2 implemented
-
-- one actual 65,896-byte `FmtSong` backing store;
-- store linked in `.pool`, not normal `.bss`;
-- explicit deterministic reset of all 8,192 steps to the WP2.1 EMPTY/inherit/no-lock sentinels;
-- narrow song/pattern/step store API;
-- bounds-safe first/last/out-of-range access;
-- mutation-isolation and reset-after-mutation tests;
-- no transport, playback, UI, STEP REC, p-lock allocator, synth or persistence behavior.
-
-### Verified physical linker placement
-
-Linked symbol:
-
-```text
-01c20000 g       .pool        00010168 fmt_store_storage
-```
-
-Therefore:
-
-- store address: `0x01C20000`;
-- store size: 65,896 B;
-- store end: `0x01C30168`;
-- `.pool` region ends at `0x01C74000` exclusive.
-
-### WP2.2 measured resources
-
-| Resource | WP2.1 baseline | WP2.2 | Delta |
-|---|---:|---:|---:|
-| app image | 55,088 B | **55,188 B** | **+100 B** |
-| normal RAM (`.data + .bss`) | 12,368 B | **12,368 B** | **0 B** |
-| pool RAM | 30,720 B | **96,616 B** | **+65,896 B** |
-
-Remaining physical pool after WP2.2: **247,448 B**.
-
-The pool delta exactly equals `sizeof(FmtSong)`. The song store therefore consumes no ordinary RAM.
-
-### WP2.2 verified artifacts
-
-- `fm1tracker.bin`: SHA-256 `c952d8cfc0f8d9ae1b18750f40753663d0c14cdaa1d493e43c9502572af6d578`;
-- `fm1tracker-0.1.fwsc`: SHA-256 `859892524248ee64e1ebb85c3808468f087665b39e603876b97b754e28550bd0`;
-- package identity: `FM-1_987`;
-- host WAV: SHA-256 `dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b`, still byte-identical to Phase 1/WP2.1.
-
-Actions evidence artifact:
-
-- artifact ID `12516445200`;
-- ZIP SHA-256 `70b03fdf9d4548f6e3139c1ecbfb18414e0ef1c4d16cddbd9d0c4939f3e0114f`.
-
-Inherited build safety checks remain green, including `.ram_text`, memory/image limits and HAL-only direct register access.
-
-## Completed WP2.1 checkpoint
-
-**WP2.1 - compile-time tracker data model**
-
-State: **COMPLETE - 2026-10-23**
-
-GitHub issue: #9
-
-Final verified implementation/workflow commit:
-
-`3e922da4a33894bc938e3252e575a2908355f3a3`
-
-Actions run `39985124933`, job `120522185302`: **SUCCESS**.
-
-Evidence: `docs/WP2_1_VERIFICATION.md`.
-
-Frozen core dimensions/shape:
-
-- 8 tracks;
-- 64 steps/pattern;
-- 16 pattern slots;
-- `FmtStep` 8 B;
-- `FmtPattern` 4,096 B;
-- `FmtSong` 65,896 B;
-- max four p-locks/step semantically;
-- 16-bit `lock_head`, `0xFFFF` = no lock;
-- conservative future lock budget 16,384 B, not an allocator ABI.
-
-## Regression baseline carried forward to WP2.3
-
-FM1Tracker identity:
-
-- visible app name: `FM1TRACKER`;
-- fixed package identity: `FM-1_987`.
-
-Current verified runtime baseline is the completed WP2.2 build:
+Verified runtime baseline carried into WP2.3:
 
 | Resource | Used | Limit | Free |
 |---|---:|---:|---:|
@@ -156,57 +115,39 @@ Current verified runtime baseline is the completed WP2.2 build:
 | normal RAM (`.data + .bss`) | 12,368 B | 98,304 B | 85,936 B |
 | pool RAM | 96,616 B | 344,064 B | 247,448 B |
 
-Host audio regression hash remains:
+One 65,896-byte `FmtSong` is linked at `.pool` address `0x01C20000`. All 8,192 steps initialize explicitly to the frozen tracker sentinels. Host WAV SHA-256 remains `dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b`.
 
-`dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b`
+## Completed WP2.1 checkpoint
 
-External SDK remains:
+**WP2.1 - compile-time tracker data model** — COMPLETE 2026-10-23
 
-- official repository: `https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git`;
-- tag: `AC79NN_SDK_V1.2.1_2023-12-13`;
-- resolved commit: `d179b4484759423312073f5fbb232501aa491047`;
-- external/not vendored.
+Issue #9. Evidence: `docs/WP2_1_VERIFICATION.md`.
 
-Physical FM-1 install/boot/audio/panel/update behavior and actual callback execution time remain **NOT TESTED** because hardware is not currently available.
+Frozen V0.1 core remains 8 tracks, 64 steps/pattern, 16 patterns, `FmtStep` 8 B, `FmtPattern` 4,096 B and `FmtSong` 65,896 B. P-lock allocator ABI and persistence remain unfrozen.
 
 ## Important decisions / do not regress
 
-- D005: V0.1 remains 8 tracks, 64 steps/pattern, 16 patterns and max four sparse p-locks/step.
-- D016: package identity remains `FM-1_987`.
-- D018: core in-memory model is frozen; p-lock allocator ABI and persistence are not.
-- D019: one runtime `FmtSong` lives in `.pool` and receives explicit deterministic initialization.
-- WP2.3 must use integer/fixed-point timing and a phase/error accumulator; repeated rounded step intervals are not acceptable.
-- No floating point in firmware DSP; avoid runtime 64-bit division.
-- Preserve the WP2.2 store placement/bounds tests and host/device regression gates.
-- No Furnace source/core import without a fresh exact-file/license audit.
-- Physical hardware verification remains distinct from host/device-build verification.
-
-## WP2.3 strict non-goals
-
-- no audible playback/voice triggering - WP2.4;
-- no sequencer-to-audio event queue/dispatch;
-- no STEP REC, REST, TIE or NOTE-OFF editing;
-- no 16-step page input or track-selection UI;
-- no tracker screen;
-- no p-lock allocation/effects;
-- no swing, polymeter or general microtiming;
-- no synth-engine work;
-- no persistence;
-- no HAL/loader/update redesign.
+- D005: V0.1 dimensions remain 8 tracks × 64 steps × 16 patterns.
+- D016: fixed package identity remains `FM-1_987`.
+- D018: core in-memory model is frozen; persistence and p-lock allocator are separate.
+- D019: exactly one runtime `FmtSong` lives in `.pool` with deterministic explicit reset.
+- D020: transport uses the exact BPM-per-frame rational phase accumulator described above.
+- Preserve WP2.1/WP2.2 host/device regression gates.
+- No floating point in firmware DSP and no runtime 64-bit division.
+- Physical FM-1 install/boot/audio/panel/update behavior and actual callback execution time remain **NOT TESTED** because hardware is not currently available.
 
 ## Next action
 
-Start WP2.3 issue #11 as its own package. Mark it `IN PROGRESS` before code, implement only deterministic integer transport timing/wrap/drift tests, re-run host/device regression and record its resource delta. Do **not** begin WP2.4 in the same package.
+Implement and verify only WP2.3 according to issue #11 and D020. Close WP2.3 only after timing/state tests, host regression, device build/safety and measured resource deltas all pass. Then mark WP2.4 READY TO START without implementing playback.
 
 ## Last relevant checkpoints
 
 - Phase 1 closeout / Phase 2 branch start: `3ed4b65d7cda15c5831533f153f91e9014a9fde7`
-- WP2.1 final verified implementation/workflow: `3e922da4a33894bc938e3252e575a2908355f3a3`
-- WP2.1 final Actions run: `39985124933`
-- WP2.2 start: `11b8b9bd48e9b4b53ed8008c160b40297e1d15c4`
-- WP2.2 final verified implementation/workflow: `e180ac8cb5ba7a68fd3932883c988ad9ed67003b`
-- WP2.2 final Actions run: `39986704633`
+- WP2.1 verified implementation/workflow: `3e922da4a33894bc938e3252e575a2908355f3a3`
+- WP2.2 verified implementation/workflow: `e180ac8cb5ba7a68fd3932883c988ad9ed67003b`
+- WP2.2 Actions run: `39986704633`
+- WP2.3 start: `5d8fd495bdb4877cb15670801a86610ac18d7eaa`
 
 ## Last updated
 
-2026-10-23 - WP2.2 completed and verified. WP2.3 / issue #11 is READY TO START; no transport implementation has been written yet.
+2026-10-23 - WP2.3 started. Only deterministic integer transport timing/state is active; WP2.4 playback has not started.
