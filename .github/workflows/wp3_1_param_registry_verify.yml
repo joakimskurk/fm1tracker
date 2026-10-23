@@ -57,6 +57,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_param_registry_tests.sh | tee build/wp3_1_param_registry_tests.log
           grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1' build/wp3_1_param_registry_tests.log
           grep -F 'id_bytes=1 assigned=4 exhaustive_values=256 none=0x00 invalid=0xFF global_reserved=0xE0_0xEF' build/wp3_1_param_registry_tests.log
