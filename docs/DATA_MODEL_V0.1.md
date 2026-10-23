@@ -130,35 +130,54 @@ If the implementation requires wider indexes and grows each record, update the p
 
 ## 6. Parameter IDs
 
-Parameter IDs must be stable and independent of UI layout.
+D027 freezes parameter identity as an explicit one-byte semantic domain independent of UI layout.
 
-Suggested namespace:
+```c
+typedef uint8_t FmtParamId;
+```
+
+Special values:
 
 ```text
-0x00-0x1F common voice parameters
-0x20-0x5F 8-BIT engine parameters
-0x60-0x9F 16-BIT engine parameters
+0x00  NONE     no parameter; never an active p-lock target
+0xFF  INVALID  invalid/corrupt; never assignable
+```
+
+V0.1 namespace ranges:
+
+```text
+0x01-0x1F common voice parameters
+0x20-0x5F 8-BIT engine-specific parameters
+0x60-0x9F 16-BIT engine-specific parameters
 0xA0-0xBF track/mixer parameters
-0xC0-0xDF send/effect parameters
-0xE0-0xFE reserved
-0xFF invalid
+0xC0-0xDF channel/send/effect parameters
+0xE0-0xEF future GLOBAL/master parameters; reserved in WP3.1
+0xF0-0xFE future/reserved
+0xFF      INVALID
 ```
 
-Initial common IDs may include:
+A byte belonging to a namespace is **not automatically a valid parameter**. Only IDs present in the authoritative registry are assigned/lockable.
+
+WP3.1 assigns only:
 
 ```text
-LEVEL
-PAN
-PITCH_FINE
-ENV_ATTACK
-ENV_DECAY
-ENV_SUSTAIN
-ENV_RELEASE
-LFO_RATE
-LFO_DEPTH
+0x01 FMT_PARAM_VOICE_LEVEL
+0x02 FMT_PARAM_PITCH_FINE
+0xA0 FMT_PARAM_TRACK_LEVEL
+0xA1 FMT_PARAM_TRACK_PAN
 ```
 
-The actual numeric table should live in one header and be documented. Once a released file format uses an ID, do not recycle it for an unrelated meaning.
+Envelope, oscillator, wavetable/noise, FM operator, send/effect and GLOBAL/master parameter IDs remain deliberately unassigned until their owning work packages establish actual semantics.
+
+`FmtStep.effect` is a separate tracker-command identity domain. Effect command IDs are not parameter IDs merely because an effect may later expose lockable controls.
+
+Rules:
+
+- numeric IDs are stable semantic identity, never encoder/page positions;
+- registry labels are presentation/debug metadata, not persistence keys;
+- unassigned/reserved IDs fail lookup safely and are not lockable;
+- once an ID is used by a released persistent/interchange format, never recycle it for unrelated meaning;
+- global/master identity does not imply track-owned p-lock storage; global automation ownership remains a future explicit decision.
 
 ## 7. Tracker effects
 
