@@ -1,171 +1,26 @@
-name: WP2.1 compile-time tracker model verification
+name: WP2.1 historical compile-time model verification
 
+# WP2.1 is closed. Its final durable evidence is docs/WP2_1_VERIFICATION.md
+# and Actions run 39985124933. Later Phase 2 packages have their own gates;
+# this workflow remains manual so legitimate later changes do not trip the
+# old WP2.1 scope-diff assertion.
 on:
-  push:
-    branches:
-      - phase2/tracker-core
-    paths:
-      - .github/workflows/wp2_1_model_verify.yml
-      - firmware/src/fmt_model.h
-      - firmware/src/dinghy.c
-      - tests/test_fmt_model.c
-      - tests/run_model_tests.sh
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  compile-time-model:
+  historical-model-smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout final verified WP2.1 checkpoint
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: 3e922da4a33894bc938e3252e575a2908355f3a3
 
-      - name: Install host dependency
-        run: python3 -m pip install --disable-pip-version-check Pillow
-
-      - name: Verify WP2.1 platform boundary
+      - name: Run frozen WP2.1 model tests
         shell: bash
         run: |
           set -euo pipefail
-          base=3ed4b65d7cda15c5831533f153f91e9014a9fde7
-          git diff --exit-code "$base" -- \
-            firmware/src/platform.c \
-            firmware/hal \
-            firmware/loader \
-            tools/build.py \
-            tools/fm1pkg_make.py \
-            tools/fm1_install.py \
-            tools/build_fm1tracker.py
-          test "$(git diff --numstat "$base" -- firmware/src/dinghy.c)" = $'1\t0\tfirmware/src/dinghy.c'
-          git diff "$base" -- firmware/src/dinghy.c | grep -F '+#include "fmt_model.h"'
-          echo "WP2_1_PLATFORM_BOUNDARY_OK=1"
-
-      - name: Run compile-time model unit tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build
-          sh tests/run_model_tests.sh | tee build/wp2_1_model_tests.log
-          grep -F "FMT_MODEL_TESTS_OK=1" build/wp2_1_model_tests.log
-
-      - name: Verify Phase 1 host audio regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./tests/run_host.sh
-          test -s build/host/fm1tracker.wav
-          test "$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')" = \
-            "dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b"
-          strings build/host/fm1tracker | grep -F "FM1TRACKER"
-          echo "HOST_RUNTIME_UNCHANGED=1"
-
-      - name: Install pinned JieLi toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
-          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
-          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
-
-      - name: Checkout exact official JieLi AC79 SDK release
-        shell: bash
-        run: |
-          set -euo pipefail
-          sdk="$RUNNER_TEMP/ac79-sdk"
-          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
-            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$sdk"
-          actual="$(git -C "$sdk" rev-parse HEAD)"
-          echo "AC79_SDK_COMMIT=$actual"
-          test "$actual" = "d179b4484759423312073f5fbb232501aa491047"
-          test "$(sha256sum "$sdk/cpu/wl82/tools/uboot.boot" | awk '{print $1}')" = \
-            "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
-          test "$(sha256sum "$sdk/cpu/wl82/tools/cfg_tool.bin" | awk '{print $1}')" = \
-            "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b"
-          test "$(sha256sum "$sdk/cpu/wl82/tools/cfg/eq_cfg_hw.bin" | awk '{print $1}')" = \
-            "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d"
-          echo "AC79_SDK_INPUTS_OK=1"
-
-      - name: Build WP2.1 device package
-        shell: bash
-        run: |
-          set -euo pipefail
-          JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain" \
-          AC79_SDK="$RUNNER_TEMP/ac79-sdk" \
-          ./build.sh --release 0.1 | tee build/wp2_1_device_build.log
-
-      - name: Verify identity, safety, runtime equivalence and budgets
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s build/fm1tracker.bin
-          test -s build/fm1tracker-0.1.fwsc
-          grep -F "register access: hal/ only (src/, loader/ clean)" build/wp2_1_device_build.log
-          grep -E "image [0-9]+ B of [0-9]+; RAM \.data\+\.bss [0-9]+ B of 98304; pool [0-9]+ B of 344064" \
-            build/wp2_1_device_build.log
-
-          # WP2.1 is compile-time-only: no storage is instantiated and no runtime
-          # behavior should enter the image. Require byte-identical Phase 1 outputs.
-          test "$(sha256sum build/fm1tracker.bin | awk '{print $1}')" = \
-            "7b313502f2ab222e6ecf19f970772a36f314bce7c880b505157d4d5a2e4dfbaf"
-          test "$(sha256sum build/fm1tracker-0.1.fwsc | awk '{print $1}')" = \
-            "a3afcc069e4a9fe161f8470f477a76720b411fc6f302ebcf862c272a9a683bc2"
-
-          PYTHONPATH=tools python3 - <<'PY'
-          from pathlib import Path
-          from fm1_install import product_of
-          raw = Path("build/fm1tracker-0.1.fwsc").read_bytes()
-          product = product_of(raw)
-          assert product == "FM-1_987", product
-          print("PACKAGE_IDENTITY=" + product)
-          PY
-
-          python3 - <<'PY' | tee build/wp2_1_metrics.txt
-          import os
-          import re
-          from pathlib import Path
-
-          text = Path("build/wp2_1_device_build.log").read_text()
-          m = re.search(r"image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064", text)
-          assert m, "resource line not found"
-          image, image_limit, ram, pool = map(int, m.groups())
-          base_image, base_ram, base_pool = 55088, 12368, 30720
-          print("WP2.1 compile-time tracker model metrics")
-          print(f"commit={os.environ['GITHUB_SHA']}")
-          print(f"image_bytes={image}")
-          print(f"image_limit_bytes={image_limit}")
-          print(f"image_delta_bytes={image - base_image}")
-          print(f"normal_ram_bytes={ram}")
-          print(f"normal_ram_delta_bytes={ram - base_ram}")
-          print(f"pool_ram_bytes={pool}")
-          print(f"pool_ram_delta_bytes={pool - base_pool}")
-          print("FmtStep_bytes=8")
-          print("FmtPattern_bytes=4096")
-          print("FmtSong_core_bytes=65896")
-          print("future_lock_budget_bytes=16384")
-          print("budgeted_song_plus_lock_bytes=82280")
-          print("editable_song_pool_budget_bytes=98304")
-          assert image == base_image
-          assert ram == base_ram
-          assert pool == base_pool
-          PY
-
-          echo "WP2_1_RUNTIME_AND_BUDGET_BASELINE_UNCHANGED=1"
-
-      - name: Upload WP2.1 evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: wp2-1-compile-time-model-evidence
-          path: |
-            build/wp2_1_model_tests.log
-            build/wp2_1_device_build.log
-            build/wp2_1_metrics.txt
-            build/fm1tracker.bin
-            build/fm1tracker-0.1.fwsc
-            build/host/fm1tracker.wav
-            build/host/fm1tracker-*.png
-          if-no-files-found: error
-          retention-days: 14
+          sh tests/run_model_tests.sh
