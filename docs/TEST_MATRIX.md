@@ -119,18 +119,29 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | Assigned parameter IDs unique and deterministic | required | target compile | n/a | ✅ exactly 4 initial IDs |
 | GLOBAL/master namespace remains reserved/unassigned | required | target compile | n/a | ✅ `0xE0..0xEF` |
 | Tracker effect-command IDs remain separate from parameter IDs | inspect/test | compile | n/a | ✅ D027 |
-| Registry translation unit compiles on JieLi PI32v2 | host n/a | required | n/a | ✅ WP3.1 run `40025790828` |
+| Registry translation unit compiles on JieLi PI32v2 | host n/a | required | n/a | ✅ WP3.1/WP3.2 |
 | WP3.1 preserves all Phase 2 unit/full-app regressions | required | required | later | ✅ run `40025790828` |
 | WP3.1 default WAV remains byte-identical | required | required | n/a | ✅ frozen Phase 2 SHA-256 |
 | WP3.1 runtime cost is zero | n/a | required | n/a | ✅ +0 B image / +0 B RAM / +0 B pool |
-| Maximum four locks per step enforced | required | required | optional | ⬜ WP3.2 |
-| Concrete lock record/capacity/pool budget frozen | required | required | n/a | ⬜ D028 / WP3.2 |
-| Lock pool reset/allocation/free is deterministic | required | required | n/a | ⬜ WP3.2 |
-| Pool exhaustion fails safely and recovers | required | required | n/a | ⬜ WP3.2 |
-| Invalid/unassigned parameter IDs rejected by lock storage | required | required | n/a | ⬜ WP3.2 |
-| Duplicate parameter policy deterministic | required | required | n/a | ⬜ WP3.2 |
-| Replace existing parameter lock deterministic | required | required | required | ⬜ WP3.3/WP3.4 |
-| Delete lock cannot corrupt neighbors | required | required | required | ⬜ WP3.4 |
+| Concrete lock record/capacity/pool budget frozen | required | required | n/a | ✅ D028 / WP3.2 |
+| `FmtLock` exact 8 B layout and offsets | required | target compile | n/a | ✅ WP3.2 |
+| Global lock storage exactly 2,048 records / 16,384 B | required | required | n/a | ✅ `.pool` `0x01C30168` |
+| Allocator runtime exactly 4 B | required | required | n/a | ✅ `.bss` `0x01C0B080` |
+| All 8,192 step-owner mappings unique | required | compile | n/a | ✅ exhaustive WP3.2 test |
+| Maximum four locks per individual step enforced | required | required | optional | ✅ fifth prevalidated ID -> STEP_FULL |
+| Lock pool reset/free-list contains every record exactly once | required | compile | n/a | ✅ WP3.2 |
+| Active lists strictly sorted by parameter ID | required | compile | n/a | ✅ WP3.2 |
+| Duplicate parameter set replaces in place without allocation | required | compile | later | ✅ WP3.2 storage API |
+| Pool exhaustion fails safely and one free record recovers exactly | required | compile | n/a | ✅ WP3.2 |
+| Invalid/unassigned parameter IDs rejected by lock storage | required | compile | n/a | ✅ WP3.2 |
+| Cross-owner/in-range corruption rejected without neighbor mutation | required | compile | n/a | ✅ WP3.2 owner check |
+| Malformed/out-of-range/unsorted/overlong chains fail without partial mutation | required | compile | n/a | ✅ WP3.2 |
+| WP3.2 preserves all Phase 2 + WP3.1 regressions | required | required | later | ✅ run `40038453521` |
+| WP3.2 default WAV remains byte-identical | required | required | n/a | ✅ `453dc6...3440` |
+| WP3.2 final resource delta measured/frozen | n/a | required | n/a | ✅ +136 B image / +4 B RAM / +16,384 B pool |
+| Hold-step + encoder target isolation deterministic | required | required | required | ⬜ WP3.3 |
+| Encoder-to-parameter/value mapping documented and deterministic | required | required | required | ⬜ WP3.3 |
+| User-facing delete/clear cannot corrupt neighbors | required | required | required | ⬜ WP3.4 |
 | Lock application does not mutate stored base instrument | required | required | observable | ⬜ WP3.5+ |
 | Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
 | Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
@@ -139,6 +150,7 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 Phase 3 evidence so far:
 
 - `WP3_1_VERIFICATION.md`
+- `WP3_2_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 
