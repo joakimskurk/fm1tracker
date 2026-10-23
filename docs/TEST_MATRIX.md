@@ -62,8 +62,16 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Bulk transport advance equals frame-by-frame timing | required | compile | n/a | ✅ WP2.3 representative BPM/frame matrix |
 | Firmware transport path avoids float, firmware 64-bit math and runtime division | inspect/test | required | n/a | ✅ WP2.3 scope/build gate |
 | Transport state is bounded ordinary RAM and does not grow pool | n/a | required | n/a | ✅ 8 B `.bss`, normal RAM +8 B, pool +0 B |
-| WP2.3 host audio remains unchanged while transport is stopped | required | required | n/a | ✅ exact baseline WAV SHA-256 |
-| Audible one-track 64-step pattern loops on transport boundaries | required | required | later | ⬜ WP2.4 |
+| WP2.3 host audio remains unchanged while transport is stopped | required | required | n/a | ✅ exact pre-playback baseline WAV SHA-256 |
+| Step 0 dispatches before playback frame 0 | required | compile | later | ✅ WP2.4 run `39991490860` |
+| Audible one-track 64-step pattern loops on exact transport boundaries | required | required | later | ✅ WP2.4, frame 352800 at 120 BPM |
+| Fractional step boundary is not callback-quantized | required | compile | later | ✅ WP2.4, step 1 begins frame 5513 inside 256-frame grouping |
+| EMPTY produces no new playback note event | required | compile | later | ✅ WP2.4 |
+| TIE/OFF cannot become accidental raw note pitches before semantics are implemented | required | compile | n/a | ✅ WP2.4 safe no-event behavior |
+| Audible host tracker output is deterministic | required | required | n/a | ✅ WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440` |
+| Tracker audio exists before simulated manual audition input | required | n/a | n/a | ✅ first 100 ms contains 8,820 non-zero stereo samples |
+| Continuous tracker playback cannot trigger inherited flash erase via `quiet()` | inspect/host behavior | compile | preferred | ✅ WP2.4 counts proof lane as sounding; settings write deferred |
+| WP2.4 resource delta recorded | n/a | required | n/a | ✅ +364 B image, +20 B normal RAM, +0 B pool |
 | Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ⬜ WP2.5 |
 | STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
 | Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
@@ -79,6 +87,8 @@ WP2.1 compile-time-model evidence is recorded in `WP2_1_VERIFICATION.md`.
 WP2.2 pattern-store evidence is recorded in `WP2_2_VERIFICATION.md`. The full host/device verification run is `39986704633`; physical FM-1 behavior remains untested.
 
 WP2.3 transport evidence is recorded in `WP2_3_VERIFICATION.md`. The full host/device verification run is `39988630290`. Timing is verified mathematically/host-side and through the device build; physical callback execution time remains unmeasured.
+
+WP2.4 audible-playback evidence is recorded in `WP2_4_VERIFICATION.md`. The final host/device verification run is `39991490860`; physical FM-1 audio and callback execution time remain unverified.
 
 ## Phase 3 p-locks/effects
 
