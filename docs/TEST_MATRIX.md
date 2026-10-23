@@ -110,16 +110,35 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 
 ## Phase 3 p-locks/effects
 
-| Check | Automated host | Hardware |
-|---|---:|---:|
-| Maximum four locks per step enforced | required | optional |
-| Replace existing parameter lock deterministic | required | required |
-| Delete lock cannot corrupt neighbors | required | required |
-| Stable parameter IDs versioned/documented | required | n/a |
-| Lock application does not mutate stored base instrument | required | observable |
-| Queue overflow policy deterministic | required | stress test |
-| Note delay/cut timing bounded | required | required |
-| Retrig timing/count bounded | required | required |
+| Check | Automated host | Firmware/device build | Hardware | Status |
+|---|---:|---:|---:|---|
+| `FmtParamId` exactly one byte | required | target compile | n/a | ✅ WP3.1 / D027 |
+| NONE `0x00` and INVALID `0xFF` never assigned/lockable | required | target compile | n/a | ✅ WP3.1 |
+| Parameter namespaces exact/non-overlapping | required | target compile | n/a | ✅ all 256 byte values classified |
+| Namespace membership does not imply assignment | required | target compile | n/a | ✅ WP3.1 |
+| Assigned parameter IDs unique and deterministic | required | target compile | n/a | ✅ exactly 4 initial IDs |
+| GLOBAL/master namespace remains reserved/unassigned | required | target compile | n/a | ✅ `0xE0..0xEF` |
+| Tracker effect-command IDs remain separate from parameter IDs | inspect/test | compile | n/a | ✅ D027 |
+| Registry translation unit compiles on JieLi PI32v2 | host n/a | required | n/a | ✅ WP3.1 run `40025790828` |
+| WP3.1 preserves all Phase 2 unit/full-app regressions | required | required | later | ✅ run `40025790828` |
+| WP3.1 default WAV remains byte-identical | required | required | n/a | ✅ frozen Phase 2 SHA-256 |
+| WP3.1 runtime cost is zero | n/a | required | n/a | ✅ +0 B image / +0 B RAM / +0 B pool |
+| Maximum four locks per step enforced | required | required | optional | ⬜ WP3.2 |
+| Concrete lock record/capacity/pool budget frozen | required | required | n/a | ⬜ D028 / WP3.2 |
+| Lock pool reset/allocation/free is deterministic | required | required | n/a | ⬜ WP3.2 |
+| Pool exhaustion fails safely and recovers | required | required | n/a | ⬜ WP3.2 |
+| Invalid/unassigned parameter IDs rejected by lock storage | required | required | n/a | ⬜ WP3.2 |
+| Duplicate parameter policy deterministic | required | required | n/a | ⬜ WP3.2 |
+| Replace existing parameter lock deterministic | required | required | required | ⬜ WP3.3/WP3.4 |
+| Delete lock cannot corrupt neighbors | required | required | required | ⬜ WP3.4 |
+| Lock application does not mutate stored base instrument | required | required | observable | ⬜ WP3.5+ |
+| Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
+| Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
+| Retrig timing/count bounded | required | required | required | ⬜ WP3.7 |
+
+Phase 3 evidence so far:
+
+- `WP3_1_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 
