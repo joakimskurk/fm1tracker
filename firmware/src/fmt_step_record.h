@@ -13,9 +13,10 @@
 typedef struct {
     uint8_t active;
     uint8_t gesture_latched;
+    uint8_t fx_pending;
 } FmtStepRecord;
 
-FMT_STATIC_ASSERT(step_record_state_size_is_2, sizeof(FmtStepRecord) == 2u);
+FMT_STATIC_ASSERT(step_record_state_size_is_3, sizeof(FmtStepRecord) == 3u);
 
 void fmt_step_record_reset(FmtStepRecord *record);
 int fmt_step_record_enter(FmtStepRecord *record,
@@ -46,5 +47,16 @@ int fmt_step_record_write_special(FmtStepRecord *record,
                                   FmtPatternInput *input,
                                   const FmtTransport *transport,
                                   uint32_t special_note);
+
+/* D025 testable button grammar. Inputs are edge booleans, not hardware IDs:
+ * FX press arms a pending REST; SELECT while pending writes OFF and cancels the
+ * REST; SELECT alone writes TIE; FX release while still pending writes EMPTY.
+ * Returns 1 only when one special row was actually written. */
+int fmt_step_record_special_input(FmtStepRecord *record,
+                                  FmtPatternInput *input,
+                                  const FmtTransport *transport,
+                                  int fx_pressed,
+                                  int fx_released,
+                                  int select_pressed);
 
 #endif /* FM1TRACKER_FMT_STEP_RECORD_H */
