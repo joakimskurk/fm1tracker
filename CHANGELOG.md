@@ -103,13 +103,31 @@ The clean platform/identity/build baseline is now reproducible and budgeted. No 
 - Kept firmware transport free of float, runtime division and 64-bit arithmetic.
 - Added host tests proving bulk/frame-by-frame equivalence and exact long-run behavior against an independent host-only rational reference: six one-hour runs plus a max-uint16 BPM test.
 - Integrated transport into the real audio frame domain while deliberately leaving it stopped, so WP2.3 introduces no row dispatch or audible playback.
-- Preserved the WP2.2 song store at `.pool` address `0x01C20000`; transport state is 8 B in `.bss` at `0x01C0B050`.
+- Preserved the WP2.2 song store at `.pool` address `0x01C20000`; transport state is 8 B in `.bss`.
 - Host WAV remains byte-identical to the Phase 1/WP2.1/WP2.2 baseline.
 - Full JieLi device build and inherited safety checks pass with package identity `FM-1_987`.
 - Measured app image at 55,328 B (**+140 B** vs WP2.2), normal RAM at 12,376 B (**+8 B**) and pool RAM unchanged at 96,616 B (**0 B delta**).
 - Final verification: Actions run `39988630290`, job `120534295734`.
 - Detailed evidence: `docs/WP2_3_VERIFICATION.md`.
 
+### WP2.4 - One-track audible playback
+
+- Added a narrow `FmtPlayback` layer fixed to pattern 0 / track 0 for the first audible tracker proof.
+- Frozen D021: step 0 dispatches before playback frame 0; each frame renders first, then ticks transport, so a crossed row becomes active on the next rendered frame.
+- Added a deterministic 16-note proof melody with notes every four steps and a dedicated monophonic sine proof voice reusing the existing integer oscillator primitive.
+- Kept EMPTY as no event/sustain and made TIE/OFF safe no-events until their real semantics arrive in WP2.8.
+- Verified exact in-block event timing: at 120 BPM step 1 starts on frame 5513 and the 64-step loop returns on frame 352800.
+- Added callback-grouped host tests proving the event trace does not quantize to 256-frame callback edges.
+- First 100 ms of host audio contains 8,820 non-zero stereo samples before any simulated manual key input, proving the tracker lane itself is audible.
+- Frozen deterministic host WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
+- Added startup handoff so the already-enabled audio IRQ cannot read the pool-backed song store before `app_main()` has reset and seeded it.
+- Corrected the inherited `quiet()` gate so flash settings writes are deferred while the continuously sounding proof lane is active instead of risking an erase-induced playback stall.
+- Full JieLi device build and inherited safety checks pass with package identity `FM-1_987`.
+- Final resources: 55,692 B image (**+364 B** vs WP2.3), 12,396 B normal RAM (**+20 B**) and 96,616 B pool RAM (**0 B delta**).
+- Final verified artifacts: `fm1tracker.bin` `09840601fc6d09f43f27a0f241bc7df371066904e4fa61caaeb33f891e3ed0aa`; `fm1tracker-0.1.fwsc` `4853dfbb4bbcd0dd08a3a600f7e79a430bd59202e0e5ad022ae73bc68b0147fd`.
+- Final verification: Actions run `39991490860`, job `120544086455`.
+- Detailed evidence: `docs/WP2_4_VERIFICATION.md`.
+
 ### Next
 
-**WP2.4 — one-track audible playback.** Use the verified transport and existing baseline sine voice to prove one logical track through a deterministic 64-step loop. Issue #12 is prepared. WP2.4 implementation has not started yet.
+**WP2.5 — 16-step page input.** Map the 16 white keys to four deterministic 16-step pages covering all 64 rows without writing notes yet. Issue #13 is prepared; implementation has not started.
