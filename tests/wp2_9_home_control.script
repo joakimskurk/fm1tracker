@@ -1,0 +1,3 @@
+# Remain in the baseline HOME/performance context for a pixel-identical
+# comparison against SEQ -> HOME return.
+3100 end
