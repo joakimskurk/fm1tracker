@@ -131,27 +131,46 @@ Evidence: `WP2_5_VERIFICATION.md`.
 
 **Goal:** prototype direct eight-track selection with black keys inside the explicit SEQ context while preserving D022 white-key page addressing and keeping playback/edit semantics narrow.
 
-Status: **READY TO START** — issue #14
+Status: **COMPLETE — 2026-10-23** — issue #14
+
+Verified:
+- D023 maps physical black-key indexes `1,3,5,8,10,13,15,17` bijectively to logical tracks `0..7`;
+- remaining black-key indexes `20,22,25` are reserved and rejected;
+- selection is active only in SEQ/pattern context;
+- PERFORMANCE context keeps normal black-key audition/MIDI behavior;
+- selected track survives HOME/SEQ context changes;
+- track selection does not move page/local/global step;
+- white-key step selection and page navigation preserve selected track;
+- complete `FmtSong` remains byte-identical across cursor/track navigation;
+- held PERFORMANCE notes still receive NOTE OFF when released after entering SEQ;
+- WP2.4 proof playback remains fixed to logical track 0 and the frozen host WAV remains byte-identical;
+- `FmtPatternInput` is 4 B at `.bss` `0x01C0B060`;
+- final resources: 56,060 B image, 12,400 B normal RAM, 96,616 B pool RAM;
+- delta vs WP2.5: +80 B image, +0 B normal RAM, +0 B pool;
+- final verification run `39995856373` passed with package identity and inherited device safety gates green.
+
+Evidence: `WP2_6_VERIFICATION.md`.
+
+## WP2.7 — STEP REC note entry
+
+**Goal:** write one deterministic ordinary note to the currently selected D022/D023 step and track while STEP REC is active, then advance the edit cursor exactly one logical step.
+
+Status: **READY TO START** — issue #15
 
 Required direction:
-- choose and record the exact eight-black-key mapping before code;
-- selected logical track is bounded to `0..7`;
-- mapping acts only in SEQ/pattern context;
-- remaining black keys remain reserved/rejected;
-- D022 white-key/page behavior remains unchanged;
-- track selection changes edit/cursor target only and does not silently expand WP2.4 into multitrack playback;
-- no song data mutation from selection;
-- host-test all mappings, context transitions, reserved keys, D022 regression and performance-note release safety;
-- preserve the frozen audible host WAV and record device resource delta.
+- define the exact REC/STEP REC entry/exit and transport-stopped contract before code;
+- use the existing selected track and 64-step cursor as the write target;
+- one valid note gesture writes exactly one ordinary note event to exactly one step/track;
+- successful note entry advances exactly one logical step with explicit step-63 boundary behavior;
+- performance audition remains intact outside STEP REC;
+- ambiguous chord/multi-key behavior must be explicitly resolved or safely deferred, not left order-dependent;
+- host-test write target, neighbor isolation, one-step advance, wrap and context gating;
+- preserve prior regressions and measure device resource delta.
 
 Non-goals:
-- no STEP REC/note writes — WP2.7;
 - no REST/TIE/OFF editing — WP2.8;
 - no tracker screen — WP2.9;
 - no general multitrack playback, p-locks, new engine or persistence.
-
-## WP2.7 — STEP REC note entry
-Keyboard note entry advances the cursor deterministically.
 
 ## WP2.8 — REST / TIE / NOTE-OFF semantics
 Implement and host-test explicit event semantics before more effects.
