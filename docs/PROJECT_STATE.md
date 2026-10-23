@@ -18,58 +18,74 @@ Phase 2 branch start / completed Phase 1 head:
 
 `3ed4b65d7cda15c5831533f153f91e9014a9fde7`
 
-WP2.1 through WP2.6 are complete. No WP2.7 implementation has started.
+WP2.1 through WP2.6 are complete. WP2.7 is the only active implementation package.
 
 ## Current milestone
 
 **WP2.7 - STEP REC note entry**
 
-State: **READY TO START**
+State: **IN PROGRESS - 2026-10-23**
 
 GitHub issue: #15
 
+WP2.7 start head:
+
+`6996dc8a38f41ca8bf361c5e897b3f3342f03e4c`
+
 ### Exact objective
 
-Add the first actual tracker edit operation: while an explicit STEP REC context is active, write one deterministic ordinary note to the currently selected D022 global step and D023 logical track, then advance the edit cursor exactly one logical step.
+Add the first actual tracker edit operation: while explicit STEP REC is active and transport is stopped, write exactly one deterministic ordinary note to pattern 0 at the currently selected D022 global step and D023 logical track, then advance the cursor exactly one logical step.
 
-Before WP2.7 source code, follow `EXECUTION_PROTOCOL.md`: mark WP2.7 `IN PROGRESS`, record the exact STEP REC entry/exit and stopped-transport contract, define the monophonic note-entry rule and exact step-63 advance/wrap behavior, then implement only that package.
+### D024 STEP REC contract
 
-### Existing cursor/input foundation
+D024 is accepted before implementation:
 
-- D022 PERFORMANCE/SEQ context remains authoritative;
-- white-key indexes `0,2,4,6,7,9,11,12,14,16,18,19,21,23,24,26` select local steps `0..15` in SEQ;
-- four clamped pages cover global steps `0..63` exactly;
-- D023 black-key indexes `1,3,5,8,10,13,15,17` select logical tracks `0..7` in SEQ;
-- black-key indexes `20,22,25` remain reserved;
-- the selected track survives HOME/SEQ context changes;
-- page/step navigation preserves selected track and track selection preserves page/step;
-- navigation/selection alone cannot mutate `FmtSong`;
-- PERFORMANCE retains normal audition/MIDI and safe held-note release across a context change.
+- REC enters STEP REC only when transport is stopped; REC while transport runs is ignored;
+- successful REC entry forces D022 pattern/SEQ context while preserving selected page/local step and D023 track;
+- REC exits STEP REC but remains in pattern context;
+- HOME exits STEP REC and returns to PERFORMANCE;
+- PLAY while STEP REC is active exits STEP REC before playback resumes; outside STEP REC PLAY toggles D020 stop/resume;
+- all 27 note keys are pitch keys in STEP REC, not D022/D023 selectors;
+- `OCT-` / `OCT+` control keyboard octave in STEP REC rather than page navigation;
+- stored note equals audition note: `53 + 12 * octave + key_index`, with octave `-2..+2`, producing physical range 29..103;
+- at the beginning of one unlatched gesture, the lowest newly pressed physical key is the single written note;
+- the write gesture remains latched until all physical note keys are released, so extra presses can audition but cannot write or advance again;
+- successful writes target pattern 0, current selected track and current global step;
+- only `FmtStep.note` is modified; instrument, volume, effect, effect value, flags and lock-head are preserved;
+- cursor advances exactly one global step modulo 64; step 63 wraps to step 0 / page 0 / local 0;
+- inactive STEP REC, running transport, invalid note/cursor/track state or latched gesture produce no mutation and no cursor movement;
+- REST/TIE/NOTE-OFF remain WP2.8.
 
-### WP2.7 questions that must be frozen before code
+### Expected implementation files
 
-1. exact REC-button entry/exit behavior for STEP REC;
-2. requirement that transport be stopped before STEP REC can write;
-3. exact physical note-key to stored MIDI-note transformation, including current octave handling;
-4. whether the first WP2.7 implementation accepts only one note-key press at a time or applies another deterministic monophonic rule when multiple keys arrive together;
-5. successful-write cursor advance semantics, including exact step `63 -> 0` behavior;
-6. audition behavior during STEP REC without turning WP2.7 into live recording;
-7. what happens to instrument/volume fields on a note-only write; existing inherit/default sentinels must not be overwritten accidentally.
+- `firmware/src/fmt_pattern_input.h` / `fmt_pattern_input.c` - add deterministic one-step cursor advance with `63 -> 0` wrap;
+- `firmware/src/fmt_step_record.h` / `fmt_step_record.c` - small bounded STEP REC state and exact note-write gate;
+- `firmware/src/dinghy.c` - REC/PLAY/HOME handling, STEP REC octave behavior, pitch audition and deterministic one-write gesture routing;
+- `tests/test_fmt_step_record.c` / runner - exact write target, neighbor/field preservation, gating, latch and wrap tests;
+- focused host gesture script/runner - prove stopped-transport REC entry, note audition, OCT behavior, REC exit and PLAY safety;
+- `.github/workflows/wp2_7_step_record_verify.yml` - prior regressions, focused STEP REC tests, frozen host audio, device safety and measured resources;
+- documentation/status files only as required at closeout.
 
-### WP2.7 required verification
+### Required verification
 
-- no note write outside explicit STEP REC;
-- a valid note writes exactly the intended selected track/global step;
-- neighboring tracks/steps remain unchanged;
-- stored note is an ordinary deterministic `0..127` value;
-- successful note write advances exactly one logical step;
-- step-63 boundary behavior is deterministic and host-tested;
-- selected track remains correct through writes;
-- PERFORMANCE behavior remains intact outside STEP REC;
-- WP2.1-WP2.6 regressions remain green;
-- full JieLi device build, identity and inherited safety checks remain green;
-- resource delta is measured against WP2.6;
-- WP2.8 REST/TIE/OFF semantics are not started in the same package.
+1. no write while STEP REC is inactive;
+2. no write while transport is running;
+3. REC cannot enter while transport runs;
+4. valid write changes exactly one selected pattern-0 track/step note byte;
+5. all other fields in the target step are preserved;
+6. neighboring tracks/steps remain unchanged;
+7. note value equals deterministic physical audition pitch and stays `0..127`;
+8. simultaneous key downs choose the lowest pitch for the single write;
+9. additional presses before all keys release cannot write/advance again;
+10. successful write advances exactly one global step;
+11. step 63 wraps exactly to step 0 while preserving selected track;
+12. STEP REC uses OCT buttons for pitch octave, while ordinary SEQ keeps D022 page navigation;
+13. PERFORMANCE and ordinary SEQ behavior remain intact outside STEP REC;
+14. held audition notes still receive NOTE OFF across mode changes;
+15. WP2.1-WP2.6 regressions remain green;
+16. the untouched default host run preserves the frozen WP2.4 WAV hash;
+17. full JieLi build, identity and inherited safety gates remain green;
+18. image/normal-RAM/pool delta is recorded against WP2.6.
 
 ### Strict WP2.7 non-goals
 
@@ -81,7 +97,8 @@ Before WP2.7 source code, follow `EXECUTION_PROTOCOL.md`: mark WP2.7 `IN PROGRES
 - no p-lock allocation/effects;
 - no new synth engine;
 - no song/order mode or persistence;
-- no HAL/loader/update redesign.
+- no HAL/loader/update redesign;
+- do not begin WP2.8 in this package.
 
 ## Completed WP2.6 checkpoint
 
@@ -184,12 +201,13 @@ Physical FM-1 black-key ergonomics, page/track discoverability, install/boot/aud
 - D021: frame-0 one-lane proof playback timing remains frozen.
 - D022: explicit PERFORMANCE/SEQ context and white-key four-page addressing remain frozen for the current prototype layer.
 - D023: selected track is bounded `0..7`, SEQ-only and editor-only.
+- D024: STEP REC is stopped-transport, one-note-per-gesture note entry with exact modulo-64 cursor advance.
 - Preserve WP2.1-WP2.6 regression coverage.
 - No floating point in firmware DSP and no runtime 64-bit division.
 
 ## Next action
 
-Start WP2.7 / issue #15 as its own package. Before source code, mark it IN PROGRESS and record the exact STEP REC entry/exit, stopped-transport requirement, note/chord policy and step-63 cursor-advance contract. Implement only ordinary note entry and one-step advance. Do **not** begin WP2.8 REST/TIE/NOTE-OFF semantics.
+Implement only WP2.7 according to issue #15 and D024. Add bounded STEP REC editor state, deterministic note-only writes and modulo-64 cursor advance, then verify focused host behavior plus all inherited regressions/device budgets. Do **not** begin WP2.8 REST/TIE/NOTE-OFF semantics.
 
 ## Last relevant checkpoints
 
@@ -202,7 +220,8 @@ Start WP2.7 / issue #15 as its own package. Before source code, mark it IN PROGR
 - WP2.6 start: `0e7d1794325a25e350ffefe2783ca84738a075c5`
 - WP2.6 verified implementation/workflow: `707d0b24eb15c19193136f68e7c9f4e1d0a7dc7d`
 - WP2.6 final Actions run: `39995856373`
+- WP2.7 start: `6996dc8a38f41ca8bf361c5e897b3f3342f03e4c`
 
 ## Last updated
 
-2026-10-23 - WP2.6 completed and verified. WP2.7 / issue #15 is READY TO START; no WP2.7 implementation has been written.
+2026-10-23 - WP2.7 started. D024 is recorded before source code. STEP REC note entry is the only active implementation package; WP2.8 has not started.
