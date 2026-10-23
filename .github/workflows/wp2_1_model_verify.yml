@@ -49,6 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_model_tests.sh | tee build/wp2_1_model_tests.log
           grep -F "FMT_MODEL_TESTS_OK=1" build/wp2_1_model_tests.log
 
@@ -124,6 +125,7 @@ jobs:
           PY
 
           python3 - <<'PY' | tee build/wp2_1_metrics.txt
+          import os
           import re
           from pathlib import Path
 
@@ -133,8 +135,9 @@ jobs:
           image, image_limit, ram, pool = map(int, m.groups())
           base_image, base_ram, base_pool = 55088, 12368, 30720
           print("WP2.1 compile-time tracker model metrics")
-          print(f"commit={Path('.git/HEAD').read_text().strip()}")
+          print(f"commit={os.environ['GITHUB_SHA']}")
           print(f"image_bytes={image}")
+          print(f"image_limit_bytes={image_limit}")
           print(f"image_delta_bytes={image - base_image}")
           print(f"normal_ram_bytes={ram}")
           print(f"normal_ram_delta_bytes={ram - base_ram}")
