@@ -12,7 +12,7 @@ Legend:
 
 | Check | Host | Firmware build | Physical FM-1 | Status |
 |---|---:|---:|---:|---|
-| Pinned Dinghy provenance complete | n/a | n/a | n/a | 🟨 |
+| Pinned Dinghy provenance complete | n/a | n/a | n/a | ✅ |
 | Pristine Dinghy host build | required | n/a | n/a | ⬜ |
 | Pristine Dinghy firmware build | n/a | required | optional | ⬜ |
 | FM1Tracker renamed host build | required | n/a | n/a | ⬜ |
