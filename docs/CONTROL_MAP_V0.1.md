@@ -39,26 +39,7 @@ MASTER remains master output level through the platform.
 
 Keyboard: plays the current instrument normally.
 
-Suggested screen content:
-
-```text
-FM1TRACKER        8-BIT
-PAT 03  TRK 2     124 BPM
-PULSE  INST 05
-
-[compact transport / pattern status]
-
-SEQ=PATTERN   REC=STEP REC
-```
-
-Encoders:
-
-- SELECT: track
-- ALGORITHM: engine/voice type within current sound mode
-- KNOB1..4: four primary performance parameters of the current instrument
-- PRESETS: instrument slot
-
-The four primary parameters are engine-defined but stable enough to learn. Example for 8-BIT pulse: DUTY, ENV, PITCH/FINE, LEVEL.
+Current Phase 2 HOME screen remains the inherited/simple performance surface. Future engine work may enrich it, but WP2.9 explicitly preserves HOME ownership and proves that returning from SEQ restores it without tracker pixels.
 
 Future live-performance capture extends this mode rather than replacing it. The accepted direction is documented in `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
@@ -75,22 +56,88 @@ Pages:
 - 33-48
 - 49-64
 
-The corresponding key LED indicates whether the step contains a note/event and a brighter/blinking state may indicate the playhead/current edit step.
+D022 remains the current prototype mapping. OCT- / OCT+ select the previous/next 16-step page while in ordinary SEQ mode.
 
 ### Black keys = track/control candidates
 
 **Provisional:** the first eight black keys select tracks 1-8. The remaining black keys are reserved for fast page/mute/solo helpers after hardware usability testing.
 
-This mapping must be validated on physical hardware before it becomes permanent.
+This mapping is deterministic in software but must still be validated on physical hardware before it becomes permanent.
 
-### Pattern encoders
+### Current WP2.9 tracker screen
 
-- SELECT: move tracker cursor / row selection
-- ALGORITHM: select editable lane/column (NOTE, INST, VOL, FX, LOCK view)
-- KNOB1..4: context values / p-lock parameters
-- PRESETS: pattern slot
+D026/WP2.9 implements the first real tracker surface rather than the earlier candidate mockup.
 
-OCT- / OCT+: previous/next 16-step page while in SEQ mode and not in STEP REC.
+The 240×240 display shows **one selected logical track** and exactly **eight tracker rows** at a time. The edit cursor owns the viewport: each 16-step page is split into two fixed halves.
+
+Possible visible windows are:
+
+- 01-08
+- 09-16
+- 17-24
+- 25-32
+- 33-40
+- 41-48
+- 49-56
+- 57-64
+
+Playback does not scroll the edit viewport. If the playhead is outside the visible eight rows, its exact position remains visible as `PLYnn` in the header.
+
+The header exposes:
+
+- ordinary `SEQ` or `STEP REC` mode;
+- `CURnn` edit position;
+- `PLYnn` while running or `STOP` while stopped;
+- current BPM;
+- `P01` for the current Phase 2 pattern-0 editor/proof path;
+- selected track `T1..T8`;
+- current page `PG1/4..PG4/4`;
+- visible global row range.
+
+Cursor and playhead are deliberately independent:
+
+- `>` = selected edit row;
+- `*` = running playhead row;
+- `>*` = both on the same row.
+
+Current row columns are:
+
+```text
+ST NOTE IN VOL FX
+```
+
+Current note/special-event notation:
+
+- ordinary notes: tracker pitch such as `C-4`, `C#4`;
+- EMPTY / REST: `---`;
+- TIE: `===`;
+- NOTE OFF: `OFF`;
+- malformed/reserved note: `???`.
+
+Current placeholder rules while later editors are not implemented:
+
+- inherited instrument: `..`;
+- explicit instrument: UI `01..16`;
+- inherited volume: `...`;
+- explicit volume: `000..254`;
+- effect NONE: `---`;
+- any non-zero effect: `???` until Phase 3 freezes stable effect IDs/meaning.
+
+Ordinary SEQ footer:
+
+```text
+KEYS STEP/TRK  OCT PAGE
+```
+
+STEP REC footer:
+
+```text
+FX RST  SEL TIE  FX+SEL OFF
+```
+
+The tracker surface uses ten bounded dirty regions and renders at most two regions per main-loop poll. Drawing remains outside the audio ISR. Exact layout/formatting contract and verification are recorded in `WP2_9_SCREEN_CONTRACT.md` and `WP2_9_VERIFICATION.md`.
+
+The software layout is now deterministic, but physical readability, update feel and marker ergonomics remain provisional until Phase 7 hardware testing.
 
 ## 4. STEP REC
 
@@ -101,18 +148,7 @@ Entry:
 
 The D024/WP2.7 implementation requires the audio side to acknowledge a real stopped transport before REC can enter. REC while transport is running is ignored. PLAY while STEP REC is active exits STEP REC before playback resumes.
 
-The screen must always show that keyboard presses will be written, not merely auditioned once the tracker screen exists.
-
-Example direction:
-
-```text
-STEP REC     TRK 2
-PAT 03       17/64
-
-PLAY NOTE
-FX=REST SEL=TIE
-FX+SEL=OFF   OCT 4
-```
+The D026 tracker screen makes STEP REC explicit in the header and shows the current edit row plus D025 special-event notation directly.
 
 ### Note entry
 
@@ -143,14 +179,14 @@ REC exit, HOME and PLAY exit cancel any pending FX REST without writing it.
 
 All three special edits change only the note field and preserve the remaining step data.
 
-Playback semantics are also explicit:
+Playback semantics are explicit:
 
 - EMPTY / REST = no new pitch/gate command;
 - TIE = continue an already active note without retrigger;
 - NOTE OFF = release the active note;
 - special sentinel values are never interpreted as raw pitches.
 
-The control gestures remain subject to physical-hardware ergonomics testing in Phase 7 even though their current software semantics are now deterministic.
+The control gestures remain subject to physical-hardware ergonomics testing in Phase 7 even though their current software semantics are deterministic.
 
 ### Audition vs write
 
@@ -158,7 +194,7 @@ REC off: keyboard auditions only in PERFORMANCE; ordinary SEQ uses the keys for 
 
 REC on: all physical note keys audition, and exactly one deterministic note is written for each fully released STEP REC note gesture. REST/TIE/OFF use the button gestures above.
 
-This distinction must remain visually obvious.
+This distinction is now also explicit on the WP2.9 tracker display.
 
 ### End-of-pattern behavior
 
@@ -168,13 +204,13 @@ A project setting may later choose STOP AT END, but no such setting exists yet.
 
 ## 5. Parameter locks
 
-Primary gesture:
+Primary future gesture:
 
 1. select or hold a step via its white key;
 2. turn KNOB1..4;
 3. the changed parameter is stored as a lock on that step.
 
-Rules:
+Rules planned for Phase 3:
 
 - maximum four locks per step in V0.1;
 - turning a parameter that already has a lock replaces its value;
@@ -182,65 +218,23 @@ Rules:
 - the screen immediately shows the locked parameter name/value;
 - a locked step receives a distinct LED/UI marker.
 
-Deletion gesture candidate:
-
-- hold step + press EDIT, then select `CLEAR LOCKS`, or
-- hold step + hold SEL while turning the parameter back to `--`.
-
-Do not freeze the deletion gesture until the first host prototype.
+Deletion gesture remains unfrozen until the first Phase 3 prototype.
 
 ## 6. Focused step edit
 
-Press EDIT on a selected step to open a readable editor instead of forcing all data into a dense tracker grid.
+A readable focused editor remains planned as an accessibility layer for users who do not want to interpret compact tracker notation. It is not part of WP2.9 and its exact control behavior is not yet frozen.
 
-Suggested fields:
-
-```text
-STEP 17 / TRK 2
-NOTE   C#4
-INST   05
-VOL    92
-FX     VIBRATO
-VALUE  37
-LOCKS  3
-```
-
-SELECT navigates fields; encoder turns change values.
-
-This is the accessibility layer for users who do not want to interpret compact tracker notation.
-
-## 7. Tracker grid screen
-
-WP2.9 owns the first implementation. The 240×240 screen should show one track in detail rather than attempting a desktop multi-channel spreadsheet.
-
-Candidate direction before the WP2.9 design freeze:
-
-```text
-P03 T2  124     17-24
-
-16  B-3 05 78  ---
->17 C#4 05 92  V37
-18  --- .. ..  ---
-19  G-4 05 84  R03
-20  === .. ..  ---
-21  OFF .. ..  ---
-22  A-4 05 90  ---
-23  E-4 06 A0  ---
-```
-
-The exact note/special-event notation, visible-row count and selected-row/playhead markers must be frozen before WP2.9 source code. Readability wins over showing more rows.
-
-## 8. Playback editing
+## 7. Playback editing
 
 During playback:
 
-- white step LEDs follow playhead without destroying edit selection;
-- selected edit row and playhead must remain distinct;
+- D026 keeps playhead and selected edit row visually separate;
+- the playhead does not steal/scroll the cursor-owned edit viewport;
 - selecting steps and changing future p-locks is allowed only when shared-state handoff is atomic;
 - pattern/song structure edits that could invalidate currently executing data may be deferred until a safe boundary in early versions;
 - flash save remains unavailable while audio is active if the platform write path causes dropouts.
 
-## 9. Principles to test on hardware
+## 8. Principles to test on hardware
 
 The following must be explicitly evaluated before V1 control freeze:
 
@@ -251,5 +245,6 @@ The following must be explicitly evaluated before V1 control freeze:
 - whether page switching should remain on OCT buttons;
 - whether live parameter locking needs latch mode so the user does not need three hands;
 - whether the current lowest-note/full-release STEP REC chord behavior matches user expectation;
-- whether tracker rows/special-event notation are readable on 240×240;
+- whether D026 tracker rows, cursor/playhead markers and special-event notation are readable on the physical 240×240 display;
+- whether the max-two-region update policy feels visually smooth on hardware;
 - later, whether seamless live PLAY/REC and CHANNEL/GLOBAL performance FX feel immediate enough for the accepted live-performance direction.
