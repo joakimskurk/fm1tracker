@@ -8,20 +8,21 @@ This file records code/assets that FM1Tracker did not originate.
 - Pinned commit: `d44df7db09b98ccad2f1233b8f83f5f09c04829e`
 - License: GPL-3.0-only
 - Import date: 2026-10-23
-- Status: **baseline imported and pristine host-verified; WP1.4 FM1Tracker identity layer added without modifying the protected baseline app/platform/HAL/loader/build-driver implementation**
+- Status: **baseline imported, pristine verified, renamed as FM1Tracker and device-build verified; protected app/platform/HAL/loader/build-driver implementation remains unchanged through Phase 1**
 
 Upstream provenance at this commit:
 
 - FM-1 platform/HAL/loader/build tooling: Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments / Felucca, with SLOOP changes by isod89.
 - Dinghy app/platform wiring/host mode/docs: zvenson.
 
-FM1Tracker modifications are tracked through Git history. WP1.4 intentionally applies app/package/artifact identity around the verified upstream-derived baseline instead of rewriting the baseline implementation before renamed verification is complete.
+FM1Tracker modifications are tracked through Git history. Phase 1 applies app/package/artifact identity around the verified upstream-derived baseline instead of rewriting the proven platform implementation.
 
 See:
 - `docs/UPSTREAM_DINGHY.md` for the baseline policy;
 - `docs/DINGHY_IMPORT_MANIFEST.md` for the exact pinned files, upstream blob IDs, exclusions and SDK build inputs;
 - `docs/WP1_3_VERIFICATION.md` for pristine verification;
-- `docs/WP1_4_VERIFICATION.md` for identity-only verification.
+- `docs/WP1_4_VERIFICATION.md` for identity-only verification;
+- `docs/WP1_5_VERIFICATION.md` for the final renamed device-build/resource baseline.
 
 ## Terminus font
 
@@ -32,21 +33,36 @@ See:
 
 ## JieLi AC79 SDK build inputs
 
-Dinghy expects several build inputs from a separately obtained JieLi AC79 SDK checkout. The SDK files are **not** vendored into this repository merely to simplify setup.
+The pinned Dinghy documentation identifies the official JieLi SDK source as:
 
-Expected SDK:
+`https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git`
+
+Exact release/tag used by the verified FM1Tracker Phase 1 device build:
 
 `AC79NN_SDK_V1.2.1_2023-12-13`
 
-Pinned Dinghy checks the following external inputs under `$AC79_SDK/cpu/wl82/tools/`:
+The annotated tag resolves to commit:
+
+`d179b4484759423312073f5fbb232501aa491047`
+
+License: upstream Dinghy identifies this JieLi SDK release as Apache-2.0 for the build inputs it consumes. The SDK checkout is an **external build dependency** and is not vendored into FM1Tracker.
+
+Pinned Dinghy/FM1Tracker verifies these package inputs under `$AC79_SDK/cpu/wl82/tools/`:
 
 - `uboot.boot` — SHA-256 `4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4`
 - `cfg_tool.bin` — SHA-256 `276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b`
 - `cfg/eq_cfg_hw.bin` — SHA-256 `41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d`
 
-These SDK files are external build inputs, not FM1Tracker repository files. The project currently does not have an AC79 SDK checkout available in its CI environment, so full renamed device package verification remains pending WP1.5.
+WP1.5 GitHub Actions successfully shallow-cloned the exact official tag outside the repository, verified commit and hashes, and completed the FM1Tracker firmware/package build. See `docs/WP1_5_VERIFICATION.md`.
 
-Upstream Dinghy identifies the SDK license as Apache-2.0. Before automating acquisition or using any mirror, WP1.5 must verify the exact source/provenance and must not silently vendor SDK material into this repository.
+Local setup may use:
+
+```sh
+git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+  https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK
+```
+
+Do not commit the SDK checkout or copy its files into this repository merely for convenience.
 
 ## Furnace
 
