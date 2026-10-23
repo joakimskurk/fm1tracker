@@ -9,6 +9,14 @@ static const int8_t fmt_pattern_input_local_for_key[FMT_PATTERN_INPUT_KEY_COUNT]
     10, 11, -1, 12, -1, 13, 14, -1, 15
 };
 
+/* D023: first eight physical black keys select logical tracks 0..7. The final
+ * three black keys stay reserved. -1 means not a WP2.6 track selector. */
+static const int8_t fmt_pattern_input_track_for_key[FMT_PATTERN_INPUT_KEY_COUNT] = {
+    -1,  0, -1,  1, -1,  2, -1, -1,  3,
+    -1,  4, -1, -1,  5, -1,  6, -1,  7,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+
 void fmt_pattern_input_reset(FmtPatternInput *input)
 {
     if (!input)
@@ -16,6 +24,7 @@ void fmt_pattern_input_reset(FmtPatternInput *input)
     input->context = FMT_PATTERN_CONTEXT_PERFORMANCE;
     input->page = 0u;
     input->local_step = 0u;
+    input->selected_track = 0u;
 }
 
 void fmt_pattern_input_enter_pattern(FmtPatternInput *input)
@@ -53,6 +62,24 @@ int fmt_pattern_input_key_to_local(uint32_t key_index, uint8_t *local_step)
     return 1;
 }
 
+int fmt_pattern_input_key_to_track(uint32_t key_index, uint8_t *track)
+{
+    int8_t mapped;
+
+    if (track)
+        *track = 0u;
+    if (key_index >= FMT_PATTERN_INPUT_KEY_COUNT)
+        return 0;
+
+    mapped = fmt_pattern_input_track_for_key[key_index];
+    if (mapped < 0)
+        return 0;
+
+    if (track)
+        *track = (uint8_t)mapped;
+    return 1;
+}
+
 int fmt_pattern_input_select_key(FmtPatternInput *input, uint32_t key_index)
 {
     uint8_t local;
@@ -63,6 +90,19 @@ int fmt_pattern_input_select_key(FmtPatternInput *input, uint32_t key_index)
         return 0;
 
     input->local_step = local;
+    return 1;
+}
+
+int fmt_pattern_input_select_track_key(FmtPatternInput *input, uint32_t key_index)
+{
+    uint8_t track;
+
+    if (!fmt_pattern_input_is_pattern(input))
+        return 0;
+    if (!fmt_pattern_input_key_to_track(key_index, &track))
+        return 0;
+
+    input->selected_track = track;
     return 1;
 }
 
