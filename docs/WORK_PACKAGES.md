@@ -91,34 +91,33 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1 complete; WP3.2 next**
+Status: **IN PROGRESS — WP3.1 complete; WP3.2 active**
 
 Parent issue: #20
 
 ## Completed packages
 
 - **WP3.1 — stable parameter ID registry** — COMPLETE — issue #19  
-  D027 freezes one-byte semantic parameter identity, exact namespace ranges, NONE/INVALID handling and four initial assigned IDs. Exhaustive all-256-value tests, real JieLi target compilation and every inherited Phase 2 regression pass. Registry is intentionally not linked into runtime yet, so device image/RAM/pool and final firmware hashes remain byte-identical to Phase 2. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
+  D027 freezes one-byte semantic parameter identity, exact namespace ranges, NONE/INVALID handling and four initial assigned IDs. Exhaustive all-256-value tests, real JieLi target compilation and every inherited Phase 2 regression pass. Registry was intentionally not linked into runtime in WP3.1, so device image/RAM/pool and final firmware hashes remained byte-identical to Phase 2. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
 
-Current verified baseline after WP3.1:
+Verified baseline entering WP3.2:
 
 - app image: 59,252 B / 581,564 B
 - normal RAM: 12,464 B / 98,304 B
 - pool RAM: 96,616 B / 344,064 B
-- WP3.1 runtime delta versus Phase 2: **0 B / 0 B / 0 B**
 - `FmtParamId`: 1 B
 - assigned IDs: 4
 - exhaustive identity-domain coverage: 256 / 256 values
 - frozen default WAV unchanged
 - package identity: `FM-1_987`
 
-## Next package
+## Active package
 
-- **WP3.2 — sparse four-lock-per-step storage** — READY TO START after its issue/decision contract is created.
+- **WP3.2 — sparse four-lock-per-step storage** — IN PROGRESS — issue #21  
+  Start head `dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e`. D028 freezes one global 2,048-record sparse pool, exact 8-byte owner-checked records, strict ascending parameter-ID lists, deterministic replace/remove/clear semantics, max four locks per step and explicit STEP_FULL/POOL_FULL/CORRUPT outcomes. Focused host gate `40037916472` is green. Full device/resource closeout is still required.
 
-Remaining Phase 3 order:
+Remaining Phase 3 order after WP3.2:
 
-- WP3.2 sparse four-lock-per-step storage
 - WP3.3 hold-step + encoder lock editing
 - WP3.4 lock replace/delete UX
 - WP3.5 basic pitch/volume effects
@@ -128,7 +127,7 @@ Remaining Phase 3 order:
 - WP3.9 lock/effect visual feedback
 - WP3.10 Phase 3 worst-case tests
 
-WP3.2 must freeze the concrete lock record/container, capacity and allocation/free behavior before source code. It must consume D027 `FmtParamId` values without renumbering them, enforce max four locks per step, and remain inside the existing song/pool budget. Do not pull WP3.3 editing UX or WP3.5+ effect semantics into storage work.
+WP3.2 is storage-only. Do not pull WP3.3 editing gestures, WP3.4 user-facing UX or WP3.5+ lock application/effect semantics into it.
 
 ---
 
