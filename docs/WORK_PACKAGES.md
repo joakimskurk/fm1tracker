@@ -107,26 +107,48 @@ Evidence: `WP2_4_VERIFICATION.md`.
 
 **Goal:** add bounded edit-cursor/page addressing so the FM-1's 16 white keys can select all 64 pattern steps through four pages without writing notes yet.
 
-Status: **READY TO START** — issue #13
+Status: **COMPLETE — 2026-10-23** — issue #13
+
+Verified:
+- D022 defines explicit PERFORMANCE versus SEQ/pattern context;
+- physical white-key indexes `0,2,4,6,7,9,11,12,14,16,18,19,21,23,24,26` map bijectively to local steps `0..15`;
+- four pages cover global steps `0..63` exactly once with no gaps or overlap;
+- `OCT-` / `OCT+` page navigation clamps at pages 0/3 and preserves local step position;
+- `SEQ` enters pattern context and `HOME` returns to normal performance context;
+- white keys select cursor only; black keys are rejected in WP2.5 and reserved for WP2.6;
+- performance audition/MIDI behavior remains intact outside SEQ context;
+- a performance note released after entering SEQ still receives NOTE OFF, preventing stuck voices;
+- a byte-for-byte `FmtSong` snapshot proves selection/navigation never mutates song data;
+- frozen WP2.4 host WAV remains exactly `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
+- `FmtPatternInput` is 3 B in `.bss` at `0x01C0B060`;
+- final resources: 55,980 B image, 12,400 B normal RAM, 96,616 B pool RAM;
+- delta vs WP2.4: +288 B image, +4 B normal RAM, +0 B pool;
+- final verification run `39994230797` passed with package identity and inherited device safety gates green.
+
+Evidence: `WP2_5_VERIFICATION.md`.
+
+## WP2.6 — track selection prototype
+
+**Goal:** prototype direct eight-track selection with black keys inside the explicit SEQ context while preserving D022 white-key page addressing and keeping playback/edit semantics narrow.
+
+Status: **READY TO START** — issue #14
 
 Required direction:
-- 16 white keys map exactly to page-local steps 0..15;
-- four pages cover global steps 0..63 without gaps or overlap;
-- use explicit SEQ/pattern-edit context so normal performance audition is not silently replaced everywhere;
-- page navigation follows the provisional `OCT-` / `OCT+` pattern-mode mapping after its boundary behavior is explicitly decided;
-- step selection updates cursor state only, never pattern data;
-- host-test all 64 mappings and boundaries;
-- preserve WP2.4 playback regression and record device resource delta.
+- choose and record the exact eight-black-key mapping before code;
+- selected logical track is bounded to `0..7`;
+- mapping acts only in SEQ/pattern context;
+- remaining black keys remain reserved/rejected;
+- D022 white-key/page behavior remains unchanged;
+- track selection changes edit/cursor target only and does not silently expand WP2.4 into multitrack playback;
+- no song data mutation from selection;
+- host-test all mappings, context transitions, reserved keys, D022 regression and performance-note release safety;
+- preserve the frozen audible host WAV and record device resource delta.
 
 Non-goals:
-- no black-key track selection — WP2.6;
 - no STEP REC/note writes — WP2.7;
 - no REST/TIE/OFF editing — WP2.8;
 - no tracker screen — WP2.9;
-- no p-lock/multitrack/new-engine/persistence work.
-
-## WP2.6 — track selection prototype
-Test the provisional eight-black-key track-selection mapping.
+- no general multitrack playback, p-locks, new engine or persistence.
 
 ## WP2.7 — STEP REC note entry
 Keyboard note entry advances the cursor deterministically.
