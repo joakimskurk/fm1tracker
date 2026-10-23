@@ -2,7 +2,7 @@
 
 This is the **single source of truth for current execution state**.
 
-A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKAGES.md`, `DECISIONS.md`, `TEST_MATRIX.md`, `ROADMAP.md`, and relevant source/history before changing code.
+A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKAGES.md`, `DECISIONS.md`, `EXECUTION_PROTOCOL.md`, `TEST_MATRIX.md`, `ROADMAP.md`, and relevant source/history before changing code.
 
 ## Current phase
 
@@ -10,175 +10,107 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 ## Current milestone
 
-**WP1.4 - FM1Tracker identity rename**
+**WP1.5 - renamed baseline verification and budget capture**
 
-State: **IN PROGRESS**
+State: **READY TO START**
 
-GitHub issue: #6
+WP1.4 issue: #6 - identity work complete; closeout/issue closure should reference `docs/WP1_4_VERIFICATION.md`.
 
-Working branch: `phase1/fm1tracker-identity`
-
-WP1.4 start commit:
-
-`ff0a095b2384532f19724204b9059e88aac5a52c`
+Current working branch: `phase1/fm1tracker-identity`
 
 ## Current implementation state
 
-The repository contains a minimal, audited Dinghy-derived FM-1 platform baseline pinned to upstream commit:
+The repository contains the pinned Dinghy-derived FM-1 platform baseline from upstream commit:
 
 `d44df7db09b98ccad2f1233b8f83f5f09c04829e`
 
-WP1.1-WP1.3 are complete under their documented verification rules. The branch was verified at the WP1.4 start commit before identity work began.
+WP1.1 through WP1.4 are complete.
 
-No tracker engine, 8-BIT engine, 16-BIT FM4 engine, STEP REC implementation, p-lock implementation, song mode or Furnace code has been added.
+FM1Tracker identity is now applied without modifying the verified DSP/platform implementation:
 
-At WP1.4 start, the imported application/build/host artifacts still use Dinghy names. WP1.4 is changing identity only while preserving the pristine test-tone behavior and platform plumbing.
+- visible app name: `FM1TRACKER`;
+- fixed package identity: `FM-1_987`;
+- device build entry point: `build.sh` -> `tools/build_fm1tracker.py` -> unchanged Dinghy build driver;
+- host artifacts: `build/host/fm1tracker.wav` and `fm1tracker-*.png`;
+- final device artifacts are intended to be `fm1tracker.bin` and `fm1tracker*.fwsc` once the external SDK allows a full build.
 
-## Active WP1.4 decision
+No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine, 16-BIT FM4 engine or Furnace source has been added.
 
-Current Firmware Hub identity evidence was checked on 2026-10-23. `FM-1_987` was not present in the live identity table and has been selected as FM1Tracker's package identity.
-
-Rationale:
-
-- it is unused on the current Firmware Hub list to the best available evidence;
-- it remains in the `FM-1_9NN` family used by the Felucca/Dinghy updater path, preserving the existing interrupted-update/resume assumptions;
-- the identity will remain stable across FM1Tracker releases; release version stays in `APP_VER` and artifact filenames instead of consuming the package identity.
-
-This decision must also be recorded in `DECISIONS.md` before implementation spreads.
-
-## WP1.4 objective
-
-Make the verified baseline identify as FM1Tracker without changing musical behavior.
-
-Expected identity-only changes:
-
-- rename the app source path from `firmware/src/dinghy.c` to `firmware/src/fm1tracker.c` without changing the test-tone implementation;
-- compile the device and host builds with visible app name `FM1TRACKER`;
-- rename app/build/host artifacts from `dinghy*` to `fm1tracker*`;
-- use fixed package identity `FM-1_987`;
-- update affected setup/test documentation and add WP1.4 host verification.
-
-## WP1.4 non-goals
-
-- no tracker data model implementation;
-- no STEP REC, REST, p-lock or song implementation;
-- no 8-BIT or 16-BIT engine work;
-- no HAL, rescue, OTA, USB or loader redesign;
-- no test-tone synthesis changes.
-
-## Required WP1.4 verification
-
-Before closeout:
-
-1. host harness builds and runs from `firmware/src/fm1tracker.c`;
-2. host WAV and screen PNG artifacts use the `fm1tracker` name;
-3. screen identity visibly says `FM1TRACKER`;
-4. host WAV remains behaviorally identical to the pristine baseline test tone where identity-only rendering differences cannot affect audio;
-5. build tooling emits `fm1tracker.bin` / `fm1tracker*.fwsc` and fixed identity `FM-1_987` by inspection/build where available;
-6. no tracker/synth feature code is introduced;
-7. device build blocker remains honestly recorded if the external AC79 SDK is still unavailable.
-
-## What works / has been verified
-
-### WP1.1 - provenance
-
-Complete.
-
-- Upstream revision pinned.
-- GPL-3.0-only provenance recorded.
-- Terminus OFL material recorded.
-- Dinghy logo/branding excluded.
-- Furnace remains reference/interoperability only; no Furnace source imported.
-
-### WP1.2 - pristine import
-
-Complete.
-
-- Every manifest-selected import path matched pinned upstream Git blob SHA and Git mode.
-- Upstream executable bits are preserved.
-- Source SPDX/copyright headers are preserved.
-- The original manifest typo for `firmware/hal/fm1_uart.h` was corrected to blob `5d5ef83dad665f239df83bb8fbfd4d405e28fbfb`.
-
-### WP1.3 - pristine verification
-
-Complete under its stated exit rule.
-
-Verified code commit:
-
-`21cb59ee455205a8243fee381e24eda517da2c23`
+## WP1.4 verification result
 
 GitHub Actions run:
 
-`39958478536`
+`39969032366`
+
+Verified implementation commit:
+
+`78a8f70879a2daec1ad5f99f95fbe5cfbdd5bba3`
 
 Results:
 
-- pristine host compile/run: **PASS**;
-- host WAV produced and hashed: **PASS**;
-- two host screen PNGs produced and hashed: **PASS**;
-- JieLi toolchain download/execution: **PASS** (`jieli-linux-toolchains-20260730.1`, clang 4.0.1);
-- device firmware build: **NOT COMPLETED** because the separately required AC79 SDK checkout is absent;
-- exact blocker: `build.sh: no JieLi AC79 SDK in ...`;
+- protected baseline app/platform/HAL/loader/build code unchanged from WP1.4 start: **PASS**;
+- FM1Tracker identity wrapper syntax/configuration: **PASS**;
+- host compile/run: **PASS**;
+- visible screen identity `FM1TRACKER`: **PASS**;
+- host WAV produced: **PASS**;
+- host WAV is bit-identical to WP1.3: **PASS**;
+- fixed identity `FM-1_987`: documented and checked against the live Firmware Hub identity list on 2026-10-23;
+- complete renamed device firmware/package build: **NOT COMPLETED** because the separately required AC79 SDK checkout is still unavailable;
 - physical FM-1: **NOT TESTED** because hardware is not currently available.
 
-Exact hashes and evidence are in `WP1_3_VERIFICATION.md` and the real verification level is mirrored in `TEST_MATRIX.md`.
+Exact hashes and evidence: `docs/WP1_4_VERIFICATION.md`.
 
-## Known incomplete work
+## Active blocker
 
-WP1.4 identity changes and host verification are now active.
+Full device firmware/package verification requires a separately obtained JieLi AC79 SDK checkout expected by the pinned Dinghy build:
 
-WP1.5 will then perform renamed-baseline verification and capture code/RAM/pool/timing budgets. The full device firmware build remains dependent on an external AC79 SDK checkout.
+`AC79NN_SDK_V1.2.1_2023-12-13`
 
-## Known bugs
+The repository must not vendor or fabricate those SDK files simply to bypass setup. WP1.3 already verified Dinghy's JieLi toolchain installer and clang execution; the unresolved external dependency is the SDK checkout.
 
-No FM1Tracker product bugs yet because tracker functionality has not been implemented.
+## Important decisions / do not regress
 
-No failure was found in the pristine host baseline during WP1.3.
-
-## Blockers
-
-### External build dependency
-
-Full device firmware build requires the separately obtained JieLi AC79 SDK checkout expected by Dinghy (`AC79NN_SDK_V1.2.1_2023-12-13`). The repository must not vendor those SDK files merely to bypass setup.
-
-The JieLi compiler/toolchain itself has already been verified to install and execute.
-
-### Hardware verification
-
-No physical FM-1 is currently available. Hardware-only verification must remain clearly distinct from host/emulator/build verification.
-
-## Important constraints / do not regress
-
-- No tracker implementation during WP1.4. Identity only.
-- Do not alter proven HAL, loader, rescue/update or USB behavior during the rename unless strictly necessary and separately justified.
-- Keep the pristine sine/test-tone behavior unchanged.
+- D016: fixed package identity is `FM-1_987`; release version lives in `APP_VER` and artifact filenames.
+- D017: WP1.4 closes on verified identity/host evidence; full renamed device build and resource capture belong to WP1.5.
+- Do not modify proven HAL, loader, rescue/update or USB behavior without a separately justified need.
+- Keep the baseline sine/test-tone behavior unchanged through Phase 1.
+- Do not start tracker implementation before WP1.5 is complete or explicitly superseded by a recorded decision.
 - No Furnace source import without a fresh exact-file/license audit.
-- No floating point in FM-1 firmware DSP.
-- Avoid runtime 64-bit division.
-- Audio callback period is about 5.8 ms for 256 frames at 44.1 kHz; target below half-budget where practical once DSP work begins.
+- No floating point in FM-1 firmware DSP; avoid runtime 64-bit division.
 - V0.1 remains 8 tracks, 64 steps/pattern, 16 patterns, max four p-locks/step.
-- STEP REC, REST and p-lock editing remain core future product behavior.
-- No PCM/sample subsystem before the tracker core is proven.
-- Provisional hardware mappings remain provisional until physical FM-1 UX validation.
+
+## Current work item
+
+WP1.5 must establish the renamed baseline as the measurable reference for all later work.
+
+Required outputs:
+
+1. reuse/confirm the renamed host run;
+2. attempt the full renamed firmware/package build with the verified JieLi toolchain and a legitimate external AC79 SDK checkout if available;
+3. capture code size, normal RAM and pool RAM from the device build when possible;
+4. capture baseline audio callback timing where measurable without claiming hardware measurements that were not made;
+5. update reproducible setup/build instructions;
+6. record every unavailable measurement explicitly rather than inventing estimates.
 
 ## Next recommended step
 
-Record the `FM-1_987` identity decision in `DECISIONS.md`, then perform the smallest identity-only rename in app/build/host paths and rerun the host harness. Do not start tracker code in the same change.
+Start WP1.5 by auditing the available build environment and locating a legitimate, separately usable source for the required `AC79NN_SDK_V1.2.1_2023-12-13` checkout. Do **not** import SDK material into the repository. If the SDK cannot be obtained in the current environment, keep that blocker explicit and complete every host/static baseline measurement that is still meaningful.
 
 ## Verification references
 
-- `WP1_3_VERIFICATION.md`
-- `TEST_MATRIX.md`
-- `DINGHY_IMPORT_MANIFEST.md`
+- `docs/WP1_3_VERIFICATION.md`
+- `docs/WP1_4_VERIFICATION.md`
+- `docs/TEST_MATRIX.md`
+- `docs/DINGHY_IMPORT_MANIFEST.md`
 - `THIRD_PARTY.md`
-- issue #5 - WP1.3 (complete)
-- issue #6 - WP1.4 (active)
+- issue #6 - WP1.4
 
 ## Last relevant commits
 
 - pristine code verification target: `21cb59ee455205a8243fee381e24eda517da2c23`
-- WP1.4 branch start / handoff: `ff0a095b2384532f19724204b9059e88aac5a52c`
+- WP1.4 branch start: `ff0a095b2384532f19724204b9059e88aac5a52c`
+- WP1.4 verified implementation: `78a8f70879a2daec1ad5f99f95fbe5cfbdd5bba3`
 
 ## Last updated
 
-2026-10-23 - WP1.4 started after branch/repository verification; package identity `FM-1_987` selected from current Firmware Hub evidence; identity-only implementation is next.
+2026-10-23 - WP1.4 completed and verified; WP1.5 is the exact continuation point. No tracker implementation is permitted yet.
