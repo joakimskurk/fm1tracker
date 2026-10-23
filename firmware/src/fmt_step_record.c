@@ -7,6 +7,7 @@ void fmt_step_record_reset(FmtStepRecord *record)
         return;
     record->active = 0u;
     record->gesture_latched = 0u;
+    record->fx_pending = 0u;
 }
 
 int fmt_step_record_enter(FmtStepRecord *record,
@@ -19,6 +20,7 @@ int fmt_step_record_enter(FmtStepRecord *record,
     fmt_pattern_input_enter_pattern(input);
     record->active = 1u;
     record->gesture_latched = 0u;
+    record->fx_pending = 0u;
     return 1;
 }
 
@@ -28,6 +30,7 @@ void fmt_step_record_exit(FmtStepRecord *record)
         return;
     record->active = 0u;
     record->gesture_latched = 0u;
+    record->fx_pending = 0u;
 }
 
 int fmt_step_record_is_active(const FmtStepRecord *record)
@@ -110,4 +113,41 @@ int fmt_step_record_write_special(FmtStepRecord *record,
         return 0;
 
     return fmt_step_record_write_value(record, input, transport, (uint8_t)special_note);
+}
+
+int fmt_step_record_special_input(FmtStepRecord *record,
+                                  FmtPatternInput *input,
+                                  const FmtTransport *transport,
+                                  int fx_pressed,
+                                  int fx_released,
+                                  int select_pressed)
+{
+    int wrote;
+
+    if (!record)
+        return 0;
+
+    if (!record->active) {
+        record->fx_pending = 0u;
+        return 0;
+    }
+
+    if (fx_pressed)
+        record->fx_pending = 1u;
+
+    if (select_pressed) {
+        if (record->fx_pending) {
+            record->fx_pending = 0u;
+            return fmt_step_record_write_special(record, input, transport, FMT_NOTE_OFF);
+        }
+        return fmt_step_record_write_special(record, input, transport, FMT_NOTE_TIE);
+    }
+
+    if (fx_released && record->fx_pending) {
+        record->fx_pending = 0u;
+        wrote = fmt_step_record_write_special(record, input, transport, FMT_NOTE_EMPTY);
+        return wrote;
+    }
+
+    return 0;
 }
