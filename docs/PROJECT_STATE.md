@@ -12,105 +12,139 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 **WP1.5 - renamed baseline verification and budget capture**
 
-State: **READY TO START**
+State: **IN PROGRESS**
 
-WP1.4 issue: #6 - identity work complete; closeout/issue closure should reference `docs/WP1_4_VERIFICATION.md`.
+GitHub issue: #7
 
-Current working branch: `phase1/fm1tracker-identity`
+Working branch: `phase1/fm1tracker-identity`
+
+WP1.5 start commit:
+
+`57617e288972a476fd221ae379e7bb75853b7451`
 
 ## Current implementation state
 
-The repository contains the pinned Dinghy-derived FM-1 platform baseline from upstream commit:
+WP1.1 through WP1.4 are complete. The repository contains the pinned Dinghy-derived FM-1 baseline from upstream commit `d44df7db09b98ccad2f1233b8f83f5f09c04829e` plus an identity-only FM1Tracker layer.
 
-`d44df7db09b98ccad2f1233b8f83f5f09c04829e`
-
-WP1.1 through WP1.4 are complete.
-
-FM1Tracker identity is now applied without modifying the verified DSP/platform implementation:
+Current identity state:
 
 - visible app name: `FM1TRACKER`;
 - fixed package identity: `FM-1_987`;
 - device build entry point: `build.sh` -> `tools/build_fm1tracker.py` -> unchanged Dinghy build driver;
 - host artifacts: `build/host/fm1tracker.wav` and `fm1tracker-*.png`;
-- final device artifacts are intended to be `fm1tracker.bin` and `fm1tracker*.fwsc` once the external SDK allows a full build.
+- WP1.4 host WAV is bit-identical to the pristine WP1.3 WAV;
+- protected app/platform/HAL/loader/build-driver implementation remained unchanged during WP1.4.
 
 No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine, 16-BIT FM4 engine or Furnace source has been added.
 
-## WP1.4 verification result
+## WP1.5 objective
 
-GitHub Actions run:
+Establish the clean renamed FM1Tracker baseline as the measurable reference that Phase 2 will build on.
 
-`39969032366`
+Required outputs:
 
-Verified implementation commit:
+1. confirm/reuse the renamed host verification;
+2. run the renamed firmware/package build and inherited safety checks if a legitimate external AC79 SDK checkout can be supplied;
+3. capture code size, normal RAM usage and pool RAM usage from the renamed device build when possible;
+4. capture baseline audio callback timing at the highest honest verification level available;
+5. update reproducible setup/build instructions;
+6. record unavailable measurements explicitly rather than substituting invented estimates.
 
-`78a8f70879a2daec1ad5f99f95fbe5cfbdd5bba3`
+## WP1.5 non-goals
 
-Results:
+- no tracker/sequencer data structures;
+- no transport clock;
+- no STEP REC/REST implementation;
+- no p-lock implementation;
+- no 8-BIT or 16-BIT engine work;
+- no HAL/loader/rescue/USB redesign;
+- no vendoring or fabricating third-party SDK files merely to make CI green.
 
-- protected baseline app/platform/HAL/loader/build code unchanged from WP1.4 start: **PASS**;
-- FM1Tracker identity wrapper syntax/configuration: **PASS**;
-- host compile/run: **PASS**;
-- visible screen identity `FM1TRACKER`: **PASS**;
-- host WAV produced: **PASS**;
-- host WAV is bit-identical to WP1.3: **PASS**;
-- fixed identity `FM-1_987`: documented and checked against the live Firmware Hub identity list on 2026-10-23;
-- complete renamed device firmware/package build: **NOT COMPLETED** because the separately required AC79 SDK checkout is still unavailable;
-- physical FM-1: **NOT TESTED** because hardware is not currently available.
+## Files expected to change
 
-Exact hashes and evidence: `docs/WP1_4_VERIFICATION.md`.
+Only verification/setup/project-memory material unless a build-only fix is genuinely required:
 
-## Active blocker
+- `README.md` / setup documentation;
+- `docs/PROJECT_STATE.md`;
+- `docs/TEST_MATRIX.md`;
+- `docs/ROADMAP.md` / `docs/WORK_PACKAGES.md` at closeout;
+- a dedicated WP1.5 verification/budget record;
+- CI verification workflow if needed;
+- `THIRD_PARTY.md` only if external SDK provenance is clarified.
 
-Full device firmware/package verification requires a separately obtained JieLi AC79 SDK checkout expected by the pinned Dinghy build:
+The protected Dinghy app/platform/HAL/loader behavior should not change in WP1.5.
+
+## Required verification
+
+WP1.5 should capture, separately and honestly:
+
+- renamed host build/run status;
+- renamed device build status;
+- build safety-check status;
+- app image/code size;
+- normal `.data + .bss` RAM usage;
+- pool RAM usage;
+- baseline audio timing measurement or a precise statement of why hardware timing is unavailable;
+- physical FM-1 status;
+- exact external dependency/provenance for any SDK checkout used.
+
+## Existing verified evidence
+
+### WP1.3 pristine baseline
+
+Actions run `39958478536`:
+
+- pristine host build/run: PASS;
+- host audio/screen artifacts: PASS;
+- JieLi toolchain acquisition/execution: PASS;
+- full device build: blocked by missing external AC79 SDK checkout;
+- physical FM-1: not tested.
+
+### WP1.4 FM1Tracker identity
+
+Actions run `39969032366`:
+
+- protected baseline unchanged: PASS;
+- identity wrapper configuration: PASS;
+- FM1Tracker host build/run: PASS;
+- visible `FM1TRACKER` screen identity: PASS;
+- host audio bit-identical to WP1.3: PASS;
+- package identity `FM-1_987`: selected after live Firmware Hub collision check;
+- full renamed device build: not completed because the external AC79 SDK checkout remains unavailable.
+
+Exact evidence: `docs/WP1_3_VERIFICATION.md` and `docs/WP1_4_VERIFICATION.md`.
+
+## Active blocker to investigate first
+
+The pinned build expects a separately obtained JieLi SDK checkout:
 
 `AC79NN_SDK_V1.2.1_2023-12-13`
 
-The repository must not vendor or fabricate those SDK files simply to bypass setup. WP1.3 already verified Dinghy's JieLi toolchain installer and clang execution; the unresolved external dependency is the SDK checkout.
+Expected files/hashes are frozen in `docs/DINGHY_IMPORT_MANIFEST.md` and `THIRD_PARTY.md`.
+
+WP1.5 must first determine whether an exact, legitimate external source for that SDK is available in the current environment. Do not copy it into the FM1Tracker repository. If no trustworthy source is available, keep the blocker explicit and complete all remaining host/static measurements that are still meaningful.
 
 ## Important decisions / do not regress
 
 - D016: fixed package identity is `FM-1_987`; release version lives in `APP_VER` and artifact filenames.
-- D017: WP1.4 closes on verified identity/host evidence; full renamed device build and resource capture belong to WP1.5.
+- D017: full renamed device build/resource capture belongs to WP1.5.
 - Do not modify proven HAL, loader, rescue/update or USB behavior without a separately justified need.
 - Keep the baseline sine/test-tone behavior unchanged through Phase 1.
 - Do not start tracker implementation before WP1.5 is complete or explicitly superseded by a recorded decision.
 - No Furnace source import without a fresh exact-file/license audit.
 - No floating point in FM-1 firmware DSP; avoid runtime 64-bit division.
-- V0.1 remains 8 tracks, 64 steps/pattern, 16 patterns, max four p-locks/step.
-
-## Current work item
-
-WP1.5 must establish the renamed baseline as the measurable reference for all later work.
-
-Required outputs:
-
-1. reuse/confirm the renamed host run;
-2. attempt the full renamed firmware/package build with the verified JieLi toolchain and a legitimate external AC79 SDK checkout if available;
-3. capture code size, normal RAM and pool RAM from the device build when possible;
-4. capture baseline audio callback timing where measurable without claiming hardware measurements that were not made;
-5. update reproducible setup/build instructions;
-6. record every unavailable measurement explicitly rather than inventing estimates.
 
 ## Next recommended step
 
-Start WP1.5 by auditing the available build environment and locating a legitimate, separately usable source for the required `AC79NN_SDK_V1.2.1_2023-12-13` checkout. Do **not** import SDK material into the repository. If the SDK cannot be obtained in the current environment, keep that blocker explicit and complete every host/static baseline measurement that is still meaningful.
-
-## Verification references
-
-- `docs/WP1_3_VERIFICATION.md`
-- `docs/WP1_4_VERIFICATION.md`
-- `docs/TEST_MATRIX.md`
-- `docs/DINGHY_IMPORT_MANIFEST.md`
-- `THIRD_PARTY.md`
-- issue #6 - WP1.4
+Inspect the pinned Dinghy upstream documentation/history and current public sources for the exact AC79 SDK acquisition/provenance path. If an exact legitimate checkout can be used externally, wire it into a one-off/CI build without committing SDK material. If not, document the blocker and continue with host/static baseline measurements.
 
 ## Last relevant commits
 
 - pristine code verification target: `21cb59ee455205a8243fee381e24eda517da2c23`
 - WP1.4 branch start: `ff0a095b2384532f19724204b9059e88aac5a52c`
 - WP1.4 verified implementation: `78a8f70879a2daec1ad5f99f95fbe5cfbdd5bba3`
+- WP1.5 start: `57617e288972a476fd221ae379e7bb75853b7451`
 
 ## Last updated
 
-2026-10-23 - WP1.4 completed and verified; WP1.5 is the exact continuation point. No tracker implementation is permitted yet.
+2026-10-23 - WP1.5 started. First task is external SDK provenance/build-environment audit; no tracker implementation is permitted.
