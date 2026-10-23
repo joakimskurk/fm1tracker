@@ -8,7 +8,7 @@ This file records code/assets that FM1Tracker did not originate.
 - Pinned commit: `d44df7db09b98ccad2f1233b8f83f5f09c04829e`
 - License: GPL-3.0-only
 - Import date: 2026-10-23
-- Status: **provenance frozen; exact import manifest complete; source import pending WP1.2**
+- Status: **baseline imported byte-for-byte from the pinned commit; pristine build verification pending WP1.3**
 
 Upstream provenance at this commit:
 
@@ -26,7 +26,7 @@ See:
 - Material: Terminus 8x16 font data used by the Dinghy-generated `firmware/gen/felucca_font.h`
 - License: SIL Open Font License 1.1
 - Upstream license file: `assets/fonts/Terminus-LICENSE.txt`
-- Status: import the upstream license together with the generated font header in WP1.2.
+- Status: imported byte-for-byte with the generated font header in WP1.2.
 
 ## JieLi AC79 SDK build inputs
 
