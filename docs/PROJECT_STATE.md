@@ -18,17 +18,78 @@ Phase 2 branch start / completed Phase 1 head:
 
 `3ed4b65d7cda15c5831533f153f91e9014a9fde7`
 
-WP2.1 through WP2.8 are complete.
+WP2.1 through WP2.8 are complete. WP2.9 is the only active implementation package.
 
 ## Current milestone
 
 **WP2.9 — compact tracker screen**
 
-State: **READY TO START**
+State: **IN PROGRESS — 2026-10-23**
 
-No WP2.9 firmware implementation has started yet.
+GitHub issue: #17
 
-Before WP2.9 source code, freeze the exact bounded screen contract: visible rows, selected-row/playhead distinction, note/special-event text, track/page/header fields, dirty-region ownership and maximum redraw work per main-loop iteration. Keep this as a display/readability package; do not pull p-lock editing, multitrack playback or live-performance capture forward.
+WP2.9 start head:
+
+`5c2830cf2d37c8466f8564aab9a1bd89feaad38a`
+
+No WP2.9 firmware implementation existed at the start head.
+
+Detailed screen/readability decision frozen before source implementation:
+
+`docs/WP2_9_SCREEN_CONTRACT.md` — **D026**
+
+### D026 screen contract
+
+- tracker screen owns only D022 pattern context: ordinary SEQ and STEP REC;
+- HOME/PERFORMANCE keeps the existing performance screen and must redraw cleanly when returning from tracker context;
+- display is one selected logical track, not an eight-track spreadsheet;
+- header explicitly shows mode, `CURnn`, `PLYnn` or `STOP`, BPM, `P01`, selected track and page;
+- exactly eight rows are visible;
+- cursor owns the viewport: each 16-step page is shown as its first or second eight-row half according to selected local step;
+- playhead never scrolls the edit viewport; off-screen playhead position remains explicit in the header;
+- `>` is the edit cursor and `*` is the running playhead; same-row state shows both as `>*`;
+- ordinary notes, EMPTY/REST, TIE and OFF have explicit deterministic text;
+- instrument/volume fields are read-only display values; non-zero effects remain `???` until Phase 3 assigns stable semantics;
+- screen is tiled into one header, eight row strips and one footer;
+- a bounded dirty mask may render at most **two tracker regions per main-loop iteration**;
+- screen-state inspection is bounded to eight visible rows and may not mutate song/editor/transport state;
+- presentation state target is <=64 B ordinary RAM and consumes no pool RAM;
+- all drawing remains outside the audio ISR.
+
+### Expected implementation files
+
+- `firmware/src/fmt_tracker_screen.h` / `fmt_tracker_screen.c` — pure bounded presentation state, viewport/formatting and dirty-region logic;
+- `firmware/src/dinghy.c` — tracker-region renderer and HOME↔tracker screen ownership integration only;
+- focused unit tests for formatting/window/dirty behavior and read-only song access;
+- focused host script/snapshot verification for representative SEQ and STEP REC screens;
+- `.github/workflows/wp2_9_tracker_screen_verify.yml` — inherited regressions, deterministic screenshots, frozen audio, device safety/resources;
+- package closeout documentation only after a real green checkpoint.
+
+### Required verification
+
+1. all eight half-page windows map to exact global row ranges;
+2. cursor always remains visible in its cursor-owned viewport;
+3. cursor/playhead markers remain independent and explicit;
+4. ordinary/EMPTY/TIE/OFF/malformed note text is deterministic;
+5. instrument/volume/effect placeholder rules are deterministic;
+6. dirty updates preserve the hard two-region-per-main-loop bound;
+7. display reads do not mutate the song store;
+8. HOME↔SEQ/STEP REC ownership is deterministic;
+9. representative host screenshots are deterministic and manually inspected;
+10. WP2.1–WP2.8 behavioral regressions stay green;
+11. frozen default host WAV remains byte-identical;
+12. full JieLi build, identity/safety gates and resource delta pass.
+
+### Strict WP2.9 non-goals
+
+- no p-lock allocation/editing;
+- no new effect editing or stable effect IDs;
+- no general multitrack playback expansion;
+- no new synth engine;
+- no live-performance capture implementation;
+- no song/order/pattern-selection or persistence work;
+- no HAL/loader/update redesign;
+- do not begin WP2.10 or Phase 3 in the same package.
 
 ## Completed WP2.8 checkpoint
 
@@ -151,6 +212,7 @@ Physical FM-1 gesture ergonomics, install/boot/audio behavior and actual callbac
 - D023: provisional direct black-key track selection.
 - D024: stopped STEP REC note entry, deterministic lowest-note/full-release gesture, modulo-64 advance.
 - D025: explicit REST/TIE/OFF editor and playback semantics.
+- D026: cursor-owned eight-row one-track tracker display with explicit cursor/playhead and bounded two-region redraw.
 - Preserve the default WAV hash through display-only WP2.9 unless a documented intentional audio change is made.
 - No floating point in firmware DSP and no runtime 64-bit division.
 
@@ -160,7 +222,7 @@ Physical FM-1 gesture ergonomics, install/boot/audio behavior and actual callbac
 
 ## Next action
 
-Start WP2.9 as its own package. Mark it IN PROGRESS and record the exact tracker-screen/readability/dirty-redraw contract before source code. Implement only the compact tracker display layer on top of the already verified model/editor/playback state. Do not begin WP2.10 or Phase 3 in the same package.
+Implement only the D026 presentation model/formatter and its focused host tests first. Then integrate bounded region drawing into `dinghy.c`, preserving HOME behavior and the frozen audio path. Do not begin WP2.10 or Phase 3.
 
 ## Last relevant checkpoints
 
@@ -172,7 +234,8 @@ Start WP2.9 as its own package. Mark it IN PROGRESS and record the exact tracker
 - WP2.8 start: `13c0748dd696e4f3a47279d00641068b5e915e46`
 - WP2.8 verified implementation/workflow: `c66405bead1c79fd891cf0d12c8bd241019a7aaf`
 - WP2.8 final Actions run: `40004436981`
+- WP2.9 start: `5c2830cf2d37c8466f8564aab9a1bd89feaad38a`
 
 ## Last updated
 
-2026-10-23 — WP2.8 complete. WP2.9 compact tracker screen is READY TO START; no WP2.9 implementation has begun.
+2026-10-23 — WP2.9 started. D026 is frozen in `docs/WP2_9_SCREEN_CONTRACT.md`; implementation has not yet begun.
