@@ -94,6 +94,22 @@ The clean platform/identity/build baseline is now reproducible and budgeted. No 
 - No transport, audible playback, STEP REC, UI, p-lock allocator, synth or persistence behavior was added.
 - Detailed evidence: `docs/WP2_2_VERIFICATION.md`.
 
+### WP2.3 - Integer transport clock
+
+- Added an 8-byte bounded `FmtTransport` runtime state and exact integer transport timing for the fixed 1/16-note grid.
+- Frozen D020: phase threshold `661500 = 44100 * 15`, with integer BPM accumulated per audio frame rather than repeatedly rounding samples per step.
+- Added deterministic reset/start/stop/resume and BPM-change behavior with BPM 0 rejected.
+- Added exact step `63 -> 0` wrap.
+- Kept firmware transport free of float, runtime division and 64-bit arithmetic.
+- Added host tests proving bulk/frame-by-frame equivalence and exact long-run behavior against an independent host-only rational reference: six one-hour runs plus a max-uint16 BPM test.
+- Integrated transport into the real audio frame domain while deliberately leaving it stopped, so WP2.3 introduces no row dispatch or audible playback.
+- Preserved the WP2.2 song store at `.pool` address `0x01C20000`; transport state is 8 B in `.bss` at `0x01C0B050`.
+- Host WAV remains byte-identical to the Phase 1/WP2.1/WP2.2 baseline.
+- Full JieLi device build and inherited safety checks pass with package identity `FM-1_987`.
+- Measured app image at 55,328 B (**+140 B** vs WP2.2), normal RAM at 12,376 B (**+8 B**) and pool RAM unchanged at 96,616 B (**0 B delta**).
+- Final verification: Actions run `39988630290`, job `120534295734`.
+- Detailed evidence: `docs/WP2_3_VERIFICATION.md`.
+
 ### Next
 
-**WP2.3 — integer transport clock.** Implement only deterministic integer/fixed-point 1/16-note timing, exact 0..63 wrap and long-run drift/error tests. Audible playback remains WP2.4. GitHub issue #11 is prepared; WP2.3 implementation has not started yet.
+**WP2.4 — one-track audible playback.** Use the verified transport and existing baseline sine voice to prove one logical track through a deterministic 64-step loop. Issue #12 is prepared. WP2.4 implementation has not started yet.
