@@ -122,6 +122,24 @@ int fmt_pattern_input_page_next(FmtPatternInput *input)
     return 1;
 }
 
+int fmt_pattern_input_advance_step(FmtPatternInput *input)
+{
+    if (!fmt_pattern_input_is_pattern(input) ||
+        input->page >= FMT_PATTERN_INPUT_PAGE_COUNT ||
+        input->local_step >= FMT_PATTERN_INPUT_STEPS_PER_PAGE ||
+        input->selected_track >= FMT_PATTERN_INPUT_TRACK_COUNT)
+        return 0;
+
+    input->local_step++;
+    if (input->local_step >= FMT_PATTERN_INPUT_STEPS_PER_PAGE) {
+        input->local_step = 0u;
+        input->page++;
+        if (input->page >= FMT_PATTERN_INPUT_PAGE_COUNT)
+            input->page = 0u;
+    }
+    return 1;
+}
+
 uint8_t fmt_pattern_input_global_step(const FmtPatternInput *input)
 {
     uint32_t page, local;
