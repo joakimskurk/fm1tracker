@@ -105,7 +105,7 @@ jobs:
 
           sha="$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')"
           echo "HOST_WAV_SHA256=$sha" | tee build/wp2_4_host_audio.txt
-          test "$sha" != "dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b"
+          test "$sha" = "453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440"
 
           python3 - <<'PY' | tee -a build/wp2_4_host_audio.txt
           import struct
