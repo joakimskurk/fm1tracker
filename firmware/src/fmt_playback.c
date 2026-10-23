@@ -14,7 +14,7 @@ static void fmt_playback_event_clear(FmtPlaybackEvent *event)
         return;
     event->boundary = 0u;
     event->step = 0u;
-    event->has_note = 0u;
+    event->kind = FMT_PLAYBACK_EVENT_NONE;
     event->note = FMT_NOTE_EMPTY;
 }
 
@@ -29,10 +29,20 @@ static void fmt_playback_event_for_step(uint8_t step, FmtPlaybackEvent *event)
     event->boundary = 1u;
     event->step = step;
     row = fmt_store_step_const(FMT_PLAYBACK_PATTERN, FMT_PLAYBACK_TRACK, step);
-    if (row && row->note <= FMT_NOTE_MAX) {
-        event->has_note = 1u;
+    if (!row)
+        return;
+
+    if (row->note <= FMT_NOTE_MAX) {
+        event->kind = FMT_PLAYBACK_EVENT_NOTE;
         event->note = row->note;
+    } else if (row->note == FMT_NOTE_TIE) {
+        event->kind = FMT_PLAYBACK_EVENT_TIE;
+        event->note = FMT_NOTE_TIE;
+    } else if (row->note == FMT_NOTE_OFF) {
+        event->kind = FMT_PLAYBACK_EVENT_OFF;
+        event->note = FMT_NOTE_OFF;
     }
+    /* EMPTY and malformed/reserved values deliberately remain NONE. */
 }
 
 void fmt_playback_reset(FmtPlayback *playback)
