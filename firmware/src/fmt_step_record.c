@@ -58,17 +58,17 @@ int fmt_step_record_lowest_key(uint32_t down_mask, uint8_t *key_index)
     return 0;
 }
 
-int fmt_step_record_write_note(FmtStepRecord *record,
-                               FmtPatternInput *input,
-                               const FmtTransport *transport,
-                               uint32_t note)
+static int fmt_step_record_write_value(FmtStepRecord *record,
+                                       FmtPatternInput *input,
+                                       const FmtTransport *transport,
+                                       uint8_t value)
 {
     FmtStep *step;
     uint8_t global_step;
 
     if (!record || !input || !transport || !record->active ||
         record->gesture_latched || transport->running ||
-        !fmt_pattern_input_is_pattern(input) || note > FMT_NOTE_MAX ||
+        !fmt_pattern_input_is_pattern(input) ||
         input->page >= FMT_PATTERN_INPUT_PAGE_COUNT ||
         input->local_step >= FMT_PATTERN_INPUT_STEPS_PER_PAGE ||
         input->selected_track >= FMT_PATTERN_INPUT_TRACK_COUNT)
@@ -81,10 +81,33 @@ int fmt_step_record_write_note(FmtStepRecord *record,
     if (!step)
         return 0;
 
-    step->note = (uint8_t)note;
+    step->note = value;
     if (!fmt_pattern_input_advance_step(input))
         return 0;
 
     record->gesture_latched = 1u;
     return 1;
+}
+
+int fmt_step_record_write_note(FmtStepRecord *record,
+                               FmtPatternInput *input,
+                               const FmtTransport *transport,
+                               uint32_t note)
+{
+    if (note > FMT_NOTE_MAX)
+        return 0;
+    return fmt_step_record_write_value(record, input, transport, (uint8_t)note);
+}
+
+int fmt_step_record_write_special(FmtStepRecord *record,
+                                  FmtPatternInput *input,
+                                  const FmtTransport *transport,
+                                  uint32_t special_note)
+{
+    if (special_note != FMT_NOTE_EMPTY &&
+        special_note != FMT_NOTE_TIE &&
+        special_note != FMT_NOTE_OFF)
+        return 0;
+
+    return fmt_step_record_write_value(record, input, transport, (uint8_t)special_note);
 }
