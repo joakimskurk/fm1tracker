@@ -18,40 +18,77 @@ Phase 2 branch start / completed Phase 1 head:
 
 `3ed4b65d7cda15c5831533f153f91e9014a9fde7`
 
-WP2.1 through WP2.5 are complete. No WP2.6 implementation has started.
+WP2.1 through WP2.5 are complete. WP2.6 is the only active implementation package.
 
 ## Current milestone
 
 **WP2.6 - track selection prototype**
 
-State: **READY TO START**
+State: **IN PROGRESS - 2026-10-23**
 
 GitHub issue: #14
 
+WP2.6 start head:
+
+`0e7d1794325a25e350ffefe2783ca84738a075c5`
+
 ### Exact objective
 
-Prototype direct selection of the eight logical tracker tracks using eight suitable physical black keys inside the explicit D022 SEQ/pattern-edit context. The package must preserve the verified white-key/page addressing, normal performance audition and frozen WP2.4 audible proof. Track selection changes only edit/cursor target in WP2.6; it must not silently expand the one-track proof into general multitrack playback.
+Extend the bounded D022 pattern-edit cursor so eight designated physical black keys select the eight logical tracker tracks inside explicit SEQ/pattern-edit context. Track selection changes edit/cursor target only. WP2.6 must not write notes, mutate song data or expand the WP2.4 one-track proof into general multitrack playback.
 
-### Before code
+### D023 track-selection contract
 
-1. mark WP2.6 IN PROGRESS and record its start head;
-2. record the exact eight physical black-key indexes and track mapping as a new decision before implementation;
-3. define selected-track reset/context behavior and reserved black-key handling;
-4. keep D022 white-key/page semantics unchanged;
-5. preserve performance-note release safety across context switches;
-6. define host/store-integrity/device/resource tests before implementation spreads.
+D023 is accepted before implementation:
+
+- selected logical track is `0..7`, with reset selecting track 0 / UI track 1;
+- physical black-key indexes `1,3,5,8,10,13,15,17` map in order to logical tracks `0..7`;
+- these correspond to F#3, G#3, A#3, C#4, D#4, F#4, G#4 and A#4 on the FM-1 F3..G5 key span;
+- remaining black-key indexes `20,22,25` are reserved and rejected in WP2.6;
+- track selection is active only in D022 SEQ/pattern-edit context;
+- PERFORMANCE context keeps normal audition/MIDI behavior for every note key;
+- HOME/SEQ context changes preserve the currently selected track;
+- selecting a track does not change page, local step or derived global step;
+- selecting a track does not mutate `FmtSong`;
+- WP2.4 proof playback remains fixed to pattern 0 / logical track 0 and ignores the editor-selected track;
+- D022 white-key/page semantics remain unchanged.
+
+### Expected implementation files
+
+- `firmware/src/fmt_pattern_input.h` / `fmt_pattern_input.c` - add bounded selected-track state and black-key mapping/select API;
+- `firmware/src/dinghy.c` - route black-key downs in SEQ to track selection while preserving white-key selection and performance audition/release ownership;
+- `tests/test_fmt_pattern_input.c` - all eight track mappings, three reserved black keys, invalid indexes, context preservation, white-key/page regression and song-store integrity;
+- `tests/run_pattern_context_host.sh` / host script as needed - prove black keys audition in PERFORMANCE but are consumed as track selectors in SEQ with safe releases;
+- `.github/workflows/wp2_6_track_selection_verify.yml` - frozen prior regressions, host context/audio, device build/safety/resource evidence;
+- documentation/status files only as required for closeout.
+
+### Required verification
+
+1. eight designated black keys map bijectively to logical tracks `0..7`;
+2. reserved black keys `20,22,25` cannot select a track;
+3. invalid indexes cannot alter selected track;
+4. selector API is inactive outside explicit SEQ context;
+5. selected track survives HOME/SEQ context changes;
+6. track selection leaves page/local/global step unchanged;
+7. all D022 white-key and four-page mappings remain green;
+8. track selection and page/step navigation leave `FmtSong` byte-identical;
+9. PERFORMANCE black keys still audition/send MIDI normally;
+10. manual notes started in PERFORMANCE still receive NOTE OFF across a SEQ context change;
+11. WP2.1 model, WP2.2 store, WP2.3 transport, WP2.4 playback and WP2.5 page-input regressions remain green;
+12. host playback WAV remains frozen at the WP2.4 hash;
+13. full JieLi device build, package identity and inherited safety checks remain green;
+14. image, normal-RAM and pool deltas are recorded against WP2.5.
 
 ### Strict non-goals
 
-- no STEP REC or note writes — WP2.7;
-- no REST/TIE/NOTE-OFF editing — WP2.8;
-- no tracker grid/screen — WP2.9;
+- no STEP REC or note writes;
+- no REST/TIE/NOTE-OFF editing;
+- no tracker grid/screen;
 - no general multitrack playback expansion;
 - no p-lock allocation/effects;
-- no new 8-BIT/FM4 engine work;
+- no new synth-engine work;
 - no song/order mode or persistence;
 - no HAL/loader/update redesign;
-- do not begin WP2.7 in the same package.
+- do not begin WP2.7 in this package.
 
 ## Completed WP2.5 checkpoint
 
@@ -85,13 +122,10 @@ D022 carried forward:
 - global selected step is `page * 16 + local`;
 - four pages cover steps `0..63` exactly;
 - `OCT-` / `OCT+` page navigation clamps at 0/3 and preserves local position;
-- white-key presses in SEQ select cursor only;
-- black-key presses are rejected until WP2.6;
-- performance audition/MIDI remains unchanged outside SEQ;
-- manual notes started in performance still receive NOTE OFF if released after entering SEQ;
+- performance audition/MIDI and release ownership remain safe across context changes;
 - selection/page movement cannot mutate `FmtSong`.
 
-The frozen WP2.4 audible host WAV remains byte-identical:
+Frozen deterministic host WAV carried forward:
 
 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 
@@ -134,21 +168,21 @@ WP2.5 resource delta vs WP2.4:
 ## Important decisions / do not regress
 
 - D005: V0.1 dimensions remain 8 tracks × 64 steps × 16 patterns.
-- D009: black-key track selection remains provisional and must be prototyped before hardware UX freeze.
+- D009/D023: black-key track selection is a provisional hardware prototype with exact WP2.6 mapping; Phase 7 may supersede ergonomics.
 - D016: fixed package identity remains `FM-1_987`.
 - D018: core in-memory model is frozen; persistence and p-lock allocator are separate.
 - D019: exactly one runtime `FmtSong` lives in `.pool` with deterministic explicit reset.
 - D020: transport uses the exact BPM-per-frame rational phase accumulator.
 - D021: step 0 dispatch/frame timing and WP2.4 one-lane proof semantics remain frozen.
 - D022: explicit PERFORMANCE/SEQ context and white-key four-page addressing remain frozen for the current prototype layer.
-- Preserve WP2.1-WP2.5 regression coverage as later packages expand interaction.
+- Preserve WP2.1-WP2.5 regression coverage as WP2.6 expands editor addressing.
 - No floating point in firmware DSP and no runtime 64-bit division.
 - No note writing before WP2.7.
-- Physical FM-1 install/boot/audio/panel behavior, page ergonomics and actual callback execution time remain **NOT TESTED** because hardware is not currently available.
+- Physical FM-1 install/boot/audio/panel behavior, page/track ergonomics and actual callback execution time remain **NOT TESTED** because hardware is not currently available.
 
 ## Next action
 
-Start issue #14 as its own package. Before code, mark WP2.6 IN PROGRESS and record the exact eight-black-key mapping plus selected-track semantics. Verify all eight track mappings, reserved black keys, D022 white-key/page regression, no song mutation, performance-context safety, frozen audible host output, device safety and measured resource delta. Do not begin WP2.7.
+Implement only WP2.6 according to issue #14 and D023. Close it only after all track/white-key/context/store-integrity regressions, frozen playback audio, device safety and measured resource deltas pass. Then make WP2.7 the only READY package without implementing STEP REC in the same change.
 
 ## Last relevant checkpoints
 
@@ -161,7 +195,8 @@ Start issue #14 as its own package. Before code, mark WP2.6 IN PROGRESS and reco
 - WP2.5 start: `55d3ce02e96d5d9fe3090cc7b1a89fd1e067aef1`
 - WP2.5 verified implementation/workflow: `28d8ac051eb7107e745bb007e1a39014f51c1169`
 - WP2.5 final Actions run: `39994230797`
+- WP2.6 start: `0e7d1794325a25e350ffefe2783ca84738a075c5`
 
 ## Last updated
 
-2026-10-23 - WP2.5 closed and durably verified. WP2.6 / issue #14 is READY TO START; no WP2.6 implementation has started.
+2026-10-23 - WP2.6 started. D023 is recorded before code. Black-key track selection is the only active implementation package; WP2.7 has not started.
