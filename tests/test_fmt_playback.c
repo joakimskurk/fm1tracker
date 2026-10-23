@@ -20,6 +20,14 @@ static void prepare(FmtPlayback *playback, FmtTransport *transport)
     fmt_playback_reset(playback);
 }
 
+static void advance_one_step(FmtPlayback *p, FmtTransport *t, FmtPlaybackEvent *e)
+{
+    uint32_t i;
+    for (i = 0u; i < 5512u; i++)
+        assert(fmt_playback_end_frame(p, t, e) == 0);
+    assert(fmt_playback_end_frame(p, t, e) == 1);
+}
+
 static void test_reset_and_null_safety(void)
 {
     FmtPlayback p = {1u};
@@ -30,6 +38,10 @@ static void test_reset_and_null_safety(void)
     assert(p.started == 0u);
     assert(sizeof(FmtPlayback) == 1u);
     assert(sizeof(FmtPlaybackEvent) == 4u);
+    assert(FMT_PLAYBACK_EVENT_NONE == 0u);
+    assert(FMT_PLAYBACK_EVENT_NOTE == 1u);
+    assert(FMT_PLAYBACK_EVENT_TIE == 2u);
+    assert(FMT_PLAYBACK_EVENT_OFF == 3u);
 
     fmt_playback_reset((FmtPlayback *)0);
     fmt_transport_reset(&t);
@@ -63,7 +75,6 @@ static void test_proof_pattern_is_one_lane_and_deterministic(void)
     }
     assert(note_index == FMT_PLAYBACK_PROOF_NOTE_COUNT);
 
-    /* WP2.4 may not seed or alias any other logical lane. */
     for (step = 0u; step < FMT_STEPS_PER_PATTERN; step++)
         assert(fmt_store_step_const(0u, 1u, step)->note == FMT_NOTE_EMPTY);
     assert(fmt_store_step_const(1u, 0u, 0u)->note == FMT_NOTE_EMPTY);
@@ -82,10 +93,9 @@ static void test_step_zero_dispatches_before_frame_zero(void)
     assert(t.step == 0u && t.phase == 0u);
     assert(e.boundary == 1u);
     assert(e.step == 0u);
-    assert(e.has_note == 1u);
+    assert(e.kind == FMT_PLAYBACK_EVENT_NOTE);
     assert(e.note == expected_notes[0]);
 
-    /* Initial dispatch is one-shot; a second start must not retrigger step 0. */
     assert(fmt_playback_start(&p, &t, &e) == 0);
 }
 
@@ -103,12 +113,10 @@ static void test_120_bpm_fractional_boundary_applies_to_next_frame(void)
         assert(fmt_playback_end_frame(&p, &t, &e) == 0);
     assert(t.step == 0u && t.phase == 661440u);
 
-    /* The 5513th elapsed frame crosses the boundary, so step 1 is active from
-     * playback frame 5513. Step 1 is EMPTY in the proof fixture. */
     assert(fmt_playback_end_frame(&p, &t, &e) == 1);
     assert(t.step == 1u && t.phase == 60u);
     assert(e.boundary == 1u && e.step == 1u);
-    assert(e.has_note == 0u && e.note == FMT_NOTE_EMPTY);
+    assert(e.kind == FMT_PLAYBACK_EVENT_NONE && e.note == FMT_NOTE_EMPTY);
 
     for (rendered = 0u; rendered < 5511u; rendered++)
         assert(fmt_playback_end_frame(&p, &t, &e) == 0);
@@ -116,38 +124,61 @@ static void test_120_bpm_fractional_boundary_applies_to_next_frame(void)
     assert(t.step == 2u && t.phase == 0u);
 }
 
-static void test_special_notes_are_not_accidental_pitches(void)
+static void test_special_event_kinds_and_exact_boundaries(void)
 {
     FmtPlayback p;
     FmtTransport t;
     FmtPlaybackEvent e;
     FmtStep *row;
-    uint32_t i;
 
+    /* TIE at frame 0 is explicit and never becomes pitch 0xFD. */
     fmt_store_reset();
     row = fmt_store_step(0u, 0u, 0u);
-    assert(row != 0);
+    assert(row);
     row->note = FMT_NOTE_TIE;
     fmt_transport_reset(&t);
     fmt_playback_reset(&p);
     assert(fmt_playback_start(&p, &t, &e) == 1);
-    assert(e.has_note == 0u && e.note == FMT_NOTE_EMPTY);
+    assert(e.boundary == 1u && e.step == 0u);
+    assert(e.kind == FMT_PLAYBACK_EVENT_TIE);
+    assert(e.note == FMT_NOTE_TIE);
 
+    /* OFF on step 1 arrives at the exact D021 boundary. */
     fmt_store_reset();
+    row = fmt_store_step(0u, 0u, 0u);
+    assert(row);
+    row->note = 60u;
     row = fmt_store_step(0u, 0u, 1u);
-    assert(row != 0);
+    assert(row);
     row->note = FMT_NOTE_OFF;
     fmt_transport_reset(&t);
     fmt_playback_reset(&p);
     assert(fmt_playback_start(&p, &t, &e) == 1);
-    for (i = 0u; i < 5513u; i++) {
-        int crossed = fmt_playback_end_frame(&p, &t, &e);
-        if (i < 5512u)
-            assert(crossed == 0);
-        else
-            assert(crossed == 1);
-    }
-    assert(e.step == 1u && e.has_note == 0u && e.note == FMT_NOTE_EMPTY);
+    assert(e.kind == FMT_PLAYBACK_EVENT_NOTE && e.note == 60u);
+    advance_one_step(&p, &t, &e);
+    assert(t.step == 1u && t.phase == 60u);
+    assert(e.boundary == 1u && e.step == 1u);
+    assert(e.kind == FMT_PLAYBACK_EVENT_OFF);
+    assert(e.note == FMT_NOTE_OFF);
+
+    /* EMPTY is an explicit row boundary with no voice command. */
+    fmt_store_reset();
+    fmt_transport_reset(&t);
+    fmt_playback_reset(&p);
+    assert(fmt_playback_start(&p, &t, &e) == 1);
+    assert(e.kind == FMT_PLAYBACK_EVENT_NONE);
+    assert(e.note == FMT_NOTE_EMPTY);
+
+    /* Reserved/malformed non-note sentinel is also safe NONE. */
+    fmt_store_reset();
+    row = fmt_store_step(0u, 0u, 0u);
+    assert(row);
+    row->note = 0xFCu;
+    fmt_transport_reset(&t);
+    fmt_playback_reset(&p);
+    assert(fmt_playback_start(&p, &t, &e) == 1);
+    assert(e.kind == FMT_PLAYBACK_EVENT_NONE);
+    assert(e.note == FMT_NOTE_EMPTY);
 }
 
 static void test_complete_loop_and_note_trace(void)
@@ -156,20 +187,21 @@ static void test_complete_loop_and_note_trace(void)
     FmtTransport t;
     FmtPlaybackEvent e;
     uint32_t rendered = 0u, boundaries = 0u, notes = 0u;
-    uint32_t expected_note_index = 1u; /* step 0 was emitted at frame 0 */
+    uint32_t expected_note_index = 1u;
 
     prepare(&p, &t);
     assert(fmt_playback_start(&p, &t, &e) == 1);
+    assert(e.kind == FMT_PLAYBACK_EVENT_NOTE);
     assert(e.note == expected_notes[0]);
     notes = 1u;
 
     while (boundaries < FMT_STEPS_PER_PATTERN) {
-        uint32_t block_left = 256u; /* mirror normal host/device callback grouping */
+        uint32_t block_left = 256u;
         while (block_left-- && boundaries < FMT_STEPS_PER_PATTERN) {
             rendered++;
             if (fmt_playback_end_frame(&p, &t, &e)) {
                 boundaries++;
-                if (e.has_note) {
+                if (e.kind == FMT_PLAYBACK_EVENT_NOTE) {
                     uint32_t event_frame = rendered;
                     uint32_t expected_frame;
 
@@ -186,6 +218,9 @@ static void test_complete_loop_and_note_trace(void)
                     }
                     assert(event_frame == expected_frame);
                     notes++;
+                } else {
+                    assert(e.kind == FMT_PLAYBACK_EVENT_NONE);
+                    assert(e.note == FMT_NOTE_EMPTY);
                 }
             }
         }
@@ -195,7 +230,7 @@ static void test_complete_loop_and_note_trace(void)
     assert(boundaries == 64u);
     assert(t.step == 0u && t.phase == 0u);
     assert(expected_note_index == FMT_PLAYBACK_PROOF_NOTE_COUNT);
-    assert(notes == FMT_PLAYBACK_PROOF_NOTE_COUNT + 1u); /* initial + 15 + loop step 0 */
+    assert(notes == FMT_PLAYBACK_PROOF_NOTE_COUNT + 1u);
 }
 
 int main(void)
@@ -204,11 +239,11 @@ int main(void)
     test_proof_pattern_is_one_lane_and_deterministic();
     test_step_zero_dispatches_before_frame_zero();
     test_120_bpm_fractional_boundary_applies_to_next_frame();
-    test_special_notes_are_not_accidental_pitches();
+    test_special_event_kinds_and_exact_boundaries();
     test_complete_loop_and_note_trace();
 
     printf("FMT_PLAYBACK_TESTS_OK=1\n");
-    printf("pattern=0 track=0 proof_notes=16 spacing=4 loop_frames_120=352800 state_bytes=%zu event_bytes=%zu\n",
+    printf("pattern=0 track=0 proof_notes=16 spacing=4 loop_frames_120=352800 state_bytes=%zu event_bytes=%zu kinds=none,note,tie,off\n",
            sizeof(FmtPlayback), sizeof(FmtPlaybackEvent));
     return 0;
 }
