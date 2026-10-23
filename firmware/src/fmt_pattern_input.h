@@ -45,6 +45,10 @@ int fmt_pattern_input_select_track_key(FmtPatternInput *input, uint32_t key_inde
 int fmt_pattern_input_page_prev(FmtPatternInput *input);
 int fmt_pattern_input_page_next(FmtPatternInput *input);
 
+/* D024 STEP REC advance: move exactly one global step and wrap 63 -> 0.
+ * Pattern context and a valid cursor are required; selected_track is preserved. */
+int fmt_pattern_input_advance_step(FmtPatternInput *input);
+
 /* Always returns 0..63 for a valid/reset state. Null is safely treated as 0. */
 uint8_t fmt_pattern_input_global_step(const FmtPatternInput *input);
 
