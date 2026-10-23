@@ -10,7 +10,7 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 State: **COMPLETE — 2026-10-23**
 
-Phase 2 parent issue: #8
+Phase 2 parent issue: #8 — closed completed
 
 Current branch: `phase2/tracker-core`
 
@@ -30,7 +30,7 @@ Durable Phase 2 closeout evidence:
 
 State: **COMPLETE — 2026-10-23**
 
-GitHub issue: #18
+GitHub issue: #18 — closed completed
 
 WP2.10 start head:
 
@@ -160,7 +160,15 @@ No physical FM-1 is currently available. Phase 2 does not claim real-hardware va
 
 State: **READY TO START — no Phase 3 implementation has begun**
 
-The first bounded package is WP3.1 — stable parameter ID registry. Follow the normal execution protocol: create/confirm the package issue, mark it IN PROGRESS, freeze any architectural contract needed before source code, and do not pull later Phase 3 packages forward.
+First bounded package:
+
+**WP3.1 — stable parameter ID registry**
+
+GitHub issue: #19
+
+State: **READY TO START**
+
+Next action: start #19 as its own package. Before source code, mark WP3.1 IN PROGRESS and freeze the parameter-ID width/domain, invalid/reserved values and namespace/range rules in `DECISIONS.md`. Do not pull WP3.2 p-lock allocation, editing, effect semantics, engine work or live-performance capture forward.
 
 `docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction after the p-lock and engine foundations. It must not be folded into WP3.1.
 
@@ -178,4 +186,4 @@ The first bounded package is WP3.1 — stable parameter ID registry. Follow the 
 
 ## Last updated
 
-2026-10-23 — Phase 2 verified complete. Phase 3 / WP3.1 is ready to start, but no Phase 3 implementation has begun.
+2026-10-23 — Phase 2 and #8/#18 are closed completed. WP3.1 / issue #19 is READY TO START; no Phase 3 implementation has begun.
