@@ -148,8 +148,8 @@ m = re.search(r"image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool
 assert m, 'resource line not found'
 image, image_limit, ram, pool = map(int, m.groups())
 
-# D028 exact storage/runtime allocation. Image cost is measured/frozen only
-# after the first real target link because code GC/link layout determines it.
+# Final measured WP3.2 footprint is frozen by the second closeout run.
+assert image == 59388, image
 assert ram == 12468, ram
 assert pool == 113000, pool
 
@@ -162,16 +162,21 @@ def one(name):
 lock_store = one('fmt_lock_store_storage')
 lock_runtime = one('fmt_lock_store_runtime')
 song_store = one('fmt_store_storage')
+assert int(lock_store[0], 16) == 0x01C30168, lock_store
 assert int(lock_store[-2], 16) == 16384, lock_store
 assert '.pool' in lock_store, lock_store
+assert int(lock_runtime[0], 16) == 0x01C0B080, lock_runtime
 assert int(lock_runtime[-2], 16) == 4, lock_runtime
 assert '.bss' in lock_runtime, lock_runtime
+assert int(song_store[0], 16) == 0x01C20000, song_store
 assert int(song_store[-2], 16) == 65896, song_store
 assert '.pool' in song_store, song_store
 
 bin_sha = hashlib.sha256(Path('build/fm1tracker.bin').read_bytes()).hexdigest()
 fwsc_sha = hashlib.sha256(Path('build/fm1tracker-0.1.fwsc').read_bytes()).hexdigest()
 wav_sha = hashlib.sha256(Path('build/host/fm1tracker.wav').read_bytes()).hexdigest()
+assert bin_sha == 'b717a504f96601393e493f52142e3120204051c5e11b733b0113309e0219ac2b', bin_sha
+assert fwsc_sha == '36c054c0f6c0cc8e86dd869fadf8d0093a560f5851a9ebd9b2405552642d5966', fwsc_sha
 assert wav_sha == '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440', wav_sha
 
 base_image, base_ram, base_pool = 59252, 12464, 96616
@@ -190,7 +195,8 @@ print(f'fm1tracker_fwsc_sha256={fwsc_sha}')
 print(f'host_wav_sha256={wav_sha}')
 PY
 
+grep -F 'image_delta_vs_wp3_1=136' build/wp3_2_metrics.txt
 grep -F 'normal_ram_delta_vs_wp3_1=4' build/wp3_2_metrics.txt
 grep -F 'pool_delta_vs_wp3_1=16384' build/wp3_2_metrics.txt
 
-echo "WP3_2_MEASURED_CLOSEOUT_GATE_OK=1"
+echo "WP3_2_CLOSEOUT_GATE_OK=1"
