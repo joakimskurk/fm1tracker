@@ -15,7 +15,7 @@
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4: exact one-lane row dispatch */
-#include "fmt_pattern_input.c"                 /* WP2.5: bounded SEQ page/cursor addressing */
+#include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
@@ -288,8 +288,10 @@ static void app_main(void)
             }
             if (down >> k & 1u) {
                 if (pattern_mode) {
-                    /* White keys select only; black keys are rejected until WP2.6. */
-                    (void)fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k);
+                    /* D022/D023: white keys select steps, designated black keys
+                     * select tracks, and reserved black keys are consumed. */
+                    if (!fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k))
+                        (void)fmt_pattern_input_select_track_key(&fmt_pattern_input_runtime, k);
                 } else {
                     held[k] = (uint8_t)(base + k);
                     play(held[k], 100);
