@@ -114,22 +114,26 @@ Phase 2 exit criteria are satisfied at the host/device-build level. Physical FM-
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
 
-Status: **READY TO START — WP3.1 next; no Phase 3 implementation started**
+Status: **IN PROGRESS — WP3.1 complete; WP3.2 next**
 
-Planned:
+Parent issue: #20
 
-- stable parameter ID registry;
-- bounded sparse max-four-lock storage;
-- hold/select step + encoder lock editing;
-- lock replace/delete UX;
-- pitch/volume controls;
-- arpeggio, slide, portamento, vibrato;
-- retrig, note delay, note cut;
-- bounded event queue/overflow policy;
-- visible lock/effect feedback;
-- worst-case tests.
+Progress:
 
-Immediate next package: **WP3.1 — stable parameter ID registry**. Freeze the registry contract before later p-lock storage/editor code depends on IDs. Do not pull WP3.2 allocation or WP3.3 edit behavior into WP3.1.
+1. ✅ **WP3.1 — stable parameter ID registry**. D027 freezes a one-byte semantic ID domain, NONE/INVALID, non-overlapping namespaces and exactly four initial assigned IDs. All 256 byte values are exhaustively tested. The registry translation unit compiles with the real JieLi target compiler. It is not linked into runtime yet, so WP3.1 costs exactly 0 B image / 0 B normal RAM / 0 B pool and preserves the Phase 2 firmware hashes. Final run `40025790828`; evidence `WP3_1_VERIFICATION.md`.
+2. ⬜ **WP3.2 — sparse four-lock-per-step storage**, issue #21, READY TO START. D028 must freeze the concrete lock record, pool capacity, allocator/free-list, `lock_head` ownership, duplicate policy, max-four enforcement and corruption/exhaustion behavior before source.
+3. ⬜ WP3.3 — hold/select step + encoder lock editing.
+4. ⬜ WP3.4 — lock replace/delete UX.
+5. ⬜ WP3.5 — basic pitch/volume effects.
+6. ⬜ WP3.6 — arpeggio/slide/porta/vibrato.
+7. ⬜ WP3.7 — retrig/note delay/note cut.
+8. ⬜ WP3.8 — bounded event queue and overflow policy.
+9. ⬜ WP3.9 — lock/effect visual feedback.
+10. ⬜ WP3.10 — Phase 3 worst-case tests.
+
+D027 current assigned IDs are deliberately small: VOICE LEVEL, FINE PITCH, TRACK LEVEL and TRACK PAN. Engine/effect/GLOBAL namespaces remain mostly unassigned until real semantics exist. Namespace membership alone never means lockable.
+
+Immediate next package: **WP3.2**. Storage must preserve the frozen 8-byte `FmtStep`, use D027 semantic IDs, enforce max four active locks per step and remain bounded under pool exhaustion/corrupt-index cases. Do not pull encoder UX or playback/effect application forward.
 
 Exit criteria:
 
