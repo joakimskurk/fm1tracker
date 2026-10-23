@@ -1,0 +1,42 @@
+# Stop the default proof transport and enter stopped STEP REC.
+100 btn 12
+200 btn 13
+
+# FX tap is REST: arm on down, commit EMPTY on release.
+250 btndown 2
+300 btnup 2
+
+# SELECT alone is TIE.
+350 btn 3
+
+# Hold FX then SELECT is NOTE OFF. Releasing FX afterward must NOT add REST.
+400 btndown 2
+450 btn 3
+500 btnup 2
+
+# The next ordinary note must therefore land immediately after OFF (step 3).
+550 keys 1
+600 keys 0
+
+# Pending REST cancelled by HOME must not write on later FX release.
+650 btndown 2
+700 btn 8
+750 btnup 2
+
+# Re-enter STEP REC while still stopped and add a TIE at the unchanged cursor.
+800 btn 13
+850 btn 3
+
+# REC exit cancels pending REST too.
+900 btndown 2
+950 btn 13
+1000 btnup 2
+
+# Re-enter, arm FX, then PLAY. PLAY exits STEP REC and cancels the pending REST
+# before resuming playback. The edited sequence is REST, TIE, OFF, F3, TIE.
+1050 btn 13
+1100 btndown 2
+1150 btn 12
+1200 btnup 2
+
+1600 end
