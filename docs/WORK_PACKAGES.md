@@ -91,32 +91,37 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1 complete; WP3.2 active**
+Status: **IN PROGRESS — WP3.1/WP3.2 complete; WP3.3 next**
 
 Parent issue: #20
 
 ## Completed packages
 
 - **WP3.1 — stable parameter ID registry** — COMPLETE — issue #19  
-  D027 freezes one-byte semantic parameter identity, exact namespace ranges, NONE/INVALID handling and four initial assigned IDs. Exhaustive all-256-value tests, real JieLi target compilation and every inherited Phase 2 regression pass. Registry was intentionally not linked into runtime in WP3.1, so device image/RAM/pool and final firmware hashes remained byte-identical to Phase 2. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
+  D027 freezes one-byte semantic parameter identity, exact namespace ranges, NONE/INVALID handling and four initial assigned IDs. Exhaustive all-256-value tests, real JieLi target compilation and every inherited Phase 2 regression pass. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
 
-Verified baseline entering WP3.2:
+- **WP3.2 — sparse four-lock-per-step storage** — COMPLETE — issue #21  
+  D028 freezes one global 2,048-record sparse pool with exact 8-byte owner-checked records, strict ascending parameter-ID lists, deterministic replacement/removal/clear, explicit STEP_FULL/POOL_FULL/CORRUPT results and max four locks per individual step. All 8,192 owner addresses, pool exhaustion/reuse and corruption isolation are tested. Final run `40038453521`. Final resource delta vs WP3.1: +136 B image / +4 B normal RAM / +16,384 B pool. Evidence: `WP3_2_VERIFICATION.md`.
 
-- app image: 59,252 B / 581,564 B
-- normal RAM: 12,464 B / 98,304 B
-- pool RAM: 96,616 B / 344,064 B
+Current verified baseline after WP3.2:
+
+- app image: 59,388 B / 581,564 B
+- normal RAM: 12,468 B / 98,304 B
+- pool RAM: 113,000 B / 344,064 B
 - `FmtParamId`: 1 B
-- assigned IDs: 4
-- exhaustive identity-domain coverage: 256 / 256 values
+- `FmtLock`: 8 B
+- global lock pool: 2,048 records / 16,384 B
+- allocator runtime: 4 B
+- editable core + lock records: 82,280 B
 - frozen default WAV unchanged
 - package identity: `FM-1_987`
 
-## Active package
+## Next package
 
-- **WP3.2 — sparse four-lock-per-step storage** — IN PROGRESS — issue #21  
-  Start head `dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e`. D028 freezes one global 2,048-record sparse pool, exact 8-byte owner-checked records, strict ascending parameter-ID lists, deterministic replace/remove/clear semantics, max four locks per step and explicit STEP_FULL/POOL_FULL/CORRUPT outcomes. Focused host gate `40037916472` is green. Full device/resource closeout is still required.
+- **WP3.3 — hold-step + encoder p-lock editing** — READY TO START — issue #22.  
+  Freeze the exact step-hold/select gesture, context gating, encoder-to-D027 mapping, value scaling, gesture ownership/latching and safe storage-error feedback before source. WP3.3 may write/replace D028 locks from the hardware/editor path but must not add WP3.4 delete UX or WP3.5 playback application.
 
-Remaining Phase 3 order after WP3.2:
+Remaining Phase 3 order:
 
 - WP3.3 hold-step + encoder lock editing
 - WP3.4 lock replace/delete UX
@@ -126,8 +131,6 @@ Remaining Phase 3 order after WP3.2:
 - WP3.8 bounded event queue and overflow policy
 - WP3.9 lock/effect visual feedback
 - WP3.10 Phase 3 worst-case tests
-
-WP3.2 is storage-only. Do not pull WP3.3 editing gestures, WP3.4 user-facing UX or WP3.5+ lock application/effect semantics into it.
 
 ---
 
