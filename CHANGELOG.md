@@ -128,6 +128,27 @@ The clean platform/identity/build baseline is now reproducible and budgeted. No 
 - Final verification: Actions run `39991490860`, job `120544086455`.
 - Detailed evidence: `docs/WP2_4_VERIFICATION.md`.
 
+### WP2.5 - 16-step page input
+
+- Frozen D022 before implementation: explicit PERFORMANCE/SEQ context, four clamped pages, sixteen local positions and derived global step `page * 16 + local`.
+- Mapped the 16 physical white note-key indexes `0,2,4,6,7,9,11,12,14,16,18,19,21,23,24,26` bijectively to local steps `0..15`.
+- Added a 3-byte `FmtPatternInput` state. Global step is derived rather than duplicated in RAM.
+- `SEQ` enters pattern context and `HOME` returns to performance context.
+- `OCT-` / `OCT+` navigate pages only in pattern context, clamp at pages 0/3 and preserve local position.
+- White-key presses in SEQ select cursor steps only. Black-key presses are deliberately rejected until WP2.6.
+- Normal performance audition/MIDI remains active outside SEQ context.
+- Preserved ownership of performance notes across context changes, so a note started before entering SEQ still receives NOTE OFF when its physical key is released.
+- Added exhaustive host tests for all 27 note-key indexes, all 64 global step addresses, invalid indexes, page boundaries and context transitions.
+- Proved selection/navigation cannot mutate song data by comparing a byte-for-byte `FmtSong` snapshot before and after the complete mapping test.
+- Added a full-app host gesture fixture proving performance audition, SEQ consumption of white/black key downs and safe held-note release after a mode switch.
+- Preserved the exact WP2.4 audible WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
+- Full JieLi device build and inherited safety checks pass with package identity `FM-1_987`.
+- `FmtPatternInput` links as 3 B in `.bss` at `0x01C0B060`; the song store remains unchanged at `.pool` `0x01C20000`.
+- Final resources: 55,980 B image (**+288 B** vs WP2.4), 12,400 B normal RAM (**+4 B**) and 96,616 B pool RAM (**0 B delta**).
+- Final verified artifacts: `fm1tracker.bin` `ed16268fb4c2599342986d8e2588e6f90bf7229ec9d0d9e2cc92ff6378aaed30`; `fm1tracker-0.1.fwsc` `7d215b4b78e3232f670a6d146b27c4ae5064d069dfdeac40df8468c8016697a2`.
+- Final verification: Actions run `39994230797`, job `120553466206`.
+- Detailed evidence: `docs/WP2_5_VERIFICATION.md`.
+
 ### Next
 
-**WP2.5 — 16-step page input.** Map the 16 white keys to four deterministic 16-step pages covering all 64 rows without writing notes yet. Issue #13 is prepared; implementation has not started.
+**WP2.6 — track selection prototype.** Prototype eight direct black-key track selectors inside the explicit SEQ context while preserving the verified white-key/page mapping and fixed one-track playback proof. Issue #14 is prepared; implementation has not started.
