@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "fmt_store.h"
 
-#include "fmt_lock_store.h"
-
 /* D019: one V0.1 editable song lives in the large NOLOAD pool, not ordinary
  * .bss. Keep the symbol externally visible so CI can prove its device address
  * and size from the linked ELF without exposing it in the public header. */
@@ -31,10 +29,6 @@ void fmt_store_reset(void)
         for (track = 0; track < FMT_TRACKS; track++)
             for (step = 0; step < FMT_STEPS_PER_PATTERN; step++)
                 fmt_step_init(&fmt_store_storage.patterns[pattern].steps[track][step]);
-
-    /* D028 makes p-lock records part of the complete editable-song reset even
-     * though the records live in a separate bounded pool object. */
-    fmt_lock_store_reset();
 }
 
 FmtSong *fmt_store_song(void)
