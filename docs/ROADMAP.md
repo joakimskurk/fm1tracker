@@ -68,7 +68,7 @@ Phase 1 exit criteria are satisfied at the host/firmware-build level. Physical F
 
 Goal: prove editing and transport with the simplest possible tone source.
 
-Status: **IN PROGRESS — WP2.1 through WP2.6 complete; WP2.7 is next**
+Status: **IN PROGRESS — WP2.1 through WP2.7 complete; WP2.8 is next**
 
 Tasks:
 
@@ -78,26 +78,30 @@ Tasks:
 4. ✅ WP2.4 — deterministic one-track audible playback with exact sub-block row timing, frame-0 step dispatch and exact 64-step loop. Evidence: `WP2_4_VERIFICATION.md`.
 5. ✅ WP2.5 — D022 SEQ-context white-key 16-step page input across four clamped pages, with no song mutation and frozen audible playback preserved. Evidence: `WP2_5_VERIFICATION.md`.
 6. ✅ WP2.6 — D023 provisional eight-black-key track-selection prototype in SEQ context, with reserved keys, no song mutation and frozen playback preserved. Evidence: `WP2_6_VERIFICATION.md`.
-7. ⬜ WP2.7 — STEP REC note entry. Issue #15 is READY TO START; no implementation yet.
-8. ⬜ WP2.8 — REST / TIE / NOTE-OFF semantics.
+7. ✅ WP2.7 — D024 stopped-transport STEP REC note entry with deterministic lowest-note monophonic gesture policy, exact selected-row note writes and modulo-64 cursor advance. Evidence: `WP2_7_VERIFICATION.md`.
+8. ⬜ WP2.8 — REST / TIE / NOTE-OFF semantics. Issue #16 is READY TO START; no implementation yet.
 9. ⬜ WP2.9 — compact tracker screen with bounded/dirty rendering.
 10. ⬜ WP2.10 — Phase 2 integration test: enter and play a complete 64-step melody without a computer.
 
-Current verified Phase 2 runtime baseline after WP2.6:
+Current verified Phase 2 runtime baseline after WP2.7:
 
-- app image: 56,060 B / 581,564 B;
-- normal RAM: 12,400 B / 98,304 B;
+- app image: 56,548 B / 581,564 B;
+- normal RAM: 12,404 B / 98,304 B;
 - pool RAM: 96,616 B / 344,064 B;
 - `FmtSong` store: 65,896 B at `.pool` address `0x01C20000`;
-- `FmtPatternInput`: 4 B at `.bss` address `0x01C0B060`;
-- `FmtTransport`: 8 B at `.bss` address `0x01C0B064`;
-- `FmtPlayback`: 1 B at `.bss` address `0x01C0B06C`;
+- `FmtStepRecord`: 2 B at `.bss` address `0x01C0B060`;
+- `FmtPatternInput`: 4 B at `.bss` address `0x01C0B062`;
+- `FmtTransport`: 8 B at `.bss` address `0x01C0B068`;
+- `FmtPlayback`: 1 B at `.bss` address `0x01C0B070`;
 - four pages × sixteen local positions cover all 64 pattern steps exactly;
 - eight designated black keys select logical tracks 0..7; three remaining black keys are reserved;
+- STEP REC writes one ordinary note per fully released gesture while transport is stopped;
+- simultaneous key downs use deterministic lowest-note selection;
+- successful note writes advance exactly one global step modulo 64;
 - transport phase threshold: 661,500;
 - deterministic 120 BPM full-pattern loop: 352,800 frames;
 - deterministic audible host WAV SHA-256 remains `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
-- physical FM-1 page/track ergonomics, audio behavior and actual callback execution time remain unverified.
+- physical FM-1 STEP REC/page/track ergonomics, audio behavior and actual callback execution time remain unverified.
 
 Exit criteria:
 
@@ -105,6 +109,8 @@ Exit criteria:
 - REST advances exactly one step;
 - playback loops without cumulative timing drift;
 - edits during stop mode are deterministic and bounds-safe.
+
+The stopped deterministic note-write portion of the final editing criterion is now verified in WP2.7. Special-event editing remains WP2.8, the visible tracker remains WP2.9, and the full computer-free melody workflow remains WP2.10.
 
 ## Phase 3 — parameter locks and tracker effects
 
@@ -209,8 +215,8 @@ Test specifically:
 - white keys as 16 steps;
 - black keys as track selectors;
 - hold-step + knob p-lock ergonomics;
-- chord entry advance behavior;
-- OCT buttons as page navigation;
+- current lowest-note/full-release chord-entry behavior;
+- OCT buttons as page navigation outside STEP REC and pitch octave inside STEP REC;
 - readability of the tracker view on 240 x 240.
 
 Exit criteria:
