@@ -47,99 +47,113 @@ Git remains the detailed history. This file records milestone-level changes only
 
 ### WP1.5 - Renamed device baseline and resource budget
 
-- Pinned the official JieLi AC79 SDK tag `AC79NN_SDK_V1.2.1_2023-12-13` to commit `d179b4484759423312073f5fbb232501aa491047` as an external build dependency.
-- Verified the three consumed SDK package inputs against their frozen SHA-256 hashes.
-- Completed the full renamed FM1Tracker device build in GitHub Actions.
-- Verified final package identity `FM-1_987` and inherited Dinghy safety checks.
-- Captured the clean reference budget: 55,088 B app image, 12,368 B normal RAM and 30,720 B pool RAM.
-- Recorded the nominal 256-frame / 44.1 kHz callback period as 5.804988662 ms without claiming unmeasured hardware render time.
-- Final verified artifacts: `fm1tracker.bin` SHA-256 `7b313502f2ab222e6ecf19f970772a36f314bce7c880b505157d4d5a2e4dfbaf`; `fm1tracker-0.1.fwsc` SHA-256 `a3afcc069e4a9fe161f8470f477a76720b411fc6f302ebcf862c272a9a683bc2`.
-- No physical FM-1 verification performed.
+- Pinned official JieLi AC79 SDK tag `AC79NN_SDK_V1.2.1_2023-12-13` to commit `d179b4484759423312073f5fbb232501aa491047` as an external build dependency.
+- Verified consumed SDK package inputs against frozen SHA-256 hashes.
+- Completed the full renamed FM1Tracker device build and inherited safety checks.
+- Captured clean baseline: 55,088 B app image, 12,368 B normal RAM and 30,720 B pool RAM.
+- Final verified artifacts: `fm1tracker.bin` `7b313502f2ab222e6ecf19f970772a36f314bce7c880b505157d4d5a2e4dfbaf`; `fm1tracker-0.1.fwsc` `a3afcc069e4a9fe161f8470f477a76720b411fc6f302ebcf862c272a9a683bc2`.
 - Detailed evidence: `docs/WP1_5_VERIFICATION.md`.
 
 ### Phase 1 complete
 
-The clean platform/identity/build baseline is now reproducible and budgeted. No tracker implementation has been mixed into Phase 1.
+The clean platform/identity/build baseline is reproducible and budgeted. Physical FM-1 install/audio/render-time verification remains a later hardware gate.
 
 ## 2026-10-23 - Phase 2 tracker core
 
 ### WP2.1 - Compile-time tracker data model
 
-- Added the FM1Tracker-owned V0.1 compile-time model in `firmware/src/fmt_model.h`.
-- Frozen 8 tracks, 64 steps/pattern, 16 pattern slots, 128 order entries, 16 instruments and the existing four-lock-per-step semantic limit.
-- Enforced the 8-byte `FmtStep` representation and 4,096-byte `FmtPattern` at compile time.
-- Added deterministic empty-step defaults plus null-safe/bounds-safe pattern and step accessors.
-- Defined a non-instantiated 65,896-byte `FmtSong` core shape and kept the p-lock allocator unfrozen.
-- Proved WP2.1 adds no runtime footprint and preserved Phase 1 artifacts byte-identically.
+- Added the V0.1 model and froze 8 tracks, 64 steps/pattern, 16 patterns and an 8-byte `FmtStep`.
+- Added deterministic defaults/sentinels, bounds-safe accessors and compile-time budget checks.
 - Detailed evidence: `docs/WP2_1_VERIFICATION.md`.
 
 ### WP2.2 - Bounds-safe pattern store
 
-- Added a narrow runtime store API and exactly one 65,896-byte `FmtSong` in `.pool` at `0x01C20000`.
-- Explicitly initialized all 8,192 steps to the frozen tracker sentinels and verified bounds/reset/mutation isolation.
-- Final resources: 55,188 B image, 12,368 B normal RAM and 96,616 B pool RAM.
+- Added one 65,896-byte runtime `FmtSong` in `.pool` at `0x01C20000`.
+- Explicitly initialized all 8,192 steps and verified bounds/reset/mutation isolation.
+- Final resources: 55,188 B image, 12,368 B normal RAM, 96,616 B pool.
 - Detailed evidence: `docs/WP2_2_VERIFICATION.md`.
 
 ### WP2.3 - Integer transport clock
 
-- Added an 8-byte `FmtTransport` using D020 exact rational 1/16-note timing with threshold `661500` and integer BPM accumulated per audio frame.
-- Added deterministic reset/start/stop/resume, exact `63 -> 0` wrap and long-run no-drift host verification.
+- Added D020 exact rational integer 1/16-note timing with threshold `661500`.
+- Added deterministic reset/start/stop/resume, exact 63 -> 0 wrap and long-run no-drift verification.
 - Kept firmware transport free of float, runtime division and 64-bit arithmetic.
-- Final resources: 55,328 B image, 12,376 B normal RAM and 96,616 B pool RAM.
-- Final verification: Actions run `39988630290`, job `120534295734`.
+- Final resources: 55,328 B image, 12,376 B normal RAM, 96,616 B pool.
+- Final verification: run `39988630290`.
 - Detailed evidence: `docs/WP2_3_VERIFICATION.md`.
 
 ### WP2.4 - One-track audible playback
 
-- Added the D021 frame-0 dispatch contract and deterministic pattern-0 / track-0 proof playback using the existing integer sine primitive.
-- At 120 BPM, step 1 starts on frame 5513 and the full 64-step loop returns on frame 352800 without callback quantization.
+- Added D021 frame-0 dispatch and deterministic pattern-0 / track-0 proof playback.
+- At 120 BPM, step 1 begins frame 5513 and the complete loop returns frame 352800.
 - Frozen host WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
-- Corrected startup/store handoff and deferred inherited flash settings writes while the proof lane sounds.
-- Final resources: 55,692 B image, 12,396 B normal RAM and 96,616 B pool RAM.
-- Final verification: Actions run `39991490860`, job `120544086455`.
+- Final resources: 55,692 B image, 12,396 B normal RAM, 96,616 B pool.
+- Final verification: run `39991490860`.
 - Detailed evidence: `docs/WP2_4_VERIFICATION.md`.
 
 ### WP2.5 - 16-step page input
 
-- Frozen D022 explicit PERFORMANCE/SEQ context and four clamped pages of sixteen white-key step positions.
-- Mapped the 16 physical white keys bijectively to local steps 0..15 and proved all 64 global addresses exactly once.
-- Preserved performance audition and safe note release across context changes; navigation cannot mutate the song store.
-- Added a 3-byte `FmtPatternInput` state and preserved the frozen WP2.4 WAV.
-- Final resources: 55,980 B image, 12,400 B normal RAM and 96,616 B pool RAM.
-- Final verification: Actions run `39994230797`, job `120553466206`.
+- Frozen D022 PERFORMANCE/SEQ context and four clamped 16-step pages.
+- Mapped all 16 physical white keys bijectively across 64 global steps.
+- Preserved performance audition and proved navigation cannot mutate song data.
+- Final resources: 55,980 B image, 12,400 B normal RAM, 96,616 B pool.
+- Final verification: run `39994230797`.
 - Detailed evidence: `docs/WP2_5_VERIFICATION.md`.
 
 ### WP2.6 - Black-key track selection prototype
 
-- Frozen D023: black-key indexes `1,3,5,8,10,13,15,17` select logical tracks 0..7; indexes `20,22,25` remain reserved.
-- Extended `FmtPatternInput` to 4 B with one bounded selected-track byte.
-- Selection is SEQ-only, survives HOME/SEQ, preserves page/step, and cannot mutate `FmtSong`.
-- Black keys continue normal audition/MIDI behavior in PERFORMANCE and held notes release safely across context changes.
-- Preserved the frozen WP2.4 WAV and kept proof playback fixed to track 0.
-- Final resources: 56,060 B image, 12,400 B normal RAM and 96,616 B pool RAM.
-- Final verification: Actions run `39995856373`, job `120559070230`.
+- Frozen D023: black-key indexes `1,3,5,8,10,13,15,17` select logical tracks 0..7; `20,22,25` reserved.
+- Extended `FmtPatternInput` to 4 B.
+- Track selection is SEQ-only, preserves page/step and cannot mutate the song.
+- Final resources: 56,060 B image, 12,400 B normal RAM, 96,616 B pool.
+- Final verification: run `39995856373`.
 - Detailed evidence: `docs/WP2_6_VERIFICATION.md`.
 
 ### WP2.7 - STEP REC note entry
 
-- Frozen D024 before source implementation: STEP REC is a stopped-transport editor mode entered with REC only after audio has acknowledged a real stop.
-- Added an explicit main-to-audio play-request/stopped-ack handoff so the audio callback remains the sole writer of live D020 transport state while editor writes occur only after the playback/store reader is quiescent.
-- Added a 2-byte `FmtStepRecord` state with active/gesture-latched flags.
-- Added deterministic modulo-64 cursor advance to `FmtPatternInput`, including exact step `63 -> 0` while preserving selected track.
-- All 27 note keys become pitch input in STEP REC; OCT-/OCT+ change pitch octave while ordinary SEQ keeps page navigation.
-- Stored pitch equals audition pitch (`53 + 12 * octave + key_index`, octave -2..+2).
-- Simultaneous key downs deterministically store the lowest physical key/lowest pitch once. The write gesture remains latched until all note keys are released, preventing duplicate advances from chord-like/staggered presses.
-- A successful write changes only the selected row's `note` byte; instrument, volume, effect, effect value, flags and lock-head are preserved.
-- REC exit remains in SEQ, HOME returns to PERFORMANCE, and PLAY exits STEP REC before resuming transport.
-- Added unit tests for exact write isolation, field preservation, invalid/running-state rejection, lowest-key policy, latch behavior and `63 -> 0` wrap.
-- Added a full-app host gesture fixture proving running REC rejection, stopped REC entry, STEP REC octave/audition, PLAY/REC/HOME context behavior and safe note releases.
-- Preserved every WP2.1–WP2.6 regression and the exact frozen WP2.4 WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
-- Full JieLi device build and inherited safety checks pass with identity `FM-1_987`.
-- Final resources: 56,548 B image (**+488 B** vs WP2.6), 12,404 B normal RAM (**+4 B**) and 96,616 B pool RAM (**+0 B**).
+- Frozen D024 stopped-transport STEP REC semantics before source code.
+- Added main-to-audio play-request/stopped-ack handoff so audio remains sole writer of live transport state.
+- Added deterministic ordinary-note writes at selected track/step and exact modulo-64 cursor advance.
+- All 27 note keys become pitch keys in STEP REC; stored pitch matches audition pitch.
+- Simultaneous downs store the lowest pitch once; gesture latches until all note keys release.
+- Successful writes change only `FmtStep.note` and preserve all other row fields.
+- REC exit remains SEQ, HOME returns PERFORMANCE and PLAY exits STEP REC before resuming.
+- Preserved every earlier regression and the exact frozen WP2.4 WAV.
+- Final resources: 56,548 B image, 12,404 B normal RAM, 96,616 B pool.
 - Final artifacts: `fm1tracker.bin` `9d0c198b7428996c8147eb6bab085ad3580dc432291b2e9e56114a65d1dfaeb4`; `fm1tracker-0.1.fwsc` `9eb9c278175ac2aac693bc70cea4b7af1a5cef7b87fc9c845c68e4d6f1b73130`.
-- Final verification: Actions run `39999680852`, job `120572238726`.
+- Final verification: run `39999680852`.
 - Detailed evidence: `docs/WP2_7_VERIFICATION.md`.
+
+### Live performance capture product direction recorded
+
+- Added `docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` as accepted future core direction.
+- Defined the intended complement to precise stopped STEP REC: seamless PLAY -> REC capture while transport continues.
+- Preserved all eight logical tracks and set a reference performance configuration covering drums, bass, poly synth and lead plus four flexible tracks.
+- Added a measured 3–6 voice target for at least one polyphonic track if hardware budget permits.
+- Defined future metronome, CHANNEL/GLOBAL performance FX and bounded parameter/FX capture as tracker-editable data.
+- Promoted live capture from optional Phase 9 to a planned core milestone after p-lock/event and engine foundations exist.
+- No firmware/test behavior changed in these planning commits.
+
+### WP2.8 - REST / TIE / NOTE-OFF semantics
+
+- Frozen D025 before source implementation.
+- REST is an FX tap committed on FX release; `SELECT` alone writes TIE; hold FX then press SELECT writes NOTE OFF.
+- Delaying REST until FX release makes the modifier deterministic: OFF consumes pending REST and later FX release cannot double-write.
+- REC/HOME/PLAY exit cancels pending REST safely.
+- Every special edit changes only the selected row's `note` byte, preserves all other row fields, advances exactly once and wraps 63 -> 0.
+- Extended `FmtStepRecord` from 2 B to 3 B so pending FX modifier state is owned/tested by the editor layer.
+- Kept `FmtPlaybackEvent` exactly 4 B and replaced the old boolean note flag with explicit `NONE`, `NOTE`, `TIE`, `OFF` kinds.
+- EMPTY emits no voice command; TIE explicitly preserves an already active gate without retrigger; OFF releases the proof voice; malformed/reserved values remain safe NONE.
+- Extended the host panel harness with backward-compatible `btndown` / `btnup` support so held modifier/release behavior is testable like the real HAL.
+- Added focused full-app audio proof: `before=4410 quiet=0 after=4410`, demonstrating exact silence after NOTE OFF and sound returning on the following note.
+- Preserved all WP2.1–WP2.7 regressions and the exact frozen default WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
+- Full JieLi device build and safety gates pass with identity `FM-1_987`.
+- Final resources: 56,748 B image (**+200 B** vs WP2.7), 12,420 B normal RAM (**+16 B**) and 96,616 B pool (**+0 B**).
+- Final artifacts: `fm1tracker.bin` `a4dd8d8326f9f28852d243c2a07e88e0ac3af5c5ce302ff1ac8b45883b72eecf`; `fm1tracker-0.1.fwsc` `fd569d068c272e49b00cf0505bb613b774be08ae0aa757932594005b1c36ef69`.
+- Evidence artifact: ID `12523074553`, ZIP SHA-256 `263d20fbf9162f6cc5e199980f2c76dd9267a2ec92c84baf5bc4408f476b041b`.
+- Final verification: Actions run `40004436981`, job `120588627172`.
+- Detailed evidence: `docs/WP2_8_VERIFICATION.md`.
 
 ### Next
 
-**WP2.8 — REST / TIE / NOTE-OFF semantics.** Issue #16 is READY TO START and no implementation has begun. Before source code, freeze exact REST field semantics, NOTE OFF gesture, the currently-unfrozen TIE gesture, and EMPTY/TIE/OFF playback meaning. WP2.9 tracker-screen work must not start in the same package.
+**WP2.9 — compact tracker screen.** Issue #17 is READY TO START. Before source code, freeze the exact 240×240 tracker-screen contract: visible rows, header/page/track state, edit cursor vs playhead, ordinary/special-event notation, STEP REC indication and bounded dirty-region redraw behavior. No WP2.9 implementation has started yet.
