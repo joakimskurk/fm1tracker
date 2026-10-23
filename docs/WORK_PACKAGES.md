@@ -256,6 +256,32 @@ Enter and play a complete 64-step melody without a computer.
 
 ---
 
+# Core milestone after Phases 4/5 — live performance capture and performance FX
+
+Status: **PLANNED CORE — package IDs deferred until Phase 3–5 measurement exists**
+
+This milestone is mandatory product work, not optional Phase 9 expansion. Detailed direction is recorded in `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
+
+Future package decomposition must cover at least:
+
+- running-transport REC arm/disarm without breaking stopped STEP REC;
+- deterministic live note capture to the selected logical track;
+- fast capture-target track switching while transport continues;
+- drum-oriented live capture;
+- transport-derived metronome/count-in policy;
+- quantization/timestamp and overwrite/merge/overdub rules;
+- CHANNEL versus GLOBAL performance/automation scope;
+- keyboard-distributed FX performance gestures where useful;
+- encoder/pot performance capture into bounded p-lock/automation/effect events;
+- global automation ownership/storage separate from normal track locks where necessary;
+- eight-track reference performance configuration with drums, bass, poly synth and lead synth;
+- measured 3–6 voice polyphony target for at least one polyphonic instrument/track if hardware budget permits;
+- deterministic voice allocation/stealing and full host/hardware stress tests.
+
+Do not assign concrete package IDs or storage formats until Phase 3 p-lock/event representation and Phase 4/5 engine budgets are measured.
+
+---
+
 # Phase 6 — song/order + persistence
 
 ## WP6.1 — order-list data model
@@ -281,6 +307,8 @@ Enter and play a complete 64-step melody without a computer.
 ## WP7.6 — tracker-screen readability
 ## WP7.7 — final V1 control-map freeze
 
+The final hardware UX freeze must also validate the live-performance milestone: seamless PLAY/REC, track switching during playback/capture, drum/poly workflow, metronome, and CHANNEL/GLOBAL FX/automation gestures.
+
 ---
 
 # Phase 8 — interoperability
@@ -295,6 +323,8 @@ Enter and play a complete 64-step melody without a computer.
 
 # Phase 9 — optional expansion
 
-Each optional feature gets its own package only after profiling proves room exists. Candidates include WAVETABLE-16, PCM, swing, microtiming, polymeter, live recording, mixed engines, FX and specifically licensed chip cores.
+Each optional feature gets its own package only after profiling proves room exists. Candidates include WAVETABLE-16, PCM/sample playback beyond specifically approved core performance needs, swing, additional microtiming, polymeter, mixed engines, additional DSP FX algorithms and specifically licensed chip cores.
+
+**Live performance capture is not optional Phase 9 work.** Phase 9 may expand engines, timing and DSP available to the performance layer, but the seamless live capture workflow belongs to the core milestone above.
 
 Nothing in Phase 9 may become a hidden V1 prerequisite.
