@@ -84,9 +84,9 @@ Exit:
 - host screen/build artifacts identify FM1Tracker;
 - package identity does not collide with known firmware.
 
-Status: **READY TO START — 2026-10-23**
+Status: **COMPLETE — 2026-10-23**
 
-First action: inspect the current FM-1 firmware ecosystem/Firmware Hub for an unused package identity, then perform the smallest identity-only rename. Do not add tracker behavior in this package.
+Result: fixed identity `FM-1_987`; host screen/artifacts identify FM1Tracker; host WAV is bit-identical to WP1.3; protected Dinghy/HAL/loader/build implementation remains unchanged. Full renamed device package execution is explicitly deferred to WP1.5 under D017 because the external AC79 SDK checkout is still unavailable. Evidence: `WP1_4_VERIFICATION.md`.
 
 ## WP1.5 — renamed baseline verification and budget capture
 
@@ -104,7 +104,9 @@ Exit:
 - memory/code/timing baseline is in repo;
 - Phase 2 can begin without changing platform plumbing.
 
-Status: pending WP1.4
+Status: **READY TO START — 2026-10-23**
+
+First action: audit what WP1.4 evidence can be reused, then attempt the renamed device build with the verified JieLi toolchain and a separately obtained AC79 SDK checkout if available. If the SDK remains unavailable, record the exact blocker and complete every host/static budget measurement that does not require fabricating or vendoring SDK material.
 
 ---
 
