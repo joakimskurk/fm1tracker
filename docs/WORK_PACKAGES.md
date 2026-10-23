@@ -76,48 +76,54 @@ Verified:
 - bulk and frame-by-frame timing are equivalent;
 - six one-hour representative-BPM runs plus max-uint16 BPM reference test show no cumulative rounding drift;
 - host audio remains byte-identical because transport remains stopped/no row dispatch;
-- `FmtTransport` is 8 B in `.bss` at `0x01C0B050`;
+- `FmtTransport` is 8 B in `.bss`;
 - resulting resources: 55,328 B image, 12,376 B normal RAM, 96,616 B pool RAM.
 
 Evidence: `WP2_3_VERIFICATION.md`.
 
 ## WP2.4 — one-track audible playback
 
-**Goal:** use the verified transport and existing baseline sine voice to prove deterministic audible playback of one logical tracker track through a complete 64-step pattern loop.
+**Goal:** use the verified transport and existing baseline sine primitive to prove deterministic audible playback of one logical tracker track through a complete 64-step pattern loop.
 
-Status: **READY TO START** — issue #12
+Status: **COMPLETE — 2026-10-23** — issue #12
 
-Deliverables:
-- use the WP2.3 frame-accurate transport in playback;
-- read one selected logical track from one 64-step pattern in the existing bounds-safe store;
-- decode only the minimum note behavior needed for this playback proof;
-- trigger events on exact transport frame boundaries;
-- deterministic event trace/host playback fixture;
-- verify exact 64-step loop timing;
-- device build plus image/RAM/pool delta against WP2.3.
+Verified:
+- D021 dispatches step 0 before playback frame 0 and applies crossed rows beginning on the next rendered frame;
+- pattern 0 / track 0 only, one dedicated monophonic proof sine voice;
+- deterministic 16-note proof pattern with one note every four steps;
+- EMPTY sustains by producing no new event; TIE/OFF cannot become accidental raw pitches;
+- event timing remains exact inside 256-frame callback grouping;
+- at 120 BPM, step 1 begins on frame 5513 and the complete 64-step loop returns on frame 352800;
+- deterministic audible host WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
+- tracker audio is already non-zero during the first 100 ms before simulated manual key input;
+- flash settings writes are deferred while the continuous proof lane is sounding, preventing the inherited flash-erase path from stalling tracker audio;
+- final resources: 55,692 B image, 12,396 B normal RAM, 96,616 B pool RAM;
+- delta vs WP2.3: +364 B image, +20 B normal RAM, +0 B pool;
+- package identity and inherited device safety gates remain green.
 
-Exit:
-- deterministic one-track 64-step fixture produces the expected note-event sequence;
-- events land on the verified transport boundaries;
-- step 63 loops to 0 with no cumulative timing drift;
-- host playback evidence is deterministic and documented;
-- WP2.1/WP2.2/WP2.3 regression tests remain green;
-- device build/safety gates remain green;
-- resource delta is recorded.
-
-Non-goals:
-- no STEP REC/editing;
-- no 16-step page input or track-selection UX;
-- no general multitrack playback;
-- no tracker screen;
-- no p-lock/effect work;
-- no new 8-BIT/FM4 engine;
-- no song/order mode or persistence.
-
-Do not begin WP2.5 in the same package.
+Evidence: `WP2_4_VERIFICATION.md`.
 
 ## WP2.5 — 16-step page input
-White keys select steps 1–16 with four pages covering all 64 steps.
+
+**Goal:** add bounded edit-cursor/page addressing so the FM-1's 16 white keys can select all 64 pattern steps through four pages without writing notes yet.
+
+Status: **READY TO START** — issue #13
+
+Required direction:
+- 16 white keys map exactly to page-local steps 0..15;
+- four pages cover global steps 0..63 without gaps or overlap;
+- use explicit SEQ/pattern-edit context so normal performance audition is not silently replaced everywhere;
+- page navigation follows the provisional `OCT-` / `OCT+` pattern-mode mapping after its boundary behavior is explicitly decided;
+- step selection updates cursor state only, never pattern data;
+- host-test all 64 mappings and boundaries;
+- preserve WP2.4 playback regression and record device resource delta.
+
+Non-goals:
+- no black-key track selection — WP2.6;
+- no STEP REC/note writes — WP2.7;
+- no REST/TIE/OFF editing — WP2.8;
+- no tracker screen — WP2.9;
+- no p-lock/multitrack/new-engine/persistence work.
 
 ## WP2.6 — track selection prototype
 Test the provisional eight-black-key track-selection mapping.
