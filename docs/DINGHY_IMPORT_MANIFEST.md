@@ -59,12 +59,12 @@ The generated font header is required by the display code. The OFL license trave
 | `firmware/hal/fm1_sys.h` | `f1bccda83f1572b5e107f9109e28a6066c4943b9` |
 | `firmware/hal/fm1_time.h` | `d62920d5a72ed30e4876ea39af87db0a86ce98aa` |
 | `firmware/hal/fm1_timer.h` | `c20e10fee980481b6292782e755f95ddcee40e10` |
-| `firmware/hal/fm1_uart.h` | `5d5ef83dad665f239df83f5f09a9eb89705d3d9` |
+| `firmware/hal/fm1_uart.h` | `5d5ef83dad665f239df83bb8fbfd4d405e28fbfb` |
 | `firmware/hal/fm1_usb.h` | `392c768223578ef698e44a6a2e5d9b043968df35` |
 | `firmware/hal/fm1_vec.S` | `a0a76430bfd8d8c047a92fe7a64af85e2ea3cf46` |
 | `firmware/hal/fm1_xip.h` | `45830c04bb8463ee27d40ccda2d5317757723872` |
 
-> Note: before WP1.2 closes, verify every copied HAL file blob against the upstream path because a manifest typo is possible and the upstream commit is the ultimate source of truth.
+> Note: the original manifest draft contained a typo in the `fm1_uart.h` blob ID. WP1.2's automated comparison used the pinned upstream commit as source of truth and corrected the value above before closeout.
 
 ---
 
@@ -173,6 +173,10 @@ After the files are copied:
 6. Do not modify `dinghy.c`, `build.py`, product IDs or output names yet.
 7. Update `THIRD_PARTY.md` status from `baseline import in progress` to `baseline imported, pristine verification pending`.
 8. Move to WP1.3 only after the import itself is reviewable.
+
+### WP1.2 result — 2026-10-23
+
+The manifest-selected import was compared automatically against pinned upstream commit `d44df7db09b98ccad2f1233b8f83f5f09c04829e`. Every selected path matched both its upstream Git blob SHA and Git mode. The three explicitly excluded Dinghy branding/screenshot paths were also confirmed absent. WP1.2 is therefore closed without app-level behavior changes.
 
 ## Why this is intentionally strict
 
