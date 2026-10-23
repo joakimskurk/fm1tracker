@@ -8,7 +8,7 @@ All persistent structures require explicit serialization. Do not write raw compi
 
 ## 1. Constants
 
-Proposed V0.1 limits:
+V0.1 limits:
 
 ```c
 #define FMT_TRACKS              8
@@ -20,7 +20,7 @@ Proposed V0.1 limits:
 #define FMT_LOCK_POOL_MAX    2048
 ```
 
-These values are chosen to keep the complete editable song comfortably inside pool RAM while leaving substantial room for DSP buffers.
+`FMT_LOCK_POOL_MAX` is the global sparse lock capacity for the complete editable song. It is deliberately smaller than `8192 steps * 4 locks = 32768` because the V0.1 song-memory contract does not promise that every resident step can be fully locked at once. Any individual step may own at most four locks; all steps share the fixed 2,048-record pool.
 
 ## 2. Note representation
 
@@ -58,11 +58,11 @@ typedef struct {
     uint8_t  effect;      /* effect ID, 0 = none */
     uint8_t  effect_value;/* compact effect argument */
     uint8_t  flags;       /* accent/chord/reserved flags */
-    uint16_t lock_head;   /* sparse lock list index; 0xFFFF = none */
+    uint16_t lock_head;   /* sparse lock-list index; 0xFFFF = none */
 } FmtStep;
 ```
 
-The final implementation may reorder fields for alignment but must preserve the 8-byte target unless profiling proves that a larger representation is worth the cost.
+The implementation preserves this exact 8-byte representation. `lock_head` remains a 16-bit index into the D028 global lock pool; it is never a raw pointer.
 
 ### Why inheritance values exist
 
@@ -92,41 +92,91 @@ Sixteen resident pattern slots:
 4096 * 16 = 65536 bytes
 ```
 
-The first implementation should place this storage in the Dinghy pool section.
+The runtime song storage lives in the Dinghy pool section.
 
 ## 5. Parameter locks
 
-Locks are sparse and separately allocated.
+Locks are sparse and separately allocated from the fixed D028 pool.
 
-Logical record:
+D028 freezes the WP3.2 in-memory lock record at exactly 8 bytes:
 
 ```c
 typedef struct {
-    uint8_t  param_id;
-    uint8_t  next;       /* implementation may use wider index */
-    uint16_t value;
+    uint16_t next;      /* active-list or free-list index; 0xFFFF = end */
+    uint16_t value;     /* full 0..65535 storage domain */
+    uint16_t owner;     /* linear song-step owner 0..8191; 0xFFFF = none */
+    FmtParamId param_id;
+    uint8_t state;      /* FREE or ACTIVE */
 } FmtLock;
 ```
 
-The exact list representation is implementation-specific. The persistent model must preserve:
-
-- stable parameter ID;
-- integer value;
-- association with a particular step;
-- at most four active locks on one V0.1 step.
-
-Because `FMT_LOCK_POOL_MAX` exceeds 255, the actual in-memory linked/free-list index will normally need 16 bits. A practical implementation can therefore use a 6-byte packed record or an 8-byte naturally aligned record, or use per-step fixed four-slot lock storage if measurement proves simpler/faster.
-
-**Do not choose the final lock allocator until host profiling compares the options.** The semantic contract matters more than the container.
-
-Worst-case bounded storage if each lock is 4 bytes and every step uses all four locks:
+WP3.2 in-memory offsets are:
 
 ```text
-8 tracks * 64 steps * 4 locks = 2048 locks
-2048 * 4 bytes                = 8192 bytes
+next      0
+value     2
+owner     4
+param_id  6
+state     7
+sizeof    8
 ```
 
-If the implementation requires wider indexes and grows each record, update the pool budget explicitly.
+This raw compiler struct is **not** the persistent project format. Phase 6 must serialize lock semantics explicitly.
+
+### Global sparse capacity
+
+The complete song has:
+
+```text
+16 patterns * 8 tracks * 64 steps = 8192 steps
+```
+
+A theoretical four-lock allocation on every resident step would require:
+
+```text
+8192 steps * 4 locks = 32768 records
+```
+
+That is intentionally **not** the V0.1 RAM contract.
+
+The actual D028 pool is globally bounded at:
+
+```text
+2048 records * 8 bytes = 16384 bytes
+```
+
+This is enough for, for example, one 512-step pattern with four locks on every row, or a much larger number of sparsely locked rows distributed across the song. Pool exhaustion is explicit and deterministic; existing locks are never discarded automatically to make room.
+
+The earlier design example that described 2,048 records as the worst case for every song step omitted the sixteen pattern slots. D028 corrects that arithmetic while preserving the already-budgeted 2,048-record sparse capacity.
+
+### Ownership and lists
+
+`FmtStep.lock_head` is the first record index; `0xFFFF` means no list. Active lists are strictly sorted by ascending `FmtParamId` and contain at most four records.
+
+Every active record carries the exact linear owner:
+
+```text
+pattern * (8 * 64) + track * 64 + step
+```
+
+which covers `0..8191`. This owner tag makes an in-range cross-linked/corrupt index detectable before another step's records can be read, replaced or freed.
+
+Free records reuse `next` for a single free list. Reset chains record `0 -> 1 -> ... -> 2047 -> 0xFFFF`. Runtime allocator state is only a 16-bit free-list head plus a 16-bit used count.
+
+Storage rules:
+
+- only D027 registry IDs marked lockable may be active;
+- duplicate parameter IDs are never stored on one step;
+- setting an existing parameter replaces its value in place;
+- a new parameter is inserted in sorted ID order;
+- adding a fifth unique lock returns STEP_FULL without allocation;
+- global exhaustion returns POOL_FULL without modifying existing song data;
+- remove returns exactly one record to the free list;
+- clear returns the complete validated step list exactly once;
+- all mutations validate the existing bounded list first;
+- malformed/out-of-range/cross-owned/unsorted/overlong lists return CORRUPT with no partial mutation.
+
+The 16-bit value is opaque storage at this layer. Each parameter's owning engine/effect package defines scaling and valid semantic range later.
 
 ## 6. Parameter IDs
 
@@ -326,20 +376,20 @@ The exact structure is provisional. Required properties:
 
 ## 14. Memory summary target
 
-Approximate editable song footprint before instruments/runtime data:
+Core editable song plus the frozen D028 lock records:
 
 ```text
-patterns                 65,536 B
-max compact lock pool     8,192 B
-order list                  256 B
-track/song metadata        <1 KiB
+FmtSong core              65,896 B
+lock records              16,384 B
 ---------------------------------
-base target              ~74 KiB
+editable core + locks     82,280 B
 ```
 
-Allowing for allocator metadata, larger lock indexes and instruments, Phase 1 should enforce a **96 KiB pool budget for the full editable song model**.
+The lock allocator's four-byte runtime head/count lives in ordinary RAM rather than the editable-song pool.
 
-That leaves roughly 240 KiB of the Dinghy pool for DSP/sample/delay/UI buffers, subject to the actual imported platform build report.
+The 82,280-byte core+lock total remains below the **96 KiB editable-song target**, leaving 16,024 bytes inside that target for later instrument/song-associated data before that policy would need revisiting.
+
+Measured platform pool use is a separate whole-firmware number because Dinghy already consumes pool RAM for its own buffers. From the verified WP3.1 baseline of 96,616 B total pool use, adding the D028 16,384-byte record array predicts 113,000 B total pool use before linker measurement, leaving 231,064 B of the 344,064-byte pool.
 
 ## 15. Invariants for tests
 
@@ -349,8 +399,14 @@ Host tests must verify at minimum:
 - every step index stays in range;
 - REST advances exactly once;
 - pattern 64 -> pattern step 1 wrap is deterministic;
-- adding a fifth p-lock is rejected/replaced according to a documented rule;
-- clearing a step releases all lock references owned by that step;
+- all 8,192 step-owner IDs map uniquely;
+- no valid step list exceeds four locks;
+- adding a fifth prevalidated unique p-lock is rejected as STEP_FULL;
+- duplicate parameter set replaces in place and consumes no record;
+- global 2,048-record exhaustion returns POOL_FULL without data loss;
+- freeing one record after exhaustion permits exactly one new allocation;
+- clearing a step releases all lock references owned by that step exactly once;
+- wrong-owner or malformed indexes never become raw pointer access and cause no partial mutation;
+- unassigned/invalid D027 parameter IDs are never stored;
 - malformed effect IDs are treated as NONE/safe error;
-- malformed persistent indexes never become raw pointer access;
-- serializers round-trip every special note value and inheritance value.
+- serializers round-trip every special note value and inheritance value once persistence exists.
