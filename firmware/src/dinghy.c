@@ -14,9 +14,9 @@
 #include "platform.c"
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
-#include "fmt_playback.c"                      /* WP2.4: exact one-lane row dispatch */
+#include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
-#include "fmt_step_record.c"                   /* WP2.7: stopped-transport deterministic note entry */
+#include "fmt_step_record.c"                   /* WP2.7/2.8: stopped STEP REC note/special entry */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
@@ -46,12 +46,13 @@ static struct {
     uint8_t note;
 } voice[NV];
 
-/* Dedicated monophonic WP2.4 proof voice. It reuses the same integer sine
- * primitive as the baseline audition voices and does not create a new engine. */
+/* Dedicated monophonic proof voice. D025 adds a target gate so OFF can release
+ * click-safely while the default WP2.4 note-only render remains sample-identical. */
 static struct {
     uint32_t inc;
     uint32_t ph;
     int32_t amp;
+    int32_t gate;
 } tracker_voice;
 
 static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
@@ -74,31 +75,52 @@ static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32
 
 static void tracker_apply_event(const FmtPlaybackEvent *event)
 {
-    if (event && event->has_note && event->note <= FMT_NOTE_MAX)
+    if (!event)
+        return;
+
+    if (event->kind == FMT_PLAYBACK_EVENT_NOTE && event->note <= FMT_NOTE_MAX) {
         tracker_voice.inc = note_inc(event->note);
+        tracker_voice.gate = TRACKER_TARGET_AMP;
+    } else if (event->kind == FMT_PLAYBACK_EVENT_TIE) {
+        /* TIE sustains an already gated note but may not resurrect one that was
+         * explicitly released. Pitch/phase are deliberately untouched. */
+        if (tracker_voice.inc && tracker_voice.gate > 0)
+            tracker_voice.gate = TRACKER_TARGET_AMP;
+    } else if (event->kind == FMT_PLAYBACK_EVENT_OFF) {
+        tracker_voice.gate = 0;
+    }
 }
 
 static void tracker_render_frame(int32_t *out)
 {
     uint32_t ph, inc;
-    int32_t amp, s;
+    int32_t amp, gate, s;
 
     inc = tracker_voice.inc;
+    amp = tracker_voice.amp;
+    gate = tracker_voice.gate;
+    if (!inc && !amp && !gate)
+        return;
     if (!inc)
         return;
 
     ph = tracker_voice.ph + inc;
-    amp = tracker_voice.amp;
-    if (amp < TRACKER_TARGET_AMP) {
+    if (amp < gate) {
         amp += 48;
-        if (amp > TRACKER_TARGET_AMP)
-            amp = TRACKER_TARGET_AMP;
+        if (amp > gate)
+            amp = gate;
+    } else if (amp > gate) {
+        amp -= 6;
+        if (amp < gate)
+            amp = gate;
     }
     s = (sine(ph) * amp) >> 15;
     out[0] += s;
     out[1] += s;
     tracker_voice.ph = ph;
     tracker_voice.amp = amp;
+    if (!amp && !gate)
+        tracker_voice.inc = 0u;
 }
 
 static void app_audio(int32_t *out, uint32_t n)
@@ -143,15 +165,15 @@ static void app_audio(int32_t *out, uint32_t n)
         uint32_t ph = voice[v].ph, step = voice[v].inc;
         int32_t amp = voice[v].amp, g = voice[v].gate;
         if (!amp && !g)
-            continue;                           /* silent: costs nothing */
+            continue;
         for (i = 0; i < n; i++) {
             int32_t s;
-            if (amp < g) { amp += 48; if (amp > g) amp = g; }        /* attack ~5 ms */
-            else if (amp > g) { amp -= 6; if (amp < g) amp = g; }    /* release ~45 ms */
+            if (amp < g) { amp += 48; if (amp > g) amp = g; }
+            else if (amp > g) { amp -= 6; if (amp < g) amp = g; }
             ph += step;
             s = (sine(ph) * amp) >> 15;
-            out[2u * i] += s;                   /* L */
-            out[2u * i + 1u] += s;              /* R */
+            out[2u * i] += s;
+            out[2u * i + 1u] += s;
         }
         voice[v].ph = ph;
         voice[v].amp = amp;
@@ -165,7 +187,7 @@ static void play(uint32_t note, uint32_t vel)
 {
     uint32_t v, pick = 0, best = 0xFFFFFFFFu;
     if (note > 127u || !vel) return;
-    for (v = 0; v < NV; v++) {                  /* the same note, else a free voice, else the oldest */
+    for (v = 0; v < NV; v++) {
         uint32_t score = voice[v].note == note && voice[v].gate ? 0u
                        : voice[v].gate ? 0x80000000u + voice[v].age : (uint32_t)voice[v].amp + 1u;
         if (score < best) { best = score; pick = v; }
@@ -173,7 +195,7 @@ static void play(uint32_t note, uint32_t vel)
     voice[pick].note = (uint8_t)note;
     voice[pick].age = ++ages;
     voice[pick].inc = note_inc(note);
-    voice[pick].gate = (int32_t)(vel * 90u);    /* 127 -> 11430: four voices stay under full scale */
+    voice[pick].gate = (int32_t)(vel * 90u);
     last_note = note;
 }
 static void stop(uint32_t note)
@@ -183,15 +205,13 @@ static void stop(uint32_t note)
         if (voice[v].note == note)
             voice[v].gate = 0;
 }
-static int quiet(void)                          /* nothing sounds, not even a release */
+static int quiet(void)
 {
     uint32_t v;
 
-    /* settings_save() erases flash and the inherited Dinghy path deliberately
-     * waits for silence because an erase can stall audio. D024 can stop musical
-     * transport, but the WP2.4 proof voice deliberately sustains its current
-     * tone while stopped, so octave persistence remains deferred for safety. */
-    if (tracker_voice.inc || tracker_voice.amp)
+    /* settings_save() erases flash and waits for silence. A sustained tracker
+     * gate or a release tail therefore still blocks flash just like WP2.4 did. */
+    if (tracker_voice.inc || tracker_voice.amp || tracker_voice.gate)
         return 0;
 
     for (v = 0; v < NV; v++)
@@ -200,10 +220,10 @@ static int quiet(void)                          /* nothing sounds, not even a re
 }
 
 /* ---- the screen: the name, the last note big, the keyboard with what sounds, the octave */
-#define C_ACC RGB(180, 140, 255)                /* lilac, as the logo */
+#define C_ACC RGB(180, 140, 255)
 #define C_KEY RGB(210, 210, 210)
 #define C_OFF RGB(90, 90, 90)
-#define KEY0 53u                                /* key 0 = F3 */
+#define KEY0 53u
 static int black(uint32_t note) { return (0x54Au >> (note % 12u)) & 1u; }
 
 static void draw_note(void)
@@ -220,16 +240,16 @@ static void draw_note(void)
     draw_text_box(0, 82, 240, &FONT_L, s, C_WHITE, 1);
 }
 
-static void draw_keys(uint32_t lit)             /* bit k: key k sounds */
+static void draw_keys(uint32_t lit)
 {
     uint32_t k, w = 0;
     cv_begin(240, 56, C_BLACK);
-    for (k = 0; k < 27u; k++)                   /* 16 white keys of 14 px from x = 8 */
+    for (k = 0; k < 27u; k++)
         if (!black(KEY0 + k)) {
             cv_rect(8 + (int32_t)w * 14, 0, 13, 56, lit >> k & 1u ? C_ACC : C_KEY);
             w++;
         }
-    for (k = 0, w = 0; k < 27u; k++)            /* the black ones on the line between two white */
+    for (k = 0, w = 0; k < 27u; k++)
         if (black(KEY0 + k))
             cv_rect(8 + (int32_t)w * 14 - 5, 0, 9, 34, lit >> k & 1u ? C_ACC : C_BLACK);
         else
@@ -247,13 +267,12 @@ static void draw_status(int32_t oct)
 
 static void app_main(void)
 {
-    struct { int8_t oct; } set = {0};           /* what survives a power-off (add yours, up to 256 bytes) */
+    struct { int8_t oct; } set = {0};
     uint32_t prev = 0, k, t_change = 0, dirty = 0, lit_drawn = ~0u, note_drawn = ~0u;
     int32_t oct_drawn = 99;
-    uint8_t held[27] = {0};                     /* audition note started by each physical key, 0 = none */
+    uint8_t held[27] = {0};
+    uint8_t fx_pending = 0u;                    /* D025: pending FX tap until release/modifier */
 
-    /* Audio IRQs are already enabled before app_main. Keep tracker_ready zero
-     * until the proof song and all control/editor state are safe for the ISR. */
     fmt_store_reset();
     fmt_playback_seed_proof_pattern();
     fmt_transport_reset(&fmt_transport_runtime);
@@ -277,21 +296,19 @@ static void app_main(void)
         int pattern_mode, step_rec_mode;
         platform_poll();
 
-        b = fm1_input_edges(&rel);              /* buttons pressed since the last call (bit = button id) */
+        b = fm1_input_edges(&rel);
 
-        /* HOME has highest context precedence and always cancels a pending
-         * STEP REC session. Other simultaneous context edges are ignored. */
         if (b & (1u << BTN_HOME)) {
+            fx_pending = 0u;
             fmt_step_record_exit(&fmt_step_record_runtime);
             fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
         } else {
             if (b & (1u << BTN_SEQ))
                 fmt_pattern_input_enter_pattern(&fmt_pattern_input_runtime);
 
-            /* Main requests run/stop; audio owns the actual transport mutation.
-             * PLAY while recording exits STEP REC before requesting playback. */
             if (b & (1u << BTN_PLAY)) {
                 if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
+                    fx_pending = 0u;
                     fmt_step_record_exit(&fmt_step_record_runtime);
                     tracker_play_requested = 1u;
                 } else {
@@ -299,12 +316,12 @@ static void app_main(void)
                 }
             }
 
-            /* REC can enter only after audio has acknowledged a real stop. A
-             * rejected REC press never changes context or cursor state. */
             if (b & (1u << BTN_REC)) {
                 if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
+                    fx_pending = 0u;
                     fmt_step_record_exit(&fmt_step_record_runtime);
                 } else if (!tracker_play_requested && tracker_transport_stopped) {
+                    fx_pending = 0u;
                     (void)fmt_step_record_enter(&fmt_step_record_runtime,
                                                 &fmt_pattern_input_runtime,
                                                 &fmt_transport_runtime);
@@ -315,8 +332,39 @@ static void app_main(void)
         pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
         step_rec_mode = fmt_step_record_is_active(&fmt_step_record_runtime);
 
-        /* OCT is pitch octave in PERFORMANCE and STEP REC. Ordinary SEQ keeps
-         * D022's four clamped step pages. */
+        /* D025 button grammar. FX is delayed until release so holding FX then
+         * pressing SELECT can become OFF without first inserting REST. SELECT
+         * by itself is TIE. Exiting STEP REC above clears pending FX. */
+        if (!step_rec_mode) {
+            fx_pending = 0u;
+        } else {
+            if (b & (1u << BTN_FX))
+                fx_pending = 1u;
+
+            if (b & (1u << BTN_SEL)) {
+                if (fx_pending) {
+                    (void)fmt_step_record_write_special(&fmt_step_record_runtime,
+                                                        &fmt_pattern_input_runtime,
+                                                        &fmt_transport_runtime,
+                                                        FMT_NOTE_OFF);
+                    fx_pending = 0u;
+                } else {
+                    (void)fmt_step_record_write_special(&fmt_step_record_runtime,
+                                                        &fmt_pattern_input_runtime,
+                                                        &fmt_transport_runtime,
+                                                        FMT_NOTE_TIE);
+                }
+            }
+
+            if ((rel & (1u << BTN_FX)) && fx_pending) {
+                (void)fmt_step_record_write_special(&fmt_step_record_runtime,
+                                                    &fmt_pattern_input_runtime,
+                                                    &fmt_transport_runtime,
+                                                    FMT_NOTE_EMPTY);
+                fx_pending = 0u;
+            }
+        }
+
         if (pattern_mode && !step_rec_mode) {
             if (b & (1u << BTN_OCT_DOWN))
                 (void)fmt_pattern_input_page_prev(&fmt_pattern_input_runtime);
@@ -328,22 +376,17 @@ static void app_main(void)
         }
 
         base = (uint32_t)(KEY0 + 12 * set.oct);
-        keys = fm1_in.notes;                    /* bit k: key k (0 = F3 .. 26 = G5) */
+        keys = fm1_in.notes;
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
 
-        /* D024 monophonic write rule: for the first poll of an unlatched
-         * gesture, the tested selector chooses the lowest newly pressed key.
-         * All downs still audition below. */
         write_key = FMT_PATTERN_INPUT_KEY_COUNT;
         if (step_rec_mode && !fmt_step_record_runtime.gesture_latched &&
             fmt_step_record_lowest_key(down, &lowest_key))
             write_key = lowest_key;
 
         for (k = 0; k < 27u; k++) {
-            /* A release always terminates an audition note that this physical
-             * key started earlier, even if context changed while it was held. */
             if ((up >> k & 1u) && held[k]) {
                 stop(held[k]);
                 midi_send(0x80, held[k], 0);
@@ -351,14 +394,10 @@ static void app_main(void)
             }
             if (down >> k & 1u) {
                 if (step_rec_mode) {
-                    /* Every physical key is pitch input in STEP REC. Audition
-                     * all downs; only write_key below may mutate one tracker row. */
                     held[k] = (uint8_t)(base + k);
                     play(held[k], 100);
                     midi_send(0x90, held[k], 100);
                 } else if (pattern_mode) {
-                    /* D022/D023 ordinary SEQ: white keys select steps,
-                     * designated black keys select tracks, reserved keys consume. */
                     if (!fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k))
                         (void)fmt_pattern_input_select_track_key(&fmt_pattern_input_runtime, k);
                 } else {
@@ -377,31 +416,31 @@ static void app_main(void)
         if (step_rec_mode && keys == 0u)
             fmt_step_record_release_gesture(&fmt_step_record_runtime);
 
-        while (midi_get(&st, &d1, &d2)) {       /* USB-MIDI in, any channel */
+        while (midi_get(&st, &d1, &d2)) {
             if ((st & 0xF0u) == 0x90u && d2) play(d1, d2);
             else if ((st & 0xF0u) == 0x80u || (st & 0xF0u) == 0x90u) stop(d1);
         }
 
         base = (uint32_t)(KEY0 + 12 * set.oct);
-        for (k = 0; k < NV; k++)                /* what audition plays on the keys of this octave */
+        for (k = 0; k < NV; k++)
             if (voice[k].gate && voice[k].note >= base && voice[k].note < base + 27u)
                 lit |= 1u << (voice[k].note - base);
         for (k = 0; k < 27u; k++)
             fm1_led_key(KEY_LED(k), lit >> k & 1u);
 
-        /* Minimal context feedback only; the actual tracker/page screen remains WP2.9. */
         fm1_led_key(BTN_HOME, !pattern_mode);
         fm1_led_key(BTN_SEQ, pattern_mode);
         fm1_led_key(BTN_PLAY, tracker_play_requested != 0u);
         fm1_led_key(BTN_REC, step_rec_mode);
+        fm1_led_key(BTN_FX, step_rec_mode && fx_pending);
         fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
         fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
 
-        if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }   /* redraw only what changed */
+        if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }
         if (last_note != note_drawn) { note_drawn = last_note; draw_note(); }
         if (set.oct != oct_drawn) { oct_drawn = set.oct; draw_status(set.oct); }
 
-        if (dirty && quiet() && fm1_ms - t_change > 2000u) {   /* 2 s after the change, when silent (an erase stalls the sound) */
+        if (dirty && quiet() && fm1_ms - t_change > 2000u) {
             settings_save(&set, sizeof set);
             dirty = 0;
         }
