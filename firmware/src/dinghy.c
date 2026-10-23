@@ -12,6 +12,7 @@
  * tests/host.c runs this file on a computer: the screen as a PNG, the sound as a WAV.
  * What platform.c offers: docs/API.md. The chip's rules: docs/RULES.md. */
 #include "platform.c"
+#include "fmt_model.h"                         /* WP2.1 types/assertions only; no storage or behavior yet */
 
 /* ---- the sound (runs in the audio ISR: keep it short, no flash, no screen) */
 #define NV 4u                                   /* voices */
