@@ -97,7 +97,9 @@ Entry:
 - transport stopped
 - press REC
 
-The screen must always show that keyboard presses will be written, not merely auditioned.
+The current WP2.7 prototype requires the audio side to acknowledge a real stopped transport before REC can enter. REC while transport is running is ignored. PLAY while STEP REC is active exits STEP REC before playback resumes.
+
+The screen must always show that keyboard presses will be written, not merely auditioned once the tracker screen exists.
 
 Example:
 
@@ -113,35 +115,43 @@ INST 05      OCT 4
 
 ### Note entry
 
-1. press one or more note keys;
-2. current step receives the note/chord representation supported by the current engine;
-3. held keys may be auditioned normally;
-4. when the entry gesture completes, cursor advances by one step.
+The current D024/WP2.7 monophonic prototype is explicit:
 
-For monophonic engines, chord behavior must be deterministic. V0.1 may use the last/lowest note according to an explicit project setting; it must not silently produce random voice choices.
+1. all 27 physical note keys become pitch keys while STEP REC is active;
+2. the first unlatched note gesture writes one note to the selected track/step and auditions the pressed notes;
+3. if multiple new keys arrive in the same scan, the lowest physical key / lowest pitch is the single note stored;
+4. the write gesture remains latched until **all** physical note keys are released, so chord-like or staggered presses cannot advance twice;
+5. after a successful write the cursor advances exactly one step, with step 64 wrapping to step 1 of the same pattern;
+6. only the step's note field is changed in WP2.7; instrument/volume/effect/locks are preserved.
 
-### REST
+OCT- / OCT+ change keyboard pitch octave during STEP REC rather than changing the 16-step page. Stored pitch is the same pitch used for audition.
 
-`FX` is the dedicated REST button while STEP REC is active.
+This lowest-note/full-release behavior is a deterministic prototype, not the final hardware-UX freeze. Phase 7 must still test whether the chord gesture feels right on the physical FM-1.
 
-- tap FX: clear/leave the current step empty and advance one step
-- hold FX + SELECT: write explicit NOTE OFF and advance
+### REST / NOTE OFF / TIE
 
-This mapping is provisional but the existence of a one-button REST action is not provisional.
+`FX` remains the provisional dedicated REST button while STEP REC is active.
+
+Current provisional candidates:
+
+- tap FX: clear/leave the current step empty and advance one step;
+- hold FX + SELECT: write explicit NOTE OFF and advance.
+
+The existence of a one-action REST is not provisional, but WP2.8 must freeze the exact REST field semantics, confirm or supersede the NOTE OFF gesture, and choose an explicit TIE gesture before implementing any of them. TIE mapping is **not yet defined**.
 
 ### Audition vs write
 
-REC off: keyboard auditions only.
+REC off: keyboard auditions only in PERFORMANCE; ordinary SEQ uses the keys for step/track selection.
 
-REC on: keyboard writes to the current step and auditions.
+REC on: all physical note keys audition, and exactly one deterministic note is written for each fully released STEP REC gesture.
 
 This distinction must remain visually obvious.
 
 ### End-of-pattern behavior
 
-Default V0.1: wrap to step 1 of the same pattern after step 64.
+Current V0.1 behavior: wrap to step 1 of the same pattern after step 64.
 
-A project setting may later choose STOP AT END.
+A project setting may later choose STOP AT END, but no such setting exists in WP2.7.
 
 ## 5. Parameter locks
 
@@ -227,4 +237,4 @@ The following must be explicitly evaluated before V0.1 control freeze:
 - whether holding a white key while turning encoders is physically comfortable;
 - whether page switching should use OCT buttons or SELECT/PRESETS;
 - whether live parameter locking needs latch mode so the user does not need three hands;
-- whether chord step entry should advance on first key release or after all held notes are released.
+- whether the current lowest-note/full-release STEP REC chord behavior matches user expectation or should be superseded.
