@@ -1,0 +1,123 @@
+name: WP1.2 pristine Dinghy import
+
+on:
+  push:
+    branches:
+      - phase1/dinghy-baseline
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: ${{ !contains(github.event.head_commit.message, 'WP1.2 automated pristine import') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase1/dinghy-baseline
+          path: target
+          fetch-depth: 0
+
+      - name: Checkout pinned Dinghy upstream
+        uses: actions/checkout@v4
+        with:
+          repository: zvenson/dinghy
+          ref: d44df7db09b98ccad2f1233b8f83f5f09c04829e
+          path: upstream
+          fetch-depth: 1
+
+      - name: Copy exact manifest-selected baseline and verify blobs/modes
+        shell: bash
+        run: |
+          set -euo pipefail
+          PIN=d44df7db09b98ccad2f1233b8f83f5f09c04829e
+          paths=(
+            .gitignore
+            LICENSE
+            build.sh
+            assets/fonts/Terminus-LICENSE.txt
+            firmware/gen/felucca_font.h
+            firmware/app.ld
+            firmware/crt0.S
+            firmware/hal/fm1_adc.h
+            firmware/hal/fm1_audio.h
+            firmware/hal/fm1_cc.h
+            firmware/hal/fm1_flash.h
+            firmware/hal/fm1_gpio.h
+            firmware/hal/fm1_guard.h
+            firmware/hal/fm1_input.h
+            firmware/hal/fm1_irq.h
+            firmware/hal/fm1_isr.S
+            firmware/hal/fm1_lcd_hw.h
+            firmware/hal/fm1_sys.h
+            firmware/hal/fm1_time.h
+            firmware/hal/fm1_timer.h
+            firmware/hal/fm1_uart.h
+            firmware/hal/fm1_usb.h
+            firmware/hal/fm1_vec.S
+            firmware/hal/fm1_xip.h
+            firmware/loader/crt0_ldr.S
+            firmware/loader/ldr_core.c
+            firmware/loader/loader.c
+            firmware/loader/loader.ld
+            firmware/src/bootguard.h
+            firmware/src/dinghy.c
+            firmware/src/gfx.c
+            firmware/src/lcd.c
+            firmware/src/libc.c
+            firmware/src/ota.c
+            firmware/src/platform.c
+            firmware/src/recovery.c
+            firmware/src/uac_fir.h
+            firmware/src/usb.c
+            tests/host.c
+            tests/run_host.sh
+            tools/build.py
+            tools/fm1_install.py
+            tools/fm1pkg_make.py
+            tools/get_toolchain.sh
+            tools/lz4blk.py
+          )
+
+          for p in "${paths[@]}"; do
+            test -f "upstream/$p"
+            mkdir -p "target/$(dirname "$p")"
+            cp -p "upstream/$p" "target/$p"
+          done
+
+          cd target
+          git add -- "${paths[@]}"
+
+          failed=0
+          for p in "${paths[@]}"; do
+            up_mode=$(git -C ../upstream ls-tree "$PIN" -- "$p" | awk '{print $1}')
+            up_sha=$(git -C ../upstream ls-tree "$PIN" -- "$p" | awk '{print $3}')
+            our_mode=$(git ls-files --stage -- "$p" | awk '{print $1}')
+            our_sha=$(git ls-files --stage -- "$p" | awk '{print $2}')
+            printf '%-45s upstream=%s/%s staged=%s/%s\n' "$p" "$up_mode" "$up_sha" "$our_mode" "$our_sha"
+            if [[ "$up_mode" != "$our_mode" || "$up_sha" != "$our_sha" ]]; then
+              echo "MISMATCH: $p" >&2
+              failed=1
+            fi
+          done
+          test "$failed" -eq 0
+
+          test ! -e assets/logo.svg
+          test ! -e assets/logo.png
+          test ! -e docs/screen.png
+
+      - name: Commit pristine baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target
+          if git diff --cached --quiet; then
+            echo "No import changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "WP1.2 automated pristine import"
+          git push origin HEAD:phase1/dinghy-baseline
