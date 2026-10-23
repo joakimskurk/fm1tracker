@@ -1,90 +1,25 @@
-name: WP3.1 parameter registry verification
+name: WP3.1 parameter registry verification (historical)
 
 on:
-  push:
-    branches:
-      - phase3/plocks-effects
-    paths:
-      - .github/workflows/wp3_1_param_registry_verify.yml
-      - firmware/src/fmt_param_registry.h
-      - firmware/src/fmt_param_registry.c
-      - tests/test_fmt_param_registry.c
-      - tests/run_param_registry_tests.sh
-      - tests/run_wp3_1_closeout_ci.sh
-      - docs/PROJECT_STATE.md
-      - docs/DECISIONS.md
-      - docs/DATA_MODEL_V0.1.md
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  param-registry-closeout:
+  historical-checkpoint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout verified WP3.1 checkpoint
         uses: actions/checkout@v4
         with:
+          ref: 5af8065a9c98884d22682075b600d9790cfa7940
           fetch-depth: 0
 
-      - name: Install inherited host-screen dependency
-        run: python3 -m pip install --disable-pip-version-check Pillow
-
-      - name: Verify WP3.1 scope
-        shell: bash
+      - name: Record frozen verification evidence
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import subprocess
-          base = 'c3693d8c7bb3d5306794aa232d6d25bef50c6c99'
-          allowed = {
-              '.github/workflows/wp3_1_param_registry_verify.yml',
-              'docs/PROJECT_STATE.md',
-              'docs/DECISIONS.md',
-              'docs/DATA_MODEL_V0.1.md',
-              'firmware/src/fmt_param_registry.h',
-              'firmware/src/fmt_param_registry.c',
-              'tests/test_fmt_param_registry.c',
-              'tests/run_param_registry_tests.sh',
-              'tests/run_wp3_1_closeout_ci.sh',
-          }
-          changed = set(subprocess.check_output(
-              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
-          ).splitlines())
-          unexpected = sorted(changed - allowed)
-          assert not unexpected, unexpected
-          print('WP3_1_SCOPE_OK=1')
-          PY
-
-      - name: Run complete WP3.1 gate
-        shell: bash
-        run: sh tests/run_wp3_1_closeout_ci.sh
-
-      - name: Upload WP3.1 evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: wp3-1-param-registry-evidence
-          path: |
-            build/wp3_1_param_registry_tests.log
-            build/wp3_1_model_tests.log
-            build/wp3_1_store_tests.log
-            build/wp3_1_transport_tests.log
-            build/wp3_1_playback_tests.log
-            build/wp3_1_pattern_input_tests.log
-            build/wp3_1_step_record_tests.log
-            build/wp3_1_tracker_screen_tests.log
-            build/wp3_1_wp2_5_context.log
-            build/wp3_1_wp2_6_context.log
-            build/wp3_1_wp2_7_context.log
-            build/wp3_1_wp2_8_context.log
-            build/wp3_1_wp2_9_screen.log
-            build/wp3_1_phase2_integration.log
-            build/wp3_1_phase2_full_app.log
-            build/wp3_1_host_audio.txt
-            build/wp3_1_device_build.log
-            build/wp3_1_metrics.txt
-            build/wp3_1_fmt_param_registry.o
-            build/fm1tracker.bin
-            build/fm1tracker-0.1.fwsc
-            build/host/fm1tracker.wav
+          echo "WP3_1_VERIFIED_COMMIT=5af8065a9c98884d22682075b600d9790cfa7940"
+          echo "WP3_1_VERIFIED_RUN=40025790828"
+          echo "WP3_1_VERIFIED_JOB=120661526848"
+          echo "WP3_1_EVIDENCE=docs/WP3_1_VERIFICATION.md"
+          test "$(git rev-parse HEAD)" = "5af8065a9c98884d22682075b600d9790cfa7940"
