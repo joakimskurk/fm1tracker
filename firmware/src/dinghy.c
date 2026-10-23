@@ -271,7 +271,6 @@ static void app_main(void)
     uint32_t prev = 0, k, t_change = 0, dirty = 0, lit_drawn = ~0u, note_drawn = ~0u;
     int32_t oct_drawn = 99;
     uint8_t held[27] = {0};
-    uint8_t fx_pending = 0u;                    /* D025: pending FX tap until release/modifier */
 
     fmt_store_reset();
     fmt_playback_seed_proof_pattern();
@@ -299,7 +298,6 @@ static void app_main(void)
         b = fm1_input_edges(&rel);
 
         if (b & (1u << BTN_HOME)) {
-            fx_pending = 0u;
             fmt_step_record_exit(&fmt_step_record_runtime);
             fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
         } else {
@@ -308,7 +306,6 @@ static void app_main(void)
 
             if (b & (1u << BTN_PLAY)) {
                 if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
-                    fx_pending = 0u;
                     fmt_step_record_exit(&fmt_step_record_runtime);
                     tracker_play_requested = 1u;
                 } else {
@@ -318,10 +315,8 @@ static void app_main(void)
 
             if (b & (1u << BTN_REC)) {
                 if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
-                    fx_pending = 0u;
                     fmt_step_record_exit(&fmt_step_record_runtime);
                 } else if (!tracker_play_requested && tracker_transport_stopped) {
-                    fx_pending = 0u;
                     (void)fmt_step_record_enter(&fmt_step_record_runtime,
                                                 &fmt_pattern_input_runtime,
                                                 &fmt_transport_runtime);
@@ -332,38 +327,15 @@ static void app_main(void)
         pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
         step_rec_mode = fmt_step_record_is_active(&fmt_step_record_runtime);
 
-        /* D025 button grammar. FX is delayed until release so holding FX then
-         * pressing SELECT can become OFF without first inserting REST. SELECT
-         * by itself is TIE. Exiting STEP REC above clears pending FX. */
-        if (!step_rec_mode) {
-            fx_pending = 0u;
-        } else {
-            if (b & (1u << BTN_FX))
-                fx_pending = 1u;
-
-            if (b & (1u << BTN_SEL)) {
-                if (fx_pending) {
-                    (void)fmt_step_record_write_special(&fmt_step_record_runtime,
-                                                        &fmt_pattern_input_runtime,
-                                                        &fmt_transport_runtime,
-                                                        FMT_NOTE_OFF);
-                    fx_pending = 0u;
-                } else {
-                    (void)fmt_step_record_write_special(&fmt_step_record_runtime,
-                                                        &fmt_pattern_input_runtime,
-                                                        &fmt_transport_runtime,
-                                                        FMT_NOTE_TIE);
-                }
-            }
-
-            if ((rel & (1u << BTN_FX)) && fx_pending) {
-                (void)fmt_step_record_write_special(&fmt_step_record_runtime,
-                                                    &fmt_pattern_input_runtime,
-                                                    &fmt_transport_runtime,
-                                                    FMT_NOTE_EMPTY);
-                fx_pending = 0u;
-            }
-        }
+        /* D025's pending FX state lives in FmtStepRecord so modifier ordering,
+         * cancellation and writes are covered by the same editor unit tests. */
+        if (step_rec_mode)
+            (void)fmt_step_record_special_input(&fmt_step_record_runtime,
+                                                &fmt_pattern_input_runtime,
+                                                &fmt_transport_runtime,
+                                                (b & (1u << BTN_FX)) != 0u,
+                                                (rel & (1u << BTN_FX)) != 0u,
+                                                (b & (1u << BTN_SEL)) != 0u);
 
         if (pattern_mode && !step_rec_mode) {
             if (b & (1u << BTN_OCT_DOWN))
@@ -432,7 +404,7 @@ static void app_main(void)
         fm1_led_key(BTN_SEQ, pattern_mode);
         fm1_led_key(BTN_PLAY, tracker_play_requested != 0u);
         fm1_led_key(BTN_REC, step_rec_mode);
-        fm1_led_key(BTN_FX, step_rec_mode && fx_pending);
+        fm1_led_key(BTN_FX, step_rec_mode && fmt_step_record_runtime.fx_pending);
         fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
         fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
 
