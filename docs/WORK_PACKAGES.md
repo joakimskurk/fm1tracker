@@ -143,10 +143,26 @@ Exit:
 - no UI/audio/transport behavior is introduced;
 - the implementation stays inside the documented pool/RAM budget.
 
-Status: **READY TO START**
+Status: **COMPLETE — 2026-10-23**
+
+Verified result:
+- `FmtStep` = 8 B, `FmtPattern` = 4,096 B, compile-time `FmtSong` core shape = 65,896 B;
+- dimensions/defaults/sentinels and pattern/track/step bounds are host-tested;
+- conservative future lock-storage reservation keeps the budgeted model at 82,280 B within the 96 KiB editable-song target;
+- no pattern/song backing store or lock allocator is instantiated yet;
+- device build, package identity and inherited safety checks pass;
+- host WAV, firmware binary and firmware package remain bit-identical to Phase 1;
+- measured runtime resource delta: image **0 B**, normal RAM **0 B**, pool RAM **0 B**.
+
+Evidence: `WP2_1_VERIFICATION.md`.
 
 ## WP2.2 — bounds-safe pattern store
-Allocate pattern/song state in the intended memory region and test all access boundaries.
+
+**Goal:** allocate pattern/song state in the intended memory region and make all pattern/track/step access deterministic and bounds-safe at runtime.
+
+Status: **READY TO START**
+
+Do not begin until WP2.1 closeout is accepted as the branch checkpoint. WP2.2 must remain a separate change/package.
 
 ## WP2.3 — integer transport clock
 Implement deterministic step clock and host tests for wrap/drift.
