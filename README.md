@@ -2,7 +2,24 @@
 
 A hardware-first tracker/sequencer firmware for the **M-VAVE FM-1**.
 
-FM1Tracker is inspired by classic trackers and by the workflow ideas demonstrated by [Furnace](https://tildearrow.org/furnace/), but it is **not intended to be a port of the full Furnace desktop engine**. The goal is a compact, fixed-point tracker designed around the FM-1 panel: keyboard step entry, a dedicated rest workflow, parameter locks, 64-step patterns, and two curated sound worlds: **8-BIT** and **16-BIT**.
+FM1Tracker is inspired by classic trackers and by workflow ideas demonstrated by [Furnace](https://tildearrow.org/furnace/), but it is **not a port of the full Furnace desktop engine**. The goal is a compact, fixed-point tracker designed around the FM-1 panel: keyboard step entry, a dedicated rest workflow, parameter locks, 64-step patterns, and two curated sound worlds: **8-BIT** and **16-BIT**.
+
+## Current status
+
+**Phase 1 — clean Dinghy baseline is in progress. WP1.1 through WP1.4 are complete; WP1.5 is next.**
+
+The repository now contains the pinned Dinghy-derived platform baseline and an identity-only FM1Tracker layer:
+
+- visible app name: `FM1TRACKER`;
+- fixed FM-1 package identity: `FM-1_987`;
+- host artifacts: `build/host/fm1tracker.wav` and `fm1tracker-*.png`;
+- the WP1.4 host WAV is bit-identical to the pristine Dinghy-derived WP1.3 baseline;
+- protected HAL/loader/platform/test-tone implementation was not changed for the rename;
+- complete device package verification still requires the separately obtained JieLi AC79 SDK checkout.
+
+No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine or 16-BIT FM4 engine has been added yet. Phase 2 does not start until WP1.5 is closed.
+
+For exact continuation state, start with [`START_HERE.md`](START_HERE.md) and [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
 
 ## Core idea
 
@@ -18,36 +35,69 @@ FM1Tracker is inspired by classic trackers and by the workflow ideas demonstrate
 
 ### 8-BIT
 
-A deliberately small chip-style palette built from inexpensive fixed-point synthesis blocks. Initial candidates are pulse/PWM, wavetable, triangle and noise. Authentic machine/chip profiles may be explored later, but are not a V0.1 requirement.
+A deliberately small chip-style palette built from inexpensive fixed-point synthesis blocks. Initial engines are pulse, noise, triangle and WAVETABLE-8. Authentic machine/chip profiles may be explored later, but are not a V0.1 requirement.
 
 ### 16-BIT
 
-A broader early-digital palette. Initial candidates are fixed-point FM, wavetable and compact PCM/sample playback. The name describes the musical/sonic era and feature set, not a promise that every internal signal path is literally 16-bit.
+A broader early-digital palette centered initially on a compact fixed-point four-operator FM engine. PCM/sample playback is deliberately deferred until the tracker core and both initial synthesis modes are proven.
 
 ## Platform
 
-The intended firmware base is [Dinghy](https://github.com/zvenson/dinghy), which provides the FM-1 update/rescue path, USB MIDI/audio, display, panel input, settings, host-mode testing and build-time hardware safety checks. Dinghy is GPL-3.0-only and is based on Felucca/SLOOP.
+The firmware baseline is pinned from [Dinghy](https://github.com/zvenson/dinghy), which provides the FM-1 update/rescue path, USB MIDI/audio, display, panel input, settings, host-mode testing and build-time hardware safety checks. Dinghy is GPL-3.0-only and is based on Felucca/SLOOP.
 
-FM1Tracker will follow the FM-1 platform constraints from the beginning:
+FM1Tracker follows the FM-1 platform constraints from the beginning:
 
 - fixed-point DSP; no floating point in firmware
-- no 64-bit division in runtime firmware code
+- no runtime 64-bit division
 - bounded audio ISR work
 - no screen/flash work in the audio ISR
 - host-mode tests before hardware testing where practical
 - explicit RAM/pool/flash budgets
 
+## Host verification
+
+Prerequisites: a C compiler, Python 3 and Pillow.
+
+```sh
+./tests/run_host.sh
+```
+
+Current outputs:
+
+```text
+build/host/fm1tracker.wav
+build/host/fm1tracker-1000.png
+build/host/fm1tracker-3000.png
+```
+
+The exact verified hashes and CI runs are recorded in:
+
+- `docs/WP1_3_VERIFICATION.md`
+- `docs/WP1_4_VERIFICATION.md`
+- `docs/TEST_MATRIX.md`
+
+## Device build
+
+The intended entry point is:
+
+```sh
+./build.sh
+```
+
+Required external inputs include:
+
+- the JieLi `pi32v2` toolchain, installable through `tools/get_toolchain.sh`;
+- a separately obtained `AC79NN_SDK_V1.2.1_2023-12-13` checkout, supplied through `AC79_SDK`.
+
+The AC79 SDK is a build dependency and is **not vendored** into this repository. See `THIRD_PARTY.md` and `docs/DINGHY_IMPORT_MANIFEST.md` for the exact expected SDK files/hashes and provenance boundary.
+
+WP1.5 is responsible for the complete renamed firmware/package build and baseline code/RAM/pool/timing capture.
+
 ## Furnace relationship
 
-Furnace is an important design and interoperability reference. Most of Furnace is GPL-2.0-or-later, while some bundled components/emulation cores have their own licenses. FM1Tracker therefore does **not** assume that a Furnace component is reusable merely because it exists in the Furnace tree. Any code or emulation core considered for inclusion must receive an explicit license and resource audit first.
+Furnace is an important design and interoperability reference. Most of Furnace is GPL-2.0-or-later, while bundled components/emulation cores can have their own licenses. FM1Tracker therefore does **not** assume that a Furnace component is reusable merely because it exists in the Furnace tree. Any code or emulation core considered for inclusion requires an explicit license and resource audit first.
 
 Longer term, interoperability through a documented export/subset format is preferable to embedding the full Furnace engine.
-
-## Project status
-
-**Phase 0 — architecture and control model.**
-
-No production firmware has been committed yet. The next milestone is to freeze the V0.1 data model, control map and resource budgets, then import/rename a clean Dinghy baseline before implementing the sequencer.
 
 ## Design priorities
 
@@ -69,4 +119,4 @@ No production firmware has been committed yet. The next milestone is to freeze t
 
 ## License
 
-The firmware is intended to use the GPL-3.0-only Dinghy/Felucca/SLOOP platform, so FM1Tracker firmware will be distributed as **GPL-3.0-only** when that platform code is imported. Third-party components retain their own notices and compatible licenses. See the licensing documentation added during Phase 0 before adding external code.
+FM1Tracker firmware uses the GPL-3.0-only Dinghy/Felucca/SLOOP platform baseline. Third-party components retain their own notices and compatible licenses. See `THIRD_PARTY.md` and the provenance documents before adding external code.
