@@ -1,0 +1,139 @@
+name: WP1.5 renamed baseline and budget verification
+
+on:
+  push:
+    branches:
+      - phase1/fm1tracker-identity
+    paths:
+      - .github/workflows/wp1_5_baseline_verify.yml
+      - build.sh
+      - tools/build_fm1tracker.py
+      - tools/build.py
+      - tools/fm1pkg_make.py
+      - firmware/**
+      - tests/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renamed-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Confirm protected platform is still unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code ff0a095b2384532f19724204b9059e88aac5a52c -- \
+            firmware/src/dinghy.c \
+            firmware/src/platform.c \
+            firmware/hal \
+            firmware/loader \
+            tools/build.py \
+            tools/fm1pkg_make.py \
+            tools/fm1_install.py
+          echo "PROTECTED_BASELINE_UNCHANGED=1"
+
+      - name: Verify renamed host baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tests/run_host.sh
+          test -s build/host/fm1tracker.wav
+          test "$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')" = \
+            "dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b"
+          strings build/host/fm1tracker | grep -F "FM1TRACKER"
+          echo "HOST_BASELINE_OK=1"
+
+      - name: Install pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Checkout exact official JieLi AC79 SDK release
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/ac79-sdk"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$sdk"
+          actual="$(git -C "$sdk" rev-parse HEAD)"
+          echo "AC79_SDK_COMMIT=$actual"
+          test "$actual" = "d179b4484759423312073f5fbb232501aa491047"
+          test "$(sha256sum "$sdk/cpu/wl82/tools/uboot.boot" | awk '{print $1}')" = \
+            "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
+          test "$(sha256sum "$sdk/cpu/wl82/tools/cfg_tool.bin" | awk '{print $1}')" = \
+            "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b"
+          test "$(sha256sum "$sdk/cpu/wl82/tools/cfg/eq_cfg_hw.bin" | awk '{print $1}')" = \
+            "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d"
+          echo "AC79_SDK_INPUTS_OK=1"
+
+      - name: Build renamed FM1Tracker device package
+        shell: bash
+        run: |
+          set -euo pipefail
+          JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain" \
+          AC79_SDK="$RUNNER_TEMP/ac79-sdk" \
+          ./build.sh --release 0.1 | tee build/wp1_5_device_build.log
+
+      - name: Verify package identity, artifacts, safety output and budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+          test ! -e build/dinghy.bin
+          test ! -e build/dinghy.fwsc
+          grep -F "register access: hal/ only (src/, loader/ clean)" build/wp1_5_device_build.log
+          grep -E "image [0-9]+ B of [0-9]+; RAM \.data\+\.bss [0-9]+ B of 98304; pool [0-9]+ B of 344064" \
+            build/wp1_5_device_build.log
+          PYTHONPATH=tools python3 - <<'PY'
+          from pathlib import Path
+          from fm1_install import product_of
+          raw = Path("build/fm1tracker-0.1.fwsc").read_bytes()
+          product = product_of(raw)
+          assert product == "FM-1_987", product
+          print("PACKAGE_IDENTITY=" + product)
+          PY
+          {
+            echo "WP1.5 FM1Tracker renamed baseline metrics"
+            echo "commit=$GITHUB_SHA"
+            echo "sdk_tag=AC79NN_SDK_V1.2.1_2023-12-13"
+            echo "sdk_commit=d179b4484759423312073f5fbb232501aa491047"
+            echo "package_identity=FM-1_987"
+            echo "callback_frames=256"
+            echo "sample_rate_hz=44100"
+            python3 - <<'PY'
+          print(f"callback_period_ms={256/44100*1000:.9f}")
+          PY
+            stat -c '%n %s bytes' build/fm1tracker.bin build/fm1tracker-0.1.fwsc
+            sha256sum build/fm1tracker.bin build/fm1tracker-0.1.fwsc build/host/fm1tracker.wav
+            grep -E "image [0-9]+ B of [0-9]+; RAM \.data\+\.bss [0-9]+ B of 98304; pool [0-9]+ B of 344064" \
+              build/wp1_5_device_build.log
+          } | tee build/wp1_5_metrics.txt
+
+      - name: Upload WP1.5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp1-5-renamed-baseline-evidence
+          path: |
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/wp1_5_device_build.log
+            build/wp1_5_metrics.txt
+            build/host/fm1tracker.wav
+            build/host/fm1tracker-*.png
+          if-no-files-found: error
+          retention-days: 14
