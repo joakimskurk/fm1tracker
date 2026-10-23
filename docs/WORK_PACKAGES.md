@@ -66,7 +66,9 @@ Deliverables:
 Exit:
 - pristine baseline is either verified or has a precisely documented external dependency blocker.
 
-Status: **IN PROGRESS — 2026-10-23**
+Status: **COMPLETE — 2026-10-23**
+
+Verification record: `WP1_3_VERIFICATION.md`. Host build/run and artifacts are verified. The JieLi toolchain is verified. Device firmware build remains environment-blocked only by the separately required AC79 SDK checkout; no physical FM-1 test has been performed.
 
 ## WP1.4 — FM1Tracker identity rename
 
@@ -74,15 +76,17 @@ Status: **IN PROGRESS — 2026-10-23**
 
 Deliverables:
 - app name/build artifact rename;
-- package identity selected after checking current FM-1 ecosystem;
+- package identity selected after checking the current FM-1 ecosystem;
 - project-owned minimal visual identity;
 - no inherited Dinghy logo.
 
 Exit:
 - host screen/build artifacts identify FM1Tracker;
-- updater/package identity does not collide with known firmware.
+- package identity does not collide with known firmware.
 
-Status: pending WP1.3
+Status: **READY TO START — 2026-10-23**
+
+First action: inspect the current FM-1 firmware ecosystem/Firmware Hub for an unused package identity, then perform the smallest identity-only rename. Do not add tracker behavior in this package.
 
 ## WP1.5 — renamed baseline verification and budget capture
 
