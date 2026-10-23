@@ -149,6 +149,25 @@ The clean platform/identity/build baseline is now reproducible and budgeted. No 
 - Final verification: Actions run `39994230797`, job `120553466206`.
 - Detailed evidence: `docs/WP2_5_VERIFICATION.md`.
 
+### WP2.6 - Black-key track selection prototype
+
+- Frozen D023 before implementation: the first eight physical black-key indexes `1,3,5,8,10,13,15,17` map left-to-right to logical tracks `0..7` / UI tracks 1–8.
+- Reserved the three remaining black-key indexes `20,22,25`; they are consumed/rejected in SEQ and cannot select unintended tracks.
+- Extended `FmtPatternInput` from 3 B to 4 B with one bounded `selected_track` byte. Reset selects logical track 0.
+- Track selection is active only in explicit D022 SEQ context. All black keys continue normal audition/MIDI behavior in PERFORMANCE.
+- HOME/SEQ context changes preserve selected track.
+- Track selection preserves page/local/global step, while white-key/page navigation preserves selected track.
+- Kept the input module free of song-store access and proved all page/step/track navigation leaves the full `FmtSong` byte-identical.
+- Preserved held performance-note ownership across context switches, including black keys: a note begun in PERFORMANCE still receives the matching NOTE OFF after entering SEQ.
+- Added host tests for all eight track keys, all three reserved black keys, invalid indexes, context gating and D022 regressions.
+- Preserved the exact frozen WP2.4/WP2.5 host WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`; editor-selected track does not affect the WP2.4 proof playback lane.
+- Full JieLi device build and inherited safety checks pass with package identity `FM-1_987`.
+- `FmtPatternInput` links as 4 B in `.bss` at `0x01C0B060`; normal RAM does not grow because WP2.5 already occupied the aligned 4-byte slot.
+- Final resources: 56,060 B image (**+80 B** vs WP2.5), 12,400 B normal RAM (**0 B**) and 96,616 B pool RAM (**0 B**).
+- Final verified artifacts: `fm1tracker.bin` `ed87a905eeba8d976d0ac965b8df2b53b6a9bcc6d21754f0c89276d820f307fa`; `fm1tracker-0.1.fwsc` `af64a8b4a8c4716dcde0ddaeebc4cad8c80ffcdf573d8ef0ff60d5d0c55be879`.
+- Final verification: Actions run `39995856373`, job `120559070230`.
+- Detailed evidence: `docs/WP2_6_VERIFICATION.md`.
+
 ### Next
 
-**WP2.6 — track selection prototype.** Prototype eight direct black-key track selectors inside the explicit SEQ context while preserving the verified white-key/page mapping and fixed one-track playback proof. Issue #14 is prepared; implementation has not started.
+**WP2.7 — STEP REC note entry.** Issue #15 is prepared and READY TO START. Before implementation, freeze the exact REC/STEP REC entry/exit, monophonic note-write and step-63 advance/wrap semantics. WP2.8 REST/TIE/NOTE-OFF behavior has not started.
