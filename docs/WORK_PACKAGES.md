@@ -33,7 +33,7 @@ Final Phase 1 baseline: 55,088 B image, 12,368 B normal RAM, 30,720 B pool RAM, 
 
 # Phase 2 — tracker core
 
-Status: **IN PROGRESS — WP2.1 through WP2.9 complete; WP2.10 integration/closeout next**
+Status: **COMPLETE — 2026-10-23**
 
 ## Completed packages
 
@@ -59,71 +59,39 @@ Status: **IN PROGRESS — WP2.1 through WP2.9 complete; WP2.10 integration/close
   D024 stopped-transport one-note-per-gesture editor with exact cursor advance. Evidence: `WP2_7_VERIFICATION.md`.
 
 - **WP2.8 — REST / TIE / NOTE-OFF semantics** — COMPLETE — issue #16  
-  D025 special-event editor/playback semantics: FX release=REST, SELECT=TIE, hold FX then SELECT=OFF; explicit playback `NONE/NOTE/TIE/OFF`; frozen default WAV preserved. Final run `40004436981`. Evidence: `WP2_8_VERIFICATION.md`.
+  D025 special-event editor/playback semantics: FX release=REST, SELECT=TIE, hold FX then SELECT=OFF; explicit playback `NONE/NOTE/TIE/OFF`; frozen default WAV preserved. Evidence: `WP2_8_VERIFICATION.md`.
 
 - **WP2.9 — compact tracker screen** — COMPLETE — issue #17  
-  D026 cursor-owned one-track eight-row tracker display, explicit cursor/playhead, REST/TIE/OFF notation, ten bounded dirty regions and max two redraws per main-loop poll. Final run `40009689758`. Evidence: `WP2_9_SCREEN_CONTRACT.md`, `WP2_9_VERIFICATION.md`.
+  D026 cursor-owned one-track eight-row tracker display, explicit cursor/playhead, REST/TIE/OFF notation, ten bounded dirty regions and max two redraws per main-loop poll. Evidence: `WP2_9_SCREEN_CONTRACT.md`, `WP2_9_VERIFICATION.md`.
 
-Current verified baseline after WP2.9:
+- **WP2.10 — Phase 2 integration test and closeout** — COMPLETE — issue #18  
+  Full 64-step/eight-track editor integration, REST/TIE/OFF, exact boundary/wrap behavior, complete-song isolation, full-app panel/display/HOME proof, inherited regressions and unchanged device binary. Final run `40015242947`. Evidence: `WP2_10_TEST_PLAN.md`, `PHASE2_VERIFICATION.md`.
+
+Final verified Phase 2 footprint:
 
 - app image: 59,252 B / 581,564 B
 - normal RAM: 12,464 B / 98,304 B
 - pool RAM: 96,616 B / 344,064 B
+- total delta vs Phase 1: +4,164 B image / +96 B normal RAM / +65,896 B pool
 - song store: 65,896 B at `.pool` `0x01C20000`
 - `FmtStepRecord`: 3 B
 - `FmtPatternInput`: 4 B
 - `FmtTransport`: 8 B
 - `FmtTrackerScreen`: 44 B
 - `FmtPlayback`: 1 B
-- reviewed SEQ framebuffer: `e67d0cf9aa2fa391464237a40ed795bb6ba881e15aff40340e1b92a4a8eccb7a`
-- reviewed STEP REC framebuffer: `4b0192b084e6ee483d7a8f98add2ae95229dcc914583d3cbe957944824cb6424`
+- integrated reviewed framebuffer: `a993551ce922d90186080bf554b82477b4336e160a6b301c446f0d275569b6d7`
 - frozen default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 - package identity: `FM-1_987`
 
-## WP2.10 — Phase 2 integration test and closeout
+WP2.10 changed no production source and added zero production resource cost versus WP2.9.
 
-**Goal:** prove the complete Phase 2 computer-free workflow end-to-end using the already-finished D018–D026 implementation, then close Phase 2.
-
-Status: **READY TO START** — issue #18
-
-This is an integration/verification package, not a feature package.
-
-Required integration target:
-
-- enter SEQ from PERFORMANCE;
-- traverse all four pages / complete 64-step address space;
-- select logical tracks and prove edit isolation;
-- enter stopped STEP REC;
-- write ordinary notes plus REST/TIE/OFF;
-- cross page/half-page boundaries through cursor advance;
-- exercise exact step 63 -> 0 wrap;
-- verify tracker display follows cursor/track/page and displays special rows correctly;
-- resume existing pattern-0 / track-0 playback;
-- preserve exact D020/D021 timing and all bounds guarantees;
-- return HOME cleanly;
-- inspect final song/store contents directly against the expected pattern;
-- run every WP2.1–WP2.9 regression and a full JieLi device build;
-- record total Phase 2 resource cost versus Phase 1;
-- produce durable Phase 2 closeout evidence;
-- close parent #8 only after the gate is green.
-
-Strict non-goals:
-
-- no p-lock allocation/editing;
-- no new effect semantics;
-- no new synth engine;
-- no general multitrack playback expansion;
-- no live-performance capture;
-- no song/order/persistence;
-- no hardware control-map freeze;
-- no HAL/loader/update redesign;
-- do not begin Phase 3.
+Evidence: `PHASE2_VERIFICATION.md`.
 
 ---
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **BLOCKED ON WP2.10 / Phase 2 closeout**
+Status: **READY TO START — WP3.1 next; no Phase 3 implementation started**
 
 - WP3.1 stable parameter ID registry
 - WP3.2 sparse four-lock-per-step storage
@@ -136,7 +104,7 @@ Status: **BLOCKED ON WP2.10 / Phase 2 closeout**
 - WP3.9 lock/effect visual feedback
 - WP3.10 Phase 3 worst-case tests
 
-No Phase 3 implementation may begin before Phase 2 integration closes unless an explicit superseding decision is recorded.
+WP3.1 must remain a bounded registry/contract package. Do not pull lock allocation/editing from WP3.2/WP3.3 into it. Stable parameter/effect identity decisions must be recorded before later Phase 3 source depends on them.
 
 ---
 
