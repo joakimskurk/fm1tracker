@@ -44,15 +44,22 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 |---|---:|---:|---:|---|
 | V0.1 dimensions/constants are compile-time enforced | required | required | n/a | ✅ WP2.1 run `39985124933` |
 | `FmtStep` is exactly 8 B and `FmtPattern` exactly 4,096 B | required | required | n/a | ✅ |
-| Empty-step defaults/sentinels deterministic | required | compile | n/a | ✅ |
-| Step accessor rejects out-of-range track/pattern/step | required | compile | n/a | ✅ WP2.1 |
+| Empty-step defaults/sentinels deterministic | required | compile | n/a | ✅ WP2.1 + all 8,192 store rows WP2.2 |
+| Step accessor rejects out-of-range track/pattern/step | required | compile | n/a | ✅ WP2.1 model + WP2.2 runtime store |
 | Compile-time song core + conservative lock budget fits 96 KiB target | required | compile | n/a | ✅ 82,280 B / 98,304 B budgeted; allocator not frozen |
 | WP2.1 changes no runtime image/audio behavior | required | required | n/a | ✅ host WAV/bin/fwsc bit-identical to Phase 1 |
 | WP2.1 resource delta recorded | n/a | required | n/a | ✅ image 0 B, normal RAM 0 B, pool 0 B |
-| Pattern store allocation/placement is bounds-safe | required | required | optional | ⬜ WP2.2 |
+| One `FmtSong` backing store is physically linked in `.pool` | inspect/test | required | n/a | ✅ WP2.2 run `39986704633`, `0x01C20000`, 65,896 B |
+| Pattern store valid first/last indexes are deterministic | required | compile | n/a | ✅ WP2.2 |
+| Pattern store rejects all out-of-range dimensions | required | compile | n/a | ✅ WP2.2 incl. `UINT32_MAX` cases |
+| Pattern store mutation cannot alias neighboring tested rows | required | compile | n/a | ✅ WP2.2 |
+| Pattern store reset restores deterministic defaults | required | compile | n/a | ✅ WP2.2 |
+| Pattern store does not consume ordinary RAM | n/a | required | n/a | ✅ WP2.2 normal-RAM delta 0 B; pool delta +65,896 B |
+| WP2.2 host audio regression remains unchanged | required | required | n/a | ✅ exact Phase 1/WP2.1 WAV SHA-256 |
 | Pattern wrap is exactly 64 steps | required | required later | later | ⬜ WP2.3/WP2.4 |
 | Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ⬜ WP2.5 |
 | Integer clock has no cumulative drift over long run | required | required | preferred | ⬜ WP2.3 |
+| Transport reset/start/stop state deterministic | required | required | later | ⬜ WP2.3 |
 | STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
 | Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
 | REST creates empty step and advances once | required | required | required | ⬜ WP2.8 |
@@ -63,6 +70,8 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Tracker display uses bounded/dirty redraw | inspect/test | required | required | ⬜ WP2.9 |
 
 WP2.1 compile-time-model evidence is recorded in `WP2_1_VERIFICATION.md`.
+
+WP2.2 pattern-store evidence is recorded in `WP2_2_VERIFICATION.md`. The full host/device verification run is `39986704633`; physical FM-1 behavior remains untested.
 
 ## Phase 3 p-locks/effects
 
