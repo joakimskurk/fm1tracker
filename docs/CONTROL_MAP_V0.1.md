@@ -11,7 +11,7 @@ The panel labels remain useful where possible. Context-sensitive repurposing is 
 | Control | Default role |
 | --- | --- |
 | PLAY | play / stop |
-| REC | enter/leave STEP REC while stopped; later live-record modifier |
+| REC | enter/leave STEP REC while stopped; future live-record arm during playback |
 | SEQ | pattern/tracker page |
 | HOME | performance/overview page |
 | EDIT | focused step/instrument edit |
@@ -19,9 +19,9 @@ The panel labels remain useful where possible. Context-sensitive repurposing is 
 | GLO | project/global settings |
 | ENV | envelope page for current instrument |
 | LFO | modulation page |
-| FX | effects page; becomes REST in STEP REC |
+| FX | effects page; becomes REST/modifier in STEP REC |
 | ARP | arpeggio page / tracker arpeggio helper |
-| SEL | select/focus modifier |
+| SEL | select/focus; becomes TIE / OFF modifier target in STEP REC |
 | OCT- / OCT+ | keyboard octave while playing/recording; page navigation where screen context explicitly takes over |
 
 Encoders:
@@ -60,6 +60,8 @@ Encoders:
 
 The four primary parameters are engine-defined but stable enough to learn. Example for 8-BIT pulse: DUTY, ENV, PITCH/FINE, LEVEL.
 
+Future live-performance capture extends this mode rather than replacing it. The accepted direction is documented in `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
+
 ## 3. Pattern / SEQ mode
 
 ### White keys = physical steps
@@ -79,7 +81,7 @@ The corresponding key LED indicates whether the step contains a note/event and a
 
 **Provisional:** the first eight black keys select tracks 1-8. The remaining black keys are reserved for fast page/mute/solo helpers after hardware usability testing.
 
-This mapping must be validated on the host panel emulator and then on physical hardware before it becomes permanent.
+This mapping must be validated on physical hardware before it becomes permanent.
 
 ### Pattern encoders
 
@@ -97,53 +99,64 @@ Entry:
 - transport stopped
 - press REC
 
-The current WP2.7 prototype requires the audio side to acknowledge a real stopped transport before REC can enter. REC while transport is running is ignored. PLAY while STEP REC is active exits STEP REC before playback resumes.
+The D024/WP2.7 implementation requires the audio side to acknowledge a real stopped transport before REC can enter. REC while transport is running is ignored. PLAY while STEP REC is active exits STEP REC before playback resumes.
 
 The screen must always show that keyboard presses will be written, not merely auditioned once the tracker screen exists.
 
-Example:
+Example direction:
 
 ```text
 STEP REC     TRK 2
 PAT 03       17/64
 
-PLAY NOTE OR CHORD
-FX = REST
-
-INST 05      OCT 4
+PLAY NOTE
+FX=REST SEL=TIE
+FX+SEL=OFF   OCT 4
 ```
 
 ### Note entry
 
-The current D024/WP2.7 monophonic prototype is explicit:
+The current D024 monophonic prototype is explicit:
 
 1. all 27 physical note keys become pitch keys while STEP REC is active;
 2. the first unlatched note gesture writes one note to the selected track/step and auditions the pressed notes;
 3. if multiple new keys arrive in the same scan, the lowest physical key / lowest pitch is the single note stored;
 4. the write gesture remains latched until **all** physical note keys are released, so chord-like or staggered presses cannot advance twice;
 5. after a successful write the cursor advances exactly one step, with step 64 wrapping to step 1 of the same pattern;
-6. only the step's note field is changed in WP2.7; instrument/volume/effect/locks are preserved.
+6. only the step's note field is changed; instrument/volume/effect/locks are preserved.
 
 OCT- / OCT+ change keyboard pitch octave during STEP REC rather than changing the 16-step page. Stored pitch is the same pitch used for audition.
 
-This lowest-note/full-release behavior is a deterministic prototype, not the final hardware-UX freeze. Phase 7 must still test whether the chord gesture feels right on the physical FM-1.
+This lowest-note/full-release behavior is deterministic but the physical chord feel remains provisional until hardware UX testing.
 
-### REST / NOTE OFF / TIE
+### REST / TIE / NOTE OFF
 
-`FX` remains the provisional dedicated REST button while STEP REC is active.
+D025/WP2.8 freezes the current prototype behavior:
 
-Current provisional candidates:
+- **REST:** press and release `FX` without using the modifier action. REST writes `EMPTY` and advances exactly once.
+- **TIE:** press `SELECT` while `FX` is not pending/held. TIE advances exactly once.
+- **NOTE OFF:** hold `FX`, then press `SELECT`. OFF is written on the SELECT press and advances exactly once.
 
-- tap FX: clear/leave the current step empty and advance one step;
-- hold FX + SELECT: write explicit NOTE OFF and advance.
+Important modifier rule: REST is deliberately committed on **FX release**, not FX press. This allows `FX` to become a modifier. When FX+SELECT writes NOTE OFF, the pending REST is consumed, so releasing FX afterward cannot create a second edit.
 
-The existence of a one-action REST is not provisional, but WP2.8 must freeze the exact REST field semantics, confirm or supersede the NOTE OFF gesture, and choose an explicit TIE gesture before implementing any of them. TIE mapping is **not yet defined**.
+REC exit, HOME and PLAY exit cancel any pending FX REST without writing it.
+
+All three special edits change only the note field and preserve the remaining step data.
+
+Playback semantics are also explicit:
+
+- EMPTY / REST = no new pitch/gate command;
+- TIE = continue an already active note without retrigger;
+- NOTE OFF = release the active note;
+- special sentinel values are never interpreted as raw pitches.
+
+The control gestures remain subject to physical-hardware ergonomics testing in Phase 7 even though their current software semantics are now deterministic.
 
 ### Audition vs write
 
 REC off: keyboard auditions only in PERFORMANCE; ordinary SEQ uses the keys for step/track selection.
 
-REC on: all physical note keys audition, and exactly one deterministic note is written for each fully released STEP REC gesture.
+REC on: all physical note keys audition, and exactly one deterministic note is written for each fully released STEP REC note gesture. REST/TIE/OFF use the button gestures above.
 
 This distinction must remain visually obvious.
 
@@ -151,7 +164,7 @@ This distinction must remain visually obvious.
 
 Current V0.1 behavior: wrap to step 1 of the same pattern after step 64.
 
-A project setting may later choose STOP AT END, but no such setting exists in WP2.7.
+A project setting may later choose STOP AT END, but no such setting exists yet.
 
 ## 5. Parameter locks
 
@@ -198,9 +211,9 @@ This is the accessibility layer for users who do not want to interpret compact t
 
 ## 7. Tracker grid screen
 
-The 240 x 240 screen should show one track in detail rather than attempting a desktop multi-channel spreadsheet.
+WP2.9 owns the first implementation. The 240×240 screen should show one track in detail rather than attempting a desktop multi-channel spreadsheet.
 
-Candidate layout:
+Candidate direction before the WP2.9 design freeze:
 
 ```text
 P03 T2  124     17-24
@@ -209,32 +222,34 @@ P03 T2  124     17-24
 >17 C#4 05 92  V37
 18  --- .. ..  ---
 19  G-4 05 84  R03
-20  --- .. ..  ---
-21  A-4 05 90  ---
-22  --- .. ..  ---
+20  === .. ..  ---
+21  OFF .. ..  ---
+22  A-4 05 90  ---
 23  E-4 06 A0  ---
-
-LOCK: DUTY 42  ENV 81
 ```
 
-The exact number of visible rows depends on font tests. Readability wins over showing more rows.
+The exact note/special-event notation, visible-row count and selected-row/playhead markers must be frozen before WP2.9 source code. Readability wins over showing more rows.
 
 ## 8. Playback editing
 
 During playback:
 
 - white step LEDs follow playhead without destroying edit selection;
-- selecting steps and changing p-locks is allowed if the shared-state handoff is atomic;
+- selected edit row and playhead must remain distinct;
+- selecting steps and changing future p-locks is allowed only when shared-state handoff is atomic;
 - pattern/song structure edits that could invalidate currently executing data may be deferred until a safe boundary in early versions;
 - flash save remains unavailable while audio is active if the platform write path causes dropouts.
 
 ## 9. Principles to test on hardware
 
-The following must be explicitly evaluated before V0.1 control freeze:
+The following must be explicitly evaluated before V1 control freeze:
 
 - whether black-key track selection feels natural;
 - whether FX-as-REST is discoverable enough;
+- whether SELECT-as-TIE and FX+SELECT-as-OFF are comfortable and understandable;
 - whether holding a white key while turning encoders is physically comfortable;
-- whether page switching should use OCT buttons or SELECT/PRESETS;
+- whether page switching should remain on OCT buttons;
 - whether live parameter locking needs latch mode so the user does not need three hands;
-- whether the current lowest-note/full-release STEP REC chord behavior matches user expectation or should be superseded.
+- whether the current lowest-note/full-release STEP REC chord behavior matches user expectation;
+- whether tracker rows/special-event notation are readable on 240×240;
+- later, whether seamless live PLAY/REC and CHANNEL/GLOBAL performance FX feel immediate enough for the accepted live-performance direction.
