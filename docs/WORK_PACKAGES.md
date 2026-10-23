@@ -51,7 +51,7 @@ Exit:
 - no FM1Tracker tracker/synth modifications yet;
 - import manifest can be reviewed against upstream.
 
-Status: **IN PROGRESS**
+Status: **COMPLETE — 2026-10-23**
 
 ## WP1.3 — pristine baseline verification
 
@@ -66,7 +66,7 @@ Deliverables:
 Exit:
 - pristine baseline is either verified or has a precisely documented external dependency blocker.
 
-Status: pending WP1.2
+Status: **IN PROGRESS — 2026-10-23**
 
 ## WP1.4 — FM1Tracker identity rename
 
