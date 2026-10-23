@@ -13,8 +13,8 @@ Legend:
 | Check | Host | Firmware build | Physical FM-1 | Status |
 |---|---:|---:|---:|---|
 | Pinned Dinghy provenance complete | n/a | n/a | n/a | ✅ |
-| Pristine Dinghy host build | required | n/a | n/a | ⬜ |
-| Pristine Dinghy firmware build | n/a | required | optional | ⬜ |
+| Pristine Dinghy host build | required | n/a | n/a | ✅ 2026-10-23 - Actions run `39958478536` |
+| Pristine Dinghy firmware build | n/a | required | optional | ⛔ external AC79 SDK checkout absent; toolchain verified |
 | FM1Tracker renamed host build | required | n/a | n/a | ⬜ |
 | FM1Tracker renamed firmware build | n/a | required | optional | ⬜ |
 | USB rescue/update path unchanged | n/a | inspect/build | required later | ⬜ |
@@ -22,6 +22,8 @@ Legend:
 | Baseline pool usage captured | host estimate optional | required | n/a | ⬜ |
 | Baseline code size captured | n/a | required | n/a | ⬜ |
 | Baseline audio callback timing | useful | useful | preferred | ⬜ |
+
+WP1.3 evidence and exact artifact hashes are recorded in `WP1_3_VERIFICATION.md`. The pristine host harness produced a WAV and two screen PNGs. The JieLi toolchain installed and executed successfully; only the separately required AC79 SDK checkout prevented the device firmware build. No physical FM-1 test has been performed.
 
 ## Phase 2 tracker core
 
