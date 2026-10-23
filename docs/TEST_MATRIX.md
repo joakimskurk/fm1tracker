@@ -44,7 +44,7 @@ Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.
 | Four 16-step pages cover 0..63 exactly | required | compile | required | ✅ WP2.5 |
 | 16 white physical keys map bijectively to local 0..15 | required | compile | required | ✅ WP2.5 |
 | SEQ step/page navigation cannot mutate song | required | compile | n/a | ✅ WP2.5 |
-| Performance note release safe across context changes | required | compile | required | ✅ WP2.5–WP2.8 regressions |
+| Performance note release safe across context changes | required | compile | required | ✅ WP2.5–WP2.9 regressions |
 | Eight black keys map bijectively to tracks 0..7 | required | compile | required | ✅ WP2.6 |
 | Reserved black keys cannot select unintended track | required | compile | required | ✅ WP2.6 |
 | Track selection preserves page/step and cannot mutate song | required | compile | n/a | ✅ WP2.6 |
@@ -70,14 +70,18 @@ Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.
 | OFF -> explicit release semantics | required | compile | later | ✅ WP2.8 |
 | Sentinel values can never become raw pitches | required | compile | n/a | ✅ WP2.8 |
 | NOTE OFF produces audible release to exact silence in host proof | required | compile | later | ✅ `before=4410 quiet=0 after=4410` |
-| Historical WP2.5/WP2.6/WP2.7 full-app gestures still pass | required | compile | later | ✅ WP2.8 regression gate |
-| Default WP2.4 WAV still byte-identical after WP2.8 | required | required | n/a | ✅ exact SHA-256 unchanged |
-| WP2.8 resource delta recorded | n/a | required | n/a | ✅ +200 B image / +16 B RAM / +0 B pool |
-| Tracker display uses bounded/dirty redraw | inspect/test | required | required | ⬜ WP2.9 |
-| Selected row and playback row visually distinct | required | compile | required | ⬜ WP2.9 |
-| Ordinary note + REST/TIE/OFF display deterministic | required | compile | required | ⬜ WP2.9 |
-| Drawing cannot mutate song data | required | compile | n/a | ⬜ WP2.9 |
-| Complete computer-free 64-step entry/playback workflow | required | required | required | ⬜ WP2.10 |
+| Historical WP2.5/WP2.6/WP2.7/WP2.8 full-app gestures still pass | required | compile | later | ✅ WP2.9 regression gate |
+| Tracker display uses bounded/dirty redraw | inspect/test | required | required | ✅ WP2.9 run `40009689758`; 10 regions, max 2 per poll |
+| Eight cursor-owned half-page windows are exact | required | compile | required | ✅ WP2.9 all `01-08` through `57-64` windows tested |
+| Selected row and playback row visually distinct | required | compile | required | ✅ D026 `>` / `*` / `>*`, off-screen playhead remains `PLYnn` |
+| Ordinary note + REST/TIE/OFF display deterministic | required | compile | required | ✅ reviewed/frozen SEQ and STEP REC framebuffers |
+| Instrument/volume/effect placeholders deterministic | required | compile | n/a | ✅ WP2.9 formatting tests |
+| Drawing/presentation sync cannot mutate song data | required | compile | n/a | ✅ WP2.9 full-song snapshot comparison |
+| Tracker drawing remains outside audio ISR | inspect/test | required | n/a | ✅ WP2.9 sound section byte-identical to start baseline |
+| SEQ -> HOME restores clean performance screen | required | compile | required | ✅ pixel-identical A/B fixture |
+| WP2.9 default WAV remains byte-identical | required | required | n/a | ✅ exact frozen SHA-256 unchanged |
+| WP2.9 resource delta recorded | n/a | required | n/a | ✅ +2,504 B image / +44 B RAM / +0 B pool |
+| Complete computer-free 64-step entry/playback workflow | required | required | required | ⬜ WP2.10 / issue #18 |
 
 Phase 2 detailed evidence:
 
@@ -89,6 +93,8 @@ Phase 2 detailed evidence:
 - `WP2_6_VERIFICATION.md`
 - `WP2_7_VERIFICATION.md`
 - `WP2_8_VERIFICATION.md`
+- `WP2_9_SCREEN_CONTRACT.md`
+- `WP2_9_VERIFICATION.md`
 
 Physical key feel, REST/TIE/OFF ergonomics, screen readability, install/audio behavior and actual render timing remain separate hardware gates.
 
