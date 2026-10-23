@@ -1,0 +1,6 @@
+# HOME-equivalent control for WP2.10.
+# Match the integration scenario's legitimate HOME state (`last_note` = E4)
+# without ever entering tracker context.
+370 keys 0x800
+371 keys 0
+3200 end
