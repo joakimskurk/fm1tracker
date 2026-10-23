@@ -18,36 +18,86 @@ Phase 2 branch start / completed Phase 1 head:
 
 `3ed4b65d7cda15c5831533f153f91e9014a9fde7`
 
-WP2.1 through WP2.7 are complete. No WP2.8 implementation has started.
+WP2.1 through WP2.7 are complete. WP2.8 is the only active implementation package.
 
 ## Current milestone
 
 **WP2.8 - REST / TIE / NOTE-OFF semantics**
 
-State: **READY TO START**
+State: **IN PROGRESS - 2026-10-23**
 
 GitHub issue: #16
 
+WP2.8 start head:
+
+`13c0748dd696e4f3a47279d00641068b5e915e46`
+
+The three commits immediately before this package start only added the live-performance vision/roadmap direction and changed no firmware or tests.
+
 ### Exact objective
 
-Define and implement explicit editor + playback semantics for the frozen special note values `EMPTY`, `TIE` and `NOTE OFF` on top of the verified WP2.7 stopped-transport STEP REC path.
+Implement explicit editor + playback semantics for the frozen special note values `EMPTY`, `TIE` and `NOTE OFF` on top of the verified WP2.7 stopped-transport STEP REC path, without changing the frozen 8-byte step model or pulling WP2.9/Phase 3 work forward.
 
-### Before WP2.8 source code
+### D025 special-event contract
 
-Follow `EXECUTION_PROTOCOL.md` and record a new decision before implementation that freezes:
+D025 is accepted before source implementation:
 
-1. exact REST write semantics, including which target-step fields are preserved or cleared;
-2. exact NOTE OFF editing gesture and whether provisional `FX + SELECT` remains the mapping;
-3. exact TIE editing gesture — this is **not yet frozen and must not be guessed**;
-4. playback meaning of EMPTY, TIE and NOTE OFF for the existing monophonic proof lane;
-5. exact cursor advance/wrap behavior for each special event;
-6. interaction with D024 gesture latching, REC exit and stopped-transport safety.
+- `FX` press/release in STEP REC is the one-action REST path, but the REST write is deferred until `FX` release so modifier use can be distinguished safely;
+- REST writes only `FMT_NOTE_EMPTY` to the selected row's `note` field and advances exactly once;
+- `SELECT` pressed while `FX` is not pending/held writes `FMT_NOTE_TIE` and advances exactly once;
+- NOTE OFF uses an explicit modifier-first gesture: hold `FX`, then press `SELECT`;
+- NOTE OFF writes only `FMT_NOTE_OFF`, advances exactly once, cancels the pending REST, and later `FX` release must not write again;
+- all three special writes preserve instrument, volume, effect, effect value, flags and lock-head;
+- all three require active STEP REC, stopped transport, valid selected track/cursor and an unlatched D024 write gesture;
+- a successful special write participates in the D024 latch so a simultaneous note gesture cannot also write another row;
+- REC/HOME/PLAY exit cancels a pending FX REST without mutation;
+- playback keeps `FmtPlaybackEvent` at 4 B but gives it explicit kinds `NONE`, `NOTE`, `TIE`, `OFF`;
+- EMPTY -> `NONE`: no pitch/gate command; existing voice state continues naturally;
+- ordinary note -> `NOTE`: pitch/gate note event;
+- TIE -> `TIE`: preserve an already-active gate/pitch without retrigger; no active note means no stale-note resurrection;
+- NOTE OFF -> `OFF`: release the currently gated proof voice, never interpret the sentinel as pitch;
+- malformed/reserved non-note values remain safe `NONE` events;
+- D021 frame ordering is unchanged: decoded boundary events take effect on the next rendered frame;
+- the default WP2.4 proof pattern has no TIE/OFF rows, so its frozen host WAV must remain byte-identical.
+
+### Expected implementation files
+
+- `firmware/src/fmt_step_record.h` / `fmt_step_record.c` - bounded special-note write API using the existing D024 gate/latch/cursor rules;
+- `firmware/src/fmt_playback.h` / `fmt_playback.c` - explicit `NONE/NOTE/TIE/OFF` event decoding while preserving the 4-byte event object and D021 timing;
+- `firmware/src/dinghy.c` - robust pending-FX modifier routing and proof-voice note/tie/off handling with bounded release;
+- `tests/test_fmt_step_record.c` - all three special writes, field/neighbor preservation, latch/rejection and `63 -> 0` tests;
+- `tests/test_fmt_playback.c` - exact special-event decoding/timing and malformed-value safety;
+- focused host gesture fixture/runner for REST/TIE/OFF control behavior;
+- `.github/workflows/wp2_8_special_events_verify.yml` - full inherited regressions, frozen default WAV, focused tests, device safety and measured resources;
+- documentation/status files only as required at closeout.
+
+### Required verification
+
+1. REST writes EMPTY only and advances exactly once;
+2. TIE writes TIE only and advances exactly once;
+3. NOTE OFF writes OFF only and advances exactly once;
+4. target non-note fields and all neighboring rows remain unchanged;
+5. step 63 wraps to step 0 for every successful special event;
+6. inactive STEP REC, running transport, invalid cursor/track or latched gesture rejects special writes with no mutation;
+7. FX release after successful FX+SELECT NOTE OFF cannot create a second REST write;
+8. leaving STEP REC with pending FX cancels the pending REST safely;
+9. ordinary note entry from WP2.7 remains unchanged;
+10. EMPTY decodes to NONE at the exact D021 boundary;
+11. TIE decodes to explicit TIE and cannot become raw pitch;
+12. OFF decodes to explicit OFF and cannot become raw pitch;
+13. malformed special values remain safe NONE;
+14. proof voice NOTE/TIE/OFF behavior is deterministic and OFF releases rather than hard-switching to sentinel pitch;
+15. WP2.1-WP2.7 regressions remain green;
+16. untouched default host run preserves frozen WP2.4 WAV hash;
+17. full JieLi build, identity and inherited safety gates remain green;
+18. image/normal-RAM/pool delta is recorded against WP2.7.
 
 ### Strict WP2.8 non-goals
 
 - no tracker grid/screen — WP2.9;
 - no general multitrack playback expansion;
 - no p-lock allocation/effects;
+- no live-performance capture implementation yet — direction is preserved in `LIVE_PERFORMANCE_CAPTURE_VISION.md`;
 - no new synth engine;
 - no song/order mode or persistence;
 - no HAL/loader/update redesign;
@@ -166,7 +216,7 @@ Physical FM-1 STEP REC/chord ergonomics, install/boot/audio behavior and actual 
 
 - D005: V0.1 dimensions remain 8 tracks × 64 steps × 16 patterns.
 - D006: STEP REC is the primary recording workflow and advances deterministically.
-- D007: one-action REST exists conceptually; implementation begins only in WP2.8.
+- D007/D025: one-action REST is now concretely `FX` release without modifier in STEP REC.
 - D009/D023: exact black-key track mapping remains the current provisional prototype.
 - D016: fixed package identity remains `FM-1_987`.
 - D018: core in-memory model is frozen; persistence and p-lock allocator are separate.
@@ -176,12 +226,13 @@ Physical FM-1 STEP REC/chord ergonomics, install/boot/audio behavior and actual 
 - D022: explicit PERFORMANCE/SEQ context and white-key four-page addressing remain frozen for the current prototype layer.
 - D023: selected track is bounded `0..7`, SEQ-only and editor-only.
 - D024: STEP REC is stopped-transport, one-note-per-fully-released-gesture note entry with exact modulo-64 cursor advance.
+- D025: special note editing/playback uses explicit REST/EMPTY, TIE and NOTE OFF semantics while retaining the 8-byte step and 4-byte playback event budgets.
 - Preserve WP2.1-WP2.7 regression coverage as WP2.8 adds special events.
 - No floating point in firmware DSP and no runtime 64-bit division.
 
 ## Next action
 
-Start issue #16 as its own package. Before code, mark WP2.8 IN PROGRESS and record exact REST/TIE/NOTE-OFF editor and playback semantics, especially the currently-unfrozen TIE gesture. Verify special-event write isolation, exact one-step cursor advance/wrap, playback event semantics at D020/D021 boundaries, old STEP REC behavior, frozen regressions, device safety and measured resources. Do not begin WP2.9.
+Implement only WP2.8 according to D025 and issue #16. Add bounded special-event writing and explicit playback event kinds, then verify gesture ordering, exact special-row mutations, D020/D021 boundary behavior, proof-voice release, frozen default audio, inherited regressions and device resources. Do not begin WP2.9.
 
 ## Last relevant checkpoints
 
@@ -195,7 +246,8 @@ Start issue #16 as its own package. Before code, mark WP2.8 IN PROGRESS and reco
 - WP2.7 start: `6996dc8a38f41ca8bf361c5e897b3f3342f03e4c`
 - WP2.7 verified implementation/workflow: `790fb87596150567307f88fb537cd63134a3f5fc`
 - WP2.7 final Actions run: `39999680852`
+- WP2.8 start: `13c0748dd696e4f3a47279d00641068b5e915e46`
 
 ## Last updated
 
-2026-10-23 - WP2.7 closed and durably verified. WP2.8 / issue #16 is READY TO START; no WP2.8 implementation has started.
+2026-10-23 - WP2.8 started. D025 freezes special-event editor/playback semantics before source code. WP2.9 has not started.
