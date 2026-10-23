@@ -64,7 +64,7 @@ Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.
 
 Goal: prove deterministic editing, visible tracker state and transport using the simplest tone source.
 
-Status: **IN PROGRESS — WP2.1 through WP2.8 complete; WP2.9 next**
+Status: **IN PROGRESS — WP2.1 through WP2.9 complete; WP2.10 integration/closeout next**
 
 Completed:
 
@@ -76,21 +76,26 @@ Completed:
 6. ✅ WP2.6 — D023 direct eight-track black-key selector prototype.
 7. ✅ WP2.7 — D024 stopped STEP REC ordinary-note entry.
 8. ✅ WP2.8 — D025 REST/TIE/OFF editor + playback semantics.
-9. ⬜ WP2.9 — compact tracker screen, issue #17, READY TO START.
-10. ⬜ WP2.10 — complete Phase 2 computer-free integration test.
+9. ✅ WP2.9 — D026 compact tracker screen, issue #17.
+10. ⬜ WP2.10 — Phase 2 integration test and closeout, issue #18, READY TO START.
 
-Current verified baseline after WP2.8:
+Current verified baseline after WP2.9:
 
-- app image: 56,748 B / 581,564 B;
-- normal RAM: 12,420 B / 98,304 B;
+- app image: 59,252 B / 581,564 B;
+- normal RAM: 12,464 B / 98,304 B;
 - pool RAM: 96,616 B / 344,064 B;
 - `FmtSong`: 65,896 B at `.pool` `0x01C20000`;
 - STEP REC ordinary notes plus REST/TIE/OFF all advance exactly once modulo 64;
 - explicit playback event kinds `NONE/NOTE/TIE/OFF` remain a 4-byte event;
+- tracker screen: one selected track, eight cursor-owned rows, independent edit/playhead markers;
+- tracker redraw: ten dirty regions, maximum two regions per main-loop poll;
+- `FmtTrackerScreen`: 44 B ordinary RAM, no pool growth;
+- reviewed SEQ framebuffer SHA-256: `e67d0cf9aa2fa391464237a40ed795bb6ba881e15aff40340e1b92a4a8eccb7a`;
+- reviewed STEP REC framebuffer SHA-256: `4b0192b084e6ee483d7a8f98add2ae95229dcc914583d3cbe957944824cb6424`;
 - deterministic default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
 - package identity: `FM-1_987`.
 
-WP2.8 verified run: `40004436981`. Evidence: `WP2_8_VERIFICATION.md`.
+WP2.9 verified run: `40009689758`. Evidence: `WP2_9_VERIFICATION.md`.
 
 Phase 2 exit criteria:
 
@@ -99,26 +104,34 @@ Phase 2 exit criteria:
 - playback loops without cumulative timing drift;
 - edits while stopped are bounds-safe;
 - compact tracker display clearly distinguishes cursor/edit target from playback position;
-- complete Phase 2 host/device regression passes.
+- complete Phase 2 host/device integration regression passes.
 
-### Immediate next package — WP2.9
+### Immediate next package — WP2.10
 
-Before code, freeze:
+WP2.10 is explicitly an integration/closeout package. It must exercise the completed Phase 2 implementation together rather than add new feature semantics.
 
-- visible tracker row count/window;
-- track/page/header contents;
-- edit cursor vs playhead markers;
-- ordinary note / REST / TIE / OFF notation;
-- STEP REC visual state;
-- bounded dirty-region redraw policy.
+Required integration proof includes:
 
-No audio semantics should change in this display-only package.
+- full four-page / 64-step traversal;
+- deterministic track selection and edit isolation;
+- ordinary note plus REST/TIE/OFF entry;
+- cursor advance across half/page boundaries and exact 63 -> 0 wrap;
+- tracker-display state matching the edited song;
+- existing pattern-0 / track-0 playback resumption;
+- clean HOME return;
+- direct expected-vs-actual final song/store inspection;
+- all WP2.1–WP2.9 regressions and full device build;
+- total Phase 2 resource delta versus the Phase 1 baseline.
+
+No Phase 3 work begins until this package closes Phase 2.
 
 ---
 
 ## Phase 3 — parameter locks and tracker effects
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
+
+Status: **BLOCKED ON PHASE 2 CLOSEOUT**
 
 Planned:
 
