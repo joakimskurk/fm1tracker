@@ -1,76 +1,35 @@
-name: WP3.2 sparse lock storage verification
+name: WP3.2 sparse lock storage historical verification
 
+# Historical package gate. The verified source/workflow checkpoint is pinned so
+# later Phase 3 work cannot silently change what WP3.2 completion means.
+# Verified run: 40038453521 / job 120703577806 / SUCCESS.
 on:
-  push:
-    branches:
-      - phase3/plocks-effects
-    paths:
-      - .github/workflows/wp3_2_lock_store_verify.yml
-      - firmware/src/dinghy.c
-      - firmware/src/fmt_lock_store.h
-      - firmware/src/fmt_lock_store.c
-      - tests/test_fmt_lock_store.c
-      - tests/test_fmt_lock_limit.c
-      - tests/run_lock_store_tests.sh
-      - tests/run_wp3_2_closeout_ci.sh
-      - docs/PROJECT_STATE.md
-      - docs/WORK_PACKAGES.md
-      - docs/DECISIONS.md
-      - docs/DATA_MODEL_V0.1.md
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  lock-store-closeout:
+  wp3-2-historical:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout verified WP3.2 checkpoint
         uses: actions/checkout@v4
         with:
+          ref: da2f5afe9b1da6defc3857b91f52b40d7525f33b
           fetch-depth: 0
 
       - name: Install inherited host-screen dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Verify WP3.2 scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import subprocess
-          base = 'dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e'
-          allowed = {
-              '.github/workflows/wp3_2_lock_store_verify.yml',
-              'docs/PROJECT_STATE.md',
-              'docs/WORK_PACKAGES.md',
-              'docs/DECISIONS.md',
-              'docs/DATA_MODEL_V0.1.md',
-              'firmware/src/dinghy.c',
-              'firmware/src/fmt_lock_store.h',
-              'firmware/src/fmt_lock_store.c',
-              'tests/test_fmt_lock_store.c',
-              'tests/test_fmt_lock_limit.c',
-              'tests/run_lock_store_tests.sh',
-              'tests/run_wp3_2_closeout_ci.sh',
-          }
-          changed = set(subprocess.check_output(
-              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
-          ).splitlines())
-          unexpected = sorted(changed - allowed)
-          assert not unexpected, unexpected
-          print('WP3_2_SCOPE_OK=1')
-          PY
-
-      - name: Run complete WP3.2 gate
+      - name: Run frozen WP3.2 closeout gate
         shell: bash
         run: sh tests/run_wp3_2_closeout_ci.sh
 
-      - name: Upload WP3.2 evidence
+      - name: Upload historical WP3.2 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: wp3-2-lock-store-evidence
+          name: wp3-2-lock-store-historical-evidence
           path: |
             build/wp3_2_lock_store_tests.log
             build/wp3_2_param_registry_tests.log
@@ -91,12 +50,7 @@ jobs:
             build/wp3_2_host_audio.txt
             build/wp3_2_device_build.log
             build/wp3_2_symbols.txt
-            build/wp3_2_lock_storage_symbol.txt
-            build/wp3_2_lock_runtime_symbol.txt
-            build/wp3_2_song_store_symbol.txt
             build/wp3_2_metrics.txt
-            build/wp3_2_fmt_param_registry.o
-            build/wp3_2_fmt_lock_store.o
             build/fm1tracker.bin
             build/fm1tracker-0.1.fwsc
             build/host/fm1tracker.wav
