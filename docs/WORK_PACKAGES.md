@@ -24,13 +24,15 @@ Deliverables:
 - pinned Dinghy commit recorded;
 - upstream license/provenance recorded;
 - excluded non-GPL branding/assets documented;
-- required external JieLi SDK version documented.
+- required external JieLi SDK version documented;
+- exact import manifest with pinned upstream blob IDs.
 
 Exit:
 - another developer can identify exactly what upstream revision FM1Tracker is based on;
-- no third-party file can enter the tree without a known license/source.
+- no third-party file can enter the tree without a known license/source;
+- WP1.2 can perform a mechanical/reviewable import without redefining scope.
 
-Status: **IN PROGRESS**
+Status: **COMPLETE — 2026-10-23**
 
 ## WP1.2 — minimal complete Dinghy import
 
@@ -41,14 +43,15 @@ Deliverables:
 - host test harness;
 - required generated font + OFL license;
 - upstream source headers preserved;
-- Dinghy logo/branding assets omitted.
+- Dinghy logo/branding assets omitted;
+- import checked against `DINGHY_IMPORT_MANIFEST.md`.
 
 Exit:
 - imported files correspond to the pinned upstream commit;
 - no FM1Tracker tracker/synth modifications yet;
 - import manifest can be reviewed against upstream.
 
-Status: pending WP1.1
+Status: **IN PROGRESS**
 
 ## WP1.3 — pristine baseline verification
 
