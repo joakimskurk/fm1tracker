@@ -11,6 +11,7 @@ This document translates `ROADMAP.md` into bounded implementation units. The roa
 5. Update `PROJECT_STATE.md` when a package starts, blocks or completes.
 6. Architectural deviations must be recorded in `DECISIONS.md` before they spread into code.
 7. Third-party code/assets require provenance/license review in `THIRD_PARTY.md` before import.
+8. Detailed completed-package evidence belongs in `WP*_VERIFICATION.md`; this file stays focused on execution order and boundaries.
 
 ---
 
@@ -24,7 +25,7 @@ Status: **COMPLETE — 2026-10-23**
 - WP1.4 FM1Tracker identity rename — COMPLETE
 - WP1.5 renamed baseline verification and budget capture — COMPLETE
 
-Durable evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.md`.
+Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.md`.
 
 Final Phase 1 baseline: 55,088 B image, 12,368 B normal RAM, 30,720 B pool RAM, identity `FM-1_987`.
 
@@ -32,227 +33,151 @@ Final Phase 1 baseline: 55,088 B image, 12,368 B normal RAM, 30,720 B pool RAM, 
 
 # Phase 2 — tracker core
 
-## WP2.1 — compile-time data model
+Status: **IN PROGRESS — WP2.1 through WP2.8 complete; WP2.9 next**
 
-**Goal:** freeze the approved V0.1 tracker structures/constants/accessors without runtime tracker behavior.
+## Completed packages
 
-Status: **COMPLETE — 2026-10-23** — issue #9
+- **WP2.1 — compile-time data model** — COMPLETE — issue #9  
+  Frozen 8 tracks × 64 steps × 16 patterns, 8-byte `FmtStep`, deterministic sentinels/bounds. Evidence: `WP2_1_VERIFICATION.md`.
 
-Verified:
-- 8 tracks, 64 steps/pattern, 16 patterns;
-- `FmtStep` 8 B, `FmtPattern` 4,096 B, `FmtSong` 65,896 B;
-- deterministic sentinels and bounds-safe accessors;
-- model + conservative future lock budget 82,280 B / 98,304 B target;
-- runtime delta 0 B image / 0 B normal RAM / 0 B pool.
+- **WP2.2 — bounds-safe pattern store** — COMPLETE — issue #10  
+  One 65,896-byte `FmtSong` in `.pool` at `0x01C20000`. Evidence: `WP2_2_VERIFICATION.md`.
 
-Evidence: `WP2_1_VERIFICATION.md`.
+- **WP2.3 — integer transport clock** — COMPLETE — issue #11  
+  D020 exact integer 1/16-note timing and deterministic 63 -> 0 wrap. Evidence: `WP2_3_VERIFICATION.md`.
 
-## WP2.2 — bounds-safe pattern store
+- **WP2.4 — one-track audible playback** — COMPLETE — issue #12  
+  D021 frame-exact one-lane playback and frozen deterministic host WAV. Evidence: `WP2_4_VERIFICATION.md`.
 
-**Goal:** allocate one real V0.1 song/pattern store in the intended memory region and make runtime access/reset deterministic.
+- **WP2.5 — 16-step page input** — COMPLETE — issue #13  
+  D022 four clamped pages, 16 physical white step keys, no song mutation. Evidence: `WP2_5_VERIFICATION.md`.
 
-Status: **COMPLETE — 2026-10-23** — issue #10
+- **WP2.6 — track selection prototype** — COMPLETE — issue #14  
+  D023 eight black keys -> logical tracks 0..7, three black keys reserved. Evidence: `WP2_6_VERIFICATION.md`.
 
-Verified:
-- one 65,896-byte `FmtSong` linked in `.pool` at `0x01C20000`;
-- all 8,192 steps explicitly initialized to tracker sentinels;
-- bounds/mutation/reset tests pass;
-- host audio unchanged;
-- resulting resources: 55,188 B image, 12,368 B normal RAM, 96,616 B pool RAM.
+- **WP2.7 — STEP REC note entry** — COMPLETE — issue #15  
+  D024 stopped-transport one-note-per-gesture editor with exact cursor advance. Evidence: `WP2_7_VERIFICATION.md`.
 
-Evidence: `WP2_2_VERIFICATION.md`.
+- **WP2.8 — REST / TIE / NOTE-OFF semantics** — COMPLETE — issue #16  
+  D025 special-event editor/playback semantics: FX release=REST, SELECT=TIE, hold FX then SELECT=OFF; explicit playback `NONE/NOTE/TIE/OFF`; frozen default WAV preserved. Final run `40004436981`. Evidence: `WP2_8_VERIFICATION.md`.
 
-## WP2.3 — integer transport clock
+Current verified baseline after WP2.8:
 
-**Goal:** implement deterministic integer/fixed-point transport timing for the fixed V0.1 1/16-note grid without audible playback or editor/UI behavior.
+- app image: 56,748 B / 581,564 B
+- normal RAM: 12,420 B / 98,304 B
+- pool RAM: 96,616 B / 344,064 B
+- song store: 65,896 B at `.pool` `0x01C20000`
+- `FmtStepRecord`: 3 B
+- `FmtPatternInput`: 4 B
+- `FmtTransport`: 8 B
+- `FmtPlayback`: 1 B
+- frozen default WAV SHA-256: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
+- package identity: `FM-1_987`
 
-Status: **COMPLETE — 2026-10-23** — issue #11
+## WP2.9 — compact tracker screen
 
-Verified:
-- D020 exact rational timing: phase threshold `661500 = 44100 * 15`, add integer BPM per frame;
-- no float, runtime division or firmware 64-bit arithmetic in the transport path;
-- deterministic stopped/reset/start/stop/resume semantics;
-- exact `63 -> 0` wrap;
-- bulk and frame-by-frame timing are equivalent;
-- six one-hour representative-BPM runs plus max-uint16 BPM reference test show no cumulative rounding drift;
-- host audio remains byte-identical because transport remains stopped/no row dispatch;
-- `FmtTransport` is 8 B in `.bss`;
-- resulting resources: 55,328 B image, 12,376 B normal RAM, 96,616 B pool RAM.
+**Goal:** add the first readable one-track tracker display on 240×240 without changing audio/editor semantics.
 
-Evidence: `WP2_3_VERIFICATION.md`.
+Status: **READY TO START** — issue #17
 
-## WP2.4 — one-track audible playback
+Before source code, freeze a new display decision covering:
 
-**Goal:** use the verified transport and existing baseline sine primitive to prove deterministic audible playback of one logical tracker track through a complete 64-step pattern loop.
+- exact header fields;
+- visible row count/window behavior;
+- selected-row versus playhead visual distinction;
+- ordinary note / REST / TIE / OFF text representation;
+- page and track indication;
+- STEP REC indication;
+- placeholder policy for instrument/volume/effect columns that are not yet fully editable;
+- dirty-region ownership and maximum bounded redraw work per main-loop iteration.
 
-Status: **COMPLETE — 2026-10-23** — issue #12
+Required scope:
 
-Verified:
-- D021 dispatches step 0 before playback frame 0 and applies crossed rows beginning on the next rendered frame;
-- pattern 0 / track 0 only, one dedicated monophonic proof sine voice;
-- deterministic 16-note proof pattern with one note every four steps;
-- EMPTY sustains by producing no new event; TIE/OFF cannot become accidental raw pitches;
-- event timing remains exact inside 256-frame callback grouping;
-- at 120 BPM, step 1 begins on frame 5513 and the complete 64-step loop returns on frame 352800;
-- deterministic audible host WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
-- tracker audio is already non-zero during the first 100 ms before simulated manual key input;
-- flash settings writes are deferred while the continuous proof lane is sounding, preventing the inherited flash-erase path from stalling tracker audio;
-- final resources: 55,692 B image, 12,396 B normal RAM, 96,616 B pool RAM;
-- delta vs WP2.3: +364 B image, +20 B normal RAM, +0 B pool;
-- package identity and inherited device safety gates remain green.
+- one selected logical track shown in detail;
+- current page/cursor clearly visible;
+- selected edit row and playback row cannot be confused;
+- D025 special values rendered explicitly;
+- STEP REC mode visually obvious;
+- bounded/dirty main-loop drawing only; never draw in audio ISR;
+- host screen-state/snapshot verification;
+- no song mutation from drawing;
+- WP2.1–WP2.8 regressions + frozen audio preserved;
+- device build/resource delta against WP2.8.
 
-Evidence: `WP2_4_VERIFICATION.md`.
+Strict non-goals:
 
-## WP2.5 — 16-step page input
-
-**Goal:** add bounded edit-cursor/page addressing so the FM-1's 16 white keys can select all 64 pattern steps through four pages without writing notes yet.
-
-Status: **COMPLETE — 2026-10-23** — issue #13
-
-Verified:
-- D022 defines explicit PERFORMANCE versus SEQ/pattern context;
-- physical white-key indexes `0,2,4,6,7,9,11,12,14,16,18,19,21,23,24,26` map bijectively to local steps `0..15`;
-- four pages cover global steps `0..63` exactly once with no gaps or overlap;
-- `OCT-` / `OCT+` page navigation clamps at pages 0/3 and preserves local step position;
-- `SEQ` enters pattern context and `HOME` returns to normal performance context;
-- white keys select cursor only; black keys are rejected in WP2.5 and reserved for WP2.6;
-- performance audition/MIDI behavior remains intact outside SEQ context;
-- a performance note released after entering SEQ still receives NOTE OFF, preventing stuck voices;
-- a byte-for-byte `FmtSong` snapshot proves selection/navigation never mutates song data;
-- frozen WP2.4 host WAV remains exactly `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
-- `FmtPatternInput` is 3 B in `.bss` at `0x01C0B060`;
-- final resources: 55,980 B image, 12,400 B normal RAM, 96,616 B pool RAM;
-- delta vs WP2.4: +288 B image, +4 B normal RAM, +0 B pool;
-- final verification run `39994230797` passed with package identity and inherited device safety gates green.
-
-Evidence: `WP2_5_VERIFICATION.md`.
-
-## WP2.6 — track selection prototype
-
-**Goal:** prototype direct eight-track selection with black keys inside the explicit SEQ context while preserving D022 white-key page addressing and keeping playback/edit semantics narrow.
-
-Status: **COMPLETE — 2026-10-23** — issue #14
-
-Verified:
-- D023 maps physical black-key indexes `1,3,5,8,10,13,15,17` bijectively to logical tracks `0..7`;
-- remaining black-key indexes `20,22,25` are reserved and rejected;
-- selection is active only in SEQ/pattern context;
-- PERFORMANCE context keeps normal black-key audition/MIDI behavior;
-- selected track survives HOME/SEQ context changes;
-- track selection does not move page/local/global step;
-- white-key step selection and page navigation preserve selected track;
-- complete `FmtSong` remains byte-identical across cursor/track navigation;
-- held PERFORMANCE notes still receive NOTE OFF when released after entering SEQ;
-- WP2.4 proof playback remains fixed to logical track 0 and the frozen host WAV remains byte-identical;
-- `FmtPatternInput` is 4 B at `.bss` `0x01C0B060`;
-- final resources: 56,060 B image, 12,400 B normal RAM, 96,616 B pool RAM;
-- delta vs WP2.5: +80 B image, +0 B normal RAM, +0 B pool;
-- final verification run `39995856373` passed with package identity and inherited device safety gates green.
-
-Evidence: `WP2_6_VERIFICATION.md`.
-
-## WP2.7 — STEP REC note entry
-
-**Goal:** write one deterministic ordinary note to the currently selected D022/D023 step and track while STEP REC is active, then advance the edit cursor exactly one logical step.
-
-Status: **COMPLETE — 2026-10-23** — issue #15
-
-Verified:
-- D024 freezes STEP REC as a stopped-transport editor submode of SEQ;
-- REC is ignored while transport runs and can enter only after the audio-side stopped acknowledgement;
-- PLAY/STOP uses a bounded main-to-audio request handoff so audio remains sole writer of live transport state;
-- REC entry preserves current page/local step and selected track;
-- REC exit remains in SEQ; HOME exits to PERFORMANCE; PLAY exits STEP REC before playback resumes;
-- all 27 note keys become pitch input in STEP REC and use the same pitch for audition and storage;
-- physical pitch formula is `53 + 12 * octave + key_index`, octave `-2..+2`, range 29..103;
-- OCT-/OCT+ control pitch octave in STEP REC while ordinary SEQ retains four-page navigation;
-- simultaneous downs choose the lowest physical key/lowest pitch for the one stored note;
-- one write gesture remains latched until all note keys are released, preventing duplicate step advances from chord-like/staggered presses;
-- only the selected row's `note` byte is changed; instrument/volume/effect/effect-value/flags/lock-head are preserved;
-- successful entry advances exactly one global step modulo 64 and step 63 wraps to 0 while selected track is preserved;
-- exact write/no-neighbor-corruption, invalid-state rejection and wrap behavior are host-tested;
-- WP2.5/WP2.6 full-app context regressions remain green;
-- default WP2.4 audible host WAV remains byte-identical;
-- `FmtStepRecord` is 2 B in `.bss` at `0x01C0B060`;
-- final resources: 56,548 B image, 12,404 B normal RAM, 96,616 B pool RAM;
-- delta vs WP2.6: +488 B image, +4 B normal RAM, +0 B pool;
-- final verification run `39999680852` passed with package identity and inherited device safety gates green.
-
-Evidence: `WP2_7_VERIFICATION.md`.
-
-## WP2.8 — REST / TIE / NOTE-OFF semantics
-
-**Goal:** define and implement explicit editor and playback semantics for the frozen special note values on top of the verified STEP REC path.
-
-Status: **READY TO START** — issue #16
-
-Required direction before code:
-- record exact REST write semantics and target-field preservation/clearing policy;
-- decide whether provisional `FX + SELECT` remains NOTE OFF;
-- choose and document the TIE editing gesture — it is not yet frozen;
-- define EMPTY/TIE/OFF playback meaning for the existing monophonic proof lane;
-- preserve D024 stopped-transport safety and exact modulo-64 cursor advance;
-- each successful special-event write must advance exactly once;
-- special sentinels must never be interpreted as raw pitches;
-- host-test edit isolation plus exact playback meaning at D020/D021 boundaries;
-- preserve WP2.1-WP2.7 regressions and measure device resource delta.
-
-Non-goals:
-- no tracker screen — WP2.9;
-- no general multitrack playback, p-locks, new engine or persistence;
-- no HAL/loader/update redesign;
-- do not begin WP2.9 in this package.
-
-## WP2.9 — tracker screen
-Add compact tracker rows and bounded/dirty rendering.
+- no p-lock allocation/editing;
+- no new effect editing;
+- no general multitrack playback;
+- no new synth engine;
+- no live-performance capture implementation;
+- no song/order/persistence;
+- no HAL/loader redesign;
+- do not begin WP2.10.
 
 ## WP2.10 — Phase 2 integration test
-Enter and play a complete 64-step melody without a computer.
+
+**Goal:** prove the complete Phase 2 computer-free workflow using the finished tracker display and editor semantics.
+
+Status: **BLOCKED ON WP2.9**
+
+Expected integration target:
+
+- navigate a 64-step pattern;
+- select tracks deterministically;
+- enter ordinary notes plus REST/TIE/OFF;
+- see the resulting tracker data clearly;
+- play the pattern through the verified transport/playback path;
+- no cumulative timing drift or bounds corruption.
+
+Do not implement before WP2.9 is complete.
 
 ---
 
 # Phase 3 — p-locks and tracker effects
 
-## WP3.1 — stable parameter ID registry
-## WP3.2 — sparse four-lock-per-step storage
-## WP3.3 — hold-step + encoder lock editing
-## WP3.4 — lock replace/delete UX
-## WP3.5 — basic pitch/volume effects
-## WP3.6 — arpeggio/slide/porta/vibrato
-## WP3.7 — retrig/note delay/note cut
-## WP3.8 — bounded event queue and overflow policy
-## WP3.9 — lock/effect visual feedback
-## WP3.10 — Phase 3 worst-case tests
+- WP3.1 stable parameter ID registry
+- WP3.2 sparse four-lock-per-step storage
+- WP3.3 hold-step + encoder lock editing
+- WP3.4 lock replace/delete UX
+- WP3.5 basic pitch/volume effects
+- WP3.6 arpeggio/slide/porta/vibrato
+- WP3.7 retrig/note delay/note cut
+- WP3.8 bounded event queue and overflow policy
+- WP3.9 lock/effect visual feedback
+- WP3.10 Phase 3 worst-case tests
+
+No Phase 3 implementation may begin before Phase 2 integration closes unless an explicit superseding decision is recorded.
 
 ---
 
 # Phase 4 — 8-BIT engine
 
-## WP4.1 — engine interface contract
-## WP4.2 — PULSE
-## WP4.3 — NOISE
-## WP4.4 — TRIANGLE
-## WP4.5 — WAVETABLE-8
-## WP4.6 — envelope primitive
-## WP4.7 — deterministic voice allocation/stealing
-## WP4.8 — four-parameter pages + p-lock mapping
-## WP4.9 — pitch/retrigger integration
-## WP4.10 — eight-track hardware benchmark
+- WP4.1 engine interface contract
+- WP4.2 PULSE
+- WP4.3 NOISE
+- WP4.4 TRIANGLE
+- WP4.5 WAVETABLE-8
+- WP4.6 envelope primitive
+- WP4.7 deterministic voice allocation/stealing
+- WP4.8 four-parameter pages + p-lock mapping
+- WP4.9 pitch/retrigger integration
+- WP4.10 eight-track hardware benchmark
 
 ---
 
 # Phase 5 — 16-BIT FM4 engine
 
-## WP5.1 — FM operator primitive
-## WP5.2 — curated algorithm routing
-## WP5.3 — ratio table
-## WP5.4 — levels/modulation index
-## WP5.5 — bounded feedback
-## WP5.6 — common envelope
-## WP5.7 — deterministic voice allocation
-## WP5.8 — parameter pages + p-lock mapping
-## WP5.9 — pitch/modulation validation
-## WP5.10 — worst-case hardware benchmark
+- WP5.1 FM operator primitive
+- WP5.2 curated algorithm routing
+- WP5.3 ratio table
+- WP5.4 levels/modulation index
+- WP5.5 bounded feedback
+- WP5.6 common envelope
+- WP5.7 deterministic voice allocation
+- WP5.8 parameter pages + p-lock mapping
+- WP5.9 pitch/modulation validation
+- WP5.10 worst-case hardware benchmark
 
 ---
 
@@ -260,9 +185,9 @@ Enter and play a complete 64-step melody without a computer.
 
 Status: **PLANNED CORE — package IDs deferred until Phase 3–5 measurement exists**
 
-This milestone is mandatory product work, not optional Phase 9 expansion. Detailed direction is recorded in `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
+This milestone is mandatory product work, not optional Phase 9 expansion. Detailed direction: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
-Future package decomposition must cover at least:
+Future decomposition must cover at least:
 
 - running-transport REC arm/disarm without breaking stopped STEP REC;
 - deterministic live note capture to the selected logical track;
@@ -272,59 +197,59 @@ Future package decomposition must cover at least:
 - quantization/timestamp and overwrite/merge/overdub rules;
 - CHANNEL versus GLOBAL performance/automation scope;
 - keyboard-distributed FX performance gestures where useful;
-- encoder/pot performance capture into bounded p-lock/automation/effect events;
-- global automation ownership/storage separate from normal track locks where necessary;
-- eight-track reference performance configuration with drums, bass, poly synth and lead synth;
-- measured 3–6 voice polyphony target for at least one polyphonic instrument/track if hardware budget permits;
-- deterministic voice allocation/stealing and full host/hardware stress tests.
+- encoder/pot capture into bounded p-lock/automation/effect events;
+- global automation ownership/storage where normal track locks are inappropriate;
+- eight-track reference configuration containing drums, bass, poly synth and lead synth while retaining four flexible tracks;
+- measured 3–6 voice target for at least one polyphonic instrument/track if hardware budget permits;
+- deterministic voice allocation and host/hardware stress tests.
 
-Do not assign concrete package IDs or storage formats until Phase 3 p-lock/event representation and Phase 4/5 engine budgets are measured.
+Do not assign concrete storage formats/package IDs until Phase 3 p-lock/event structures and Phase 4/5 engine budgets are measured.
 
 ---
 
 # Phase 6 — song/order + persistence
 
-## WP6.1 — order-list data model
-## WP6.2 — safe pattern switching
-## WP6.3 — repeats/loop ranges
-## WP6.4 — project binary format v1
-## WP6.5 — flash-region audit
-## WP6.6 — save path
-## WP6.7 — load + CRC validation
-## WP6.8 — corrupted-project recovery
-## WP6.9 — migration/version harness
-## WP6.10 — power-cycle round-trip test
+- WP6.1 order-list data model
+- WP6.2 safe pattern switching
+- WP6.3 repeats/loop ranges
+- WP6.4 project binary format v1
+- WP6.5 flash-region audit
+- WP6.6 save path
+- WP6.7 load + CRC validation
+- WP6.8 corrupted-project recovery
+- WP6.9 migration/version harness
+- WP6.10 power-cycle round-trip test
 
 ---
 
 # Phase 7 — hardware UX freeze
 
-## WP7.1 — STEP REC/REST hardware test
-## WP7.2 — step-page ergonomics
-## WP7.3 — track-selection ergonomics
-## WP7.4 — p-lock ergonomics
-## WP7.5 — chord-entry behavior
-## WP7.6 — tracker-screen readability
-## WP7.7 — final V1 control-map freeze
+- WP7.1 STEP REC/REST/TIE/OFF hardware test
+- WP7.2 step-page ergonomics
+- WP7.3 track-selection ergonomics
+- WP7.4 p-lock ergonomics
+- WP7.5 chord-entry behavior
+- WP7.6 tracker-screen readability
+- WP7.7 final V1 control-map freeze
 
-The final hardware UX freeze must also validate the live-performance milestone: seamless PLAY/REC, track switching during playback/capture, drum/poly workflow, metronome, and CHANNEL/GLOBAL FX/automation gestures.
+The final hardware UX freeze must also validate the live-performance milestone: seamless PLAY/REC, track switching during playback/capture, drum/poly workflow, metronome and CHANNEL/GLOBAL FX/automation gestures.
 
 ---
 
 # Phase 8 — interoperability
 
-## WP8.1 — internal project interchange spec
-## WP8.2 — MIDI pattern/project transfer investigation
-## WP8.3 — Furnace documented export audit
-## WP8.4 — one-way supported-subset converter prototype
-## WP8.5 — round-trip feasibility decision
+- WP8.1 internal project interchange spec
+- WP8.2 MIDI pattern/project transfer investigation
+- WP8.3 Furnace documented export audit
+- WP8.4 one-way supported-subset converter prototype
+- WP8.5 round-trip feasibility decision
 
 ---
 
 # Phase 9 — optional expansion
 
-Each optional feature gets its own package only after profiling proves room exists. Candidates include WAVETABLE-16, PCM/sample playback beyond specifically approved core performance needs, swing, additional microtiming, polymeter, mixed engines, additional DSP FX algorithms and specifically licensed chip cores.
+Optional features get dedicated packages only after profiling proves room exists. Candidates include WAVETABLE-16, PCM/sample playback beyond specifically approved core performance needs, swing, additional microtiming, polymeter, mixed engines, additional DSP FX algorithms and specifically licensed chip cores.
 
-**Live performance capture is not optional Phase 9 work.** Phase 9 may expand engines, timing and DSP available to the performance layer, but the seamless live capture workflow belongs to the core milestone above.
+**Live performance capture is not optional Phase 9 work.**
 
 Nothing in Phase 9 may become a hidden V1 prerequisite.
