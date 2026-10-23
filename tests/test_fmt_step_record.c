@@ -55,6 +55,35 @@ static void test_reset_entry_exit_and_transport_gate(void)
     assert(!fmt_step_record_enter(&record, &input, NULL));
 }
 
+static void test_lowest_key_rule(void)
+{
+    uint8_t key = 0xA5u;
+    uint32_t k;
+
+    assert(!fmt_step_record_lowest_key(0u, &key));
+    assert(key == 0u);
+
+    for (k = 0u; k < FMT_PATTERN_INPUT_KEY_COUNT; k++) {
+        key = 0xA5u;
+        assert(fmt_step_record_lowest_key(1u << k, &key));
+        assert(key == k);
+    }
+
+    /* Simultaneous chord-like downs choose the lowest physical/pitch key. */
+    assert(fmt_step_record_lowest_key((1u << 2) | (1u << 7) | (1u << 19), &key));
+    assert(key == 2u);
+    assert(fmt_step_record_lowest_key((1u << 1) | (1u << 3) | (1u << 26), &key));
+    assert(key == 1u);
+
+    /* Bits outside the physical 27-key span are ignored. */
+    key = 0xA5u;
+    assert(!fmt_step_record_lowest_key(1u << 31, &key));
+    assert(key == 0u);
+    assert(fmt_step_record_lowest_key((1u << 31) | (1u << 26), &key));
+    assert(key == 26u);
+    assert(fmt_step_record_lowest_key(1u, NULL));
+}
+
 static void test_exact_target_write_and_field_preservation(void)
 {
     FmtStepRecord record;
@@ -222,13 +251,14 @@ static void test_step_63_wraps_to_zero_and_preserves_track(void)
 int main(void)
 {
     test_reset_entry_exit_and_transport_gate();
+    test_lowest_key_rule();
     test_exact_target_write_and_field_preservation();
     test_gesture_latch_blocks_extra_writes_until_all_released();
     test_rejection_paths_do_not_mutate_or_advance();
     test_step_63_wraps_to_zero_and_preserves_track();
 
     puts("FMT_STEP_RECORD_TESTS_OK=1");
-    printf("state_bytes=%u pattern=%u note_min=%u note_max=%u wrap=63_to_0\n",
+    printf("state_bytes=%u pattern=%u note_min=%u note_max=%u wrap=63_to_0 chord=lowest_key\n",
            (unsigned)sizeof(FmtStepRecord),
            (unsigned)FMT_STEP_RECORD_PATTERN,
            (unsigned)FMT_NOTE_MIN,
