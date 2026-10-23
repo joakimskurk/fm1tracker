@@ -16,16 +16,24 @@
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4: exact one-lane row dispatch */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
+#include "fmt_step_record.c"                   /* WP2.7: stopped-transport deterministic note entry */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
 FmtTransport fmt_transport_runtime;
 FmtPlayback fmt_playback_runtime;
 FmtPatternInput fmt_pattern_input_runtime;
+FmtStepRecord fmt_step_record_runtime;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
 static volatile uint32_t tracker_ready;
+
+/* D024 transport handoff. Main owns play_requested; audio owns stopped_ack and
+ * the actual FmtTransport running field. This keeps the ISR transport one-writer
+ * while STEP REC waits for a real stop before mutating the shared song store. */
+static volatile uint32_t tracker_play_requested;
+static volatile uint32_t tracker_transport_stopped;
 
 /* ---- the sound (runs in the audio ISR: keep it short, no flash, no screen) */
 #define NV 4u                                   /* manual/audition voices */
@@ -98,17 +106,30 @@ static void app_audio(int32_t *out, uint32_t n)
     uint32_t v, i;
     FmtPlaybackEvent event;
 
-    /* D021: app_main publishes readiness only after the proof pattern and both
-     * control states are initialized. The first ISR after that dispatches step
-     * 0 before its first tracker frame, so playback frame 0 is unambiguous. */
-    if (tracker_ready && !fmt_playback_runtime.started) {
-        if (fmt_playback_start(&fmt_playback_runtime, &fmt_transport_runtime, &event))
-            tracker_apply_event(&event);
+    /* Main publishes only the desired run state. Audio owns all writes to the
+     * transport runtime, then publishes a stopped acknowledgement for editor
+     * safety. Default requested=1 preserves WP2.4's automatic proof playback. */
+    if (tracker_ready) {
+        if (!tracker_play_requested) {
+            if (fmt_transport_runtime.running)
+                fmt_transport_stop(&fmt_transport_runtime);
+            tracker_transport_stopped = 1u;
+        } else {
+            tracker_transport_stopped = 0u;
+            if (!fmt_playback_runtime.started) {
+                if (fmt_playback_start(&fmt_playback_runtime, &fmt_transport_runtime, &event))
+                    tracker_apply_event(&event);
+            } else if (!fmt_transport_runtime.running) {
+                fmt_transport_start(&fmt_transport_runtime);
+            }
+        }
     }
 
     /* One proof lane must observe sub-block row boundaries exactly. Render the
      * current row first, then tick elapsed time; a crossed row applies to the
-     * next frame, even when the boundary lands inside a normal 256-frame block. */
+     * next frame, even when the boundary lands inside a normal 256-frame block.
+     * When transport is stopped the proof tone may sustain, but no row/store
+     * read occurs until audio has resumed the transport. */
     if (fmt_playback_runtime.started) {
         for (i = 0u; i < n; i++) {
             tracker_render_frame(out + 2u * i);
@@ -167,10 +188,9 @@ static int quiet(void)                          /* nothing sounds, not even a re
     uint32_t v;
 
     /* settings_save() erases flash and the inherited Dinghy path deliberately
-     * waits for silence because an erase can stall audio. WP2.4's proof lane
-     * plays continuously, so it must count as sounding too. Until a later
-     * package adds an explicit transport stop, octave persistence is therefore
-     * deferred rather than risking a flash-induced playback glitch. */
+     * waits for silence because an erase can stall audio. D024 can stop musical
+     * transport, but the WP2.4 proof voice deliberately sustains its current
+     * tone while stopped, so octave persistence remains deferred for safety. */
     if (tracker_voice.inc || tracker_voice.amp)
         return 0;
 
@@ -230,15 +250,18 @@ static void app_main(void)
     struct { int8_t oct; } set = {0};           /* what survives a power-off (add yours, up to 256 bytes) */
     uint32_t prev = 0, k, t_change = 0, dirty = 0, lit_drawn = ~0u, note_drawn = ~0u;
     int32_t oct_drawn = 99;
-    uint8_t held[27] = {0};                     /* manual note started by each physical key, 0 = none */
+    uint8_t held[27] = {0};                     /* audition note started by each physical key, 0 = none */
 
     /* Audio IRQs are already enabled before app_main. Keep tracker_ready zero
-     * until the entire proof song/control state is safe for the ISR to read. */
+     * until the proof song and all control/editor state are safe for the ISR. */
     fmt_store_reset();
     fmt_playback_seed_proof_pattern();
     fmt_transport_reset(&fmt_transport_runtime);
     fmt_playback_reset(&fmt_playback_runtime);
     fmt_pattern_input_reset(&fmt_pattern_input_runtime);
+    fmt_step_record_reset(&fmt_step_record_runtime);
+    tracker_play_requested = 1u;
+    tracker_transport_stopped = 1u;
     tracker_ready = 1u;
 
     settings_load(&set, sizeof set);
@@ -249,21 +272,52 @@ static void app_main(void)
     draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);
 
     for (;;) {
-        uint32_t keys, down, up, rel, b, lit = 0, base;
+        uint32_t keys, down, up, rel, b, lit = 0, base, write_key;
         uint8_t st, d1, d2;
-        int pattern_mode;
+        int pattern_mode, step_rec_mode;
         platform_poll();
 
-        /* D022: SEQ and HOME establish the context before note-key presses from
-         * this poll are interpreted. HOME wins if both edges arrive together. */
         b = fm1_input_edges(&rel);              /* buttons pressed since the last call (bit = button id) */
-        if (b & (1u << BTN_HOME))
-            fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
-        else if (b & (1u << BTN_SEQ))
-            fmt_pattern_input_enter_pattern(&fmt_pattern_input_runtime);
-        pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
 
-        if (pattern_mode) {
+        /* HOME has highest context precedence and always cancels a pending
+         * STEP REC session. Other simultaneous context edges are ignored. */
+        if (b & (1u << BTN_HOME)) {
+            fmt_step_record_exit(&fmt_step_record_runtime);
+            fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
+        } else {
+            if (b & (1u << BTN_SEQ))
+                fmt_pattern_input_enter_pattern(&fmt_pattern_input_runtime);
+
+            /* Main requests run/stop; audio owns the actual transport mutation.
+             * PLAY while recording exits STEP REC before requesting playback. */
+            if (b & (1u << BTN_PLAY)) {
+                if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
+                    fmt_step_record_exit(&fmt_step_record_runtime);
+                    tracker_play_requested = 1u;
+                } else {
+                    tracker_play_requested = tracker_play_requested ? 0u : 1u;
+                }
+            }
+
+            /* REC can enter only after audio has acknowledged a real stop. A
+             * rejected REC press never changes context or cursor state. */
+            if (b & (1u << BTN_REC)) {
+                if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
+                    fmt_step_record_exit(&fmt_step_record_runtime);
+                } else if (!tracker_play_requested && tracker_transport_stopped) {
+                    (void)fmt_step_record_enter(&fmt_step_record_runtime,
+                                                &fmt_pattern_input_runtime,
+                                                &fmt_transport_runtime);
+                }
+            }
+        }
+
+        pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
+        step_rec_mode = fmt_step_record_is_active(&fmt_step_record_runtime);
+
+        /* OCT is pitch octave in PERFORMANCE and STEP REC. Ordinary SEQ keeps
+         * D022's four clamped step pages. */
+        if (pattern_mode && !step_rec_mode) {
             if (b & (1u << BTN_OCT_DOWN))
                 (void)fmt_pattern_input_page_prev(&fmt_pattern_input_runtime);
             if (b & (1u << BTN_OCT_UP))
@@ -278,18 +332,38 @@ static void app_main(void)
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
+
+        /* D024 monophonic write rule: for the first poll of an unlatched
+         * gesture, the lowest newly pressed key is the one stored. All downs
+         * still audition below. */
+        write_key = FMT_PATTERN_INPUT_KEY_COUNT;
+        if (step_rec_mode && !fmt_step_record_runtime.gesture_latched) {
+            for (k = 0u; k < FMT_PATTERN_INPUT_KEY_COUNT; k++) {
+                if (down >> k & 1u) {
+                    write_key = k;
+                    break;
+                }
+            }
+        }
+
         for (k = 0; k < 27u; k++) {
-            /* A release always terminates a manual note that this physical key
-             * started earlier, even if SEQ was entered while it was held. */
+            /* A release always terminates an audition note that this physical
+             * key started earlier, even if context changed while it was held. */
             if ((up >> k & 1u) && held[k]) {
                 stop(held[k]);
                 midi_send(0x80, held[k], 0);
                 held[k] = 0u;
             }
             if (down >> k & 1u) {
-                if (pattern_mode) {
-                    /* D022/D023: white keys select steps, designated black keys
-                     * select tracks, and reserved black keys are consumed. */
+                if (step_rec_mode) {
+                    /* Every physical key is pitch input in STEP REC. Audition
+                     * all downs; only write_key below may mutate one tracker row. */
+                    held[k] = (uint8_t)(base + k);
+                    play(held[k], 100);
+                    midi_send(0x90, held[k], 100);
+                } else if (pattern_mode) {
+                    /* D022/D023 ordinary SEQ: white keys select steps,
+                     * designated black keys select tracks, reserved keys consume. */
                     if (!fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k))
                         (void)fmt_pattern_input_select_track_key(&fmt_pattern_input_runtime, k);
                 } else {
@@ -300,13 +374,21 @@ static void app_main(void)
             }
         }
 
+        if (step_rec_mode && write_key < FMT_PATTERN_INPUT_KEY_COUNT)
+            (void)fmt_step_record_write_note(&fmt_step_record_runtime,
+                                             &fmt_pattern_input_runtime,
+                                             &fmt_transport_runtime,
+                                             base + write_key);
+        if (step_rec_mode && keys == 0u)
+            fmt_step_record_release_gesture(&fmt_step_record_runtime);
+
         while (midi_get(&st, &d1, &d2)) {       /* USB-MIDI in, any channel */
             if ((st & 0xF0u) == 0x90u && d2) play(d1, d2);
             else if ((st & 0xF0u) == 0x80u || (st & 0xF0u) == 0x90u) stop(d1);
         }
 
         base = (uint32_t)(KEY0 + 12 * set.oct);
-        for (k = 0; k < NV; k++)                /* what manual audition plays on the keys of this octave */
+        for (k = 0; k < NV; k++)                /* what audition plays on the keys of this octave */
             if (voice[k].gate && voice[k].note >= base && voice[k].note < base + 27u)
                 lit |= 1u << (voice[k].note - base);
         for (k = 0; k < 27u; k++)
@@ -315,8 +397,10 @@ static void app_main(void)
         /* Minimal context feedback only; the actual tracker/page screen remains WP2.9. */
         fm1_led_key(BTN_HOME, !pattern_mode);
         fm1_led_key(BTN_SEQ, pattern_mode);
-        fm1_led_key(BTN_OCT_DOWN, pattern_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
-        fm1_led_key(BTN_OCT_UP, pattern_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
+        fm1_led_key(BTN_PLAY, tracker_play_requested != 0u);
+        fm1_led_key(BTN_REC, step_rec_mode);
+        fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
+        fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
 
         if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }   /* redraw only what changed */
         if (last_note != note_drawn) { note_drawn = last_note; draw_note(); }
