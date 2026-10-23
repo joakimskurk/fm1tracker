@@ -163,6 +163,15 @@ static void stop(uint32_t note)
 static int quiet(void)                          /* nothing sounds, not even a release */
 {
     uint32_t v;
+
+    /* settings_save() erases flash and the inherited Dinghy path deliberately
+     * waits for silence because an erase can stall audio. WP2.4's proof lane
+     * plays continuously, so it must count as sounding too. Until a later
+     * package adds an explicit transport stop, octave persistence is therefore
+     * deferred rather than risking a flash-induced playback glitch. */
+    if (tracker_voice.inc || tracker_voice.amp)
+        return 0;
+
     for (v = 0; v < NV; v++)
         if (voice[v].gate || voice[v].amp) return 0;
     return 1;
