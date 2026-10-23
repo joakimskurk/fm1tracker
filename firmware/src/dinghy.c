@@ -15,11 +15,13 @@
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4: exact one-lane row dispatch */
+#include "fmt_pattern_input.c"                 /* WP2.5: bounded SEQ page/cursor addressing */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
 FmtTransport fmt_transport_runtime;
 FmtPlayback fmt_playback_runtime;
+FmtPatternInput fmt_pattern_input_runtime;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -228,7 +230,7 @@ static void app_main(void)
     struct { int8_t oct; } set = {0};           /* what survives a power-off (add yours, up to 256 bytes) */
     uint32_t prev = 0, k, t_change = 0, dirty = 0, lit_drawn = ~0u, note_drawn = ~0u;
     int32_t oct_drawn = 99;
-    uint8_t held[27] = {0};                     /* the note each key plays */
+    uint8_t held[27] = {0};                     /* manual note started by each physical key, 0 = none */
 
     /* Audio IRQs are already enabled before app_main. Keep tracker_ready zero
      * until the entire proof song/control state is safe for the ISR to read. */
@@ -236,6 +238,7 @@ static void app_main(void)
     fmt_playback_seed_proof_pattern();
     fmt_transport_reset(&fmt_transport_runtime);
     fmt_playback_reset(&fmt_playback_runtime);
+    fmt_pattern_input_reset(&fmt_pattern_input_runtime);
     tracker_ready = 1u;
 
     settings_load(&set, sizeof set);
@@ -246,22 +249,54 @@ static void app_main(void)
     draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);
 
     for (;;) {
-        uint32_t keys, down, up, rel, b, lit = 0, base = (uint32_t)(KEY0 + 12 * set.oct);
+        uint32_t keys, down, up, rel, b, lit = 0, base;
         uint8_t st, d1, d2;
+        int pattern_mode;
         platform_poll();
 
+        /* D022: SEQ and HOME establish the context before note-key presses from
+         * this poll are interpreted. HOME wins if both edges arrive together. */
+        b = fm1_input_edges(&rel);              /* buttons pressed since the last call (bit = button id) */
+        if (b & (1u << BTN_HOME))
+            fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
+        else if (b & (1u << BTN_SEQ))
+            fmt_pattern_input_enter_pattern(&fmt_pattern_input_runtime);
+        pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
+
+        if (pattern_mode) {
+            if (b & (1u << BTN_OCT_DOWN))
+                (void)fmt_pattern_input_page_prev(&fmt_pattern_input_runtime);
+            if (b & (1u << BTN_OCT_UP))
+                (void)fmt_pattern_input_page_next(&fmt_pattern_input_runtime);
+        } else {
+            if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
+            if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
+        }
+
+        base = (uint32_t)(KEY0 + 12 * set.oct);
         keys = fm1_in.notes;                    /* bit k: key k (0 = F3 .. 26 = G5) */
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
-        for (k = 0; k < 27u; k++) {                 /* (a key stops the note it started: the octave may change meanwhile) */
-            if (down >> k & 1u) { held[k] = (uint8_t)(base + k); play(held[k], 100); midi_send(0x90, held[k], 100); }
-            if (up >> k & 1u) { stop(held[k]); midi_send(0x80, held[k], 0); }
+        for (k = 0; k < 27u; k++) {
+            /* A release always terminates a manual note that this physical key
+             * started earlier, even if SEQ was entered while it was held. */
+            if ((up >> k & 1u) && held[k]) {
+                stop(held[k]);
+                midi_send(0x80, held[k], 0);
+                held[k] = 0u;
+            }
+            if (down >> k & 1u) {
+                if (pattern_mode) {
+                    /* White keys select only; black keys are rejected until WP2.6. */
+                    (void)fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k);
+                } else {
+                    held[k] = (uint8_t)(base + k);
+                    play(held[k], 100);
+                    midi_send(0x90, held[k], 100);
+                }
+            }
         }
-
-        b = fm1_input_edges(&rel);              /* buttons pressed since the last call (bit = button id) */
-        if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
-        if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
 
         while (midi_get(&st, &d1, &d2)) {       /* USB-MIDI in, any channel */
             if ((st & 0xF0u) == 0x90u && d2) play(d1, d2);
@@ -274,8 +309,12 @@ static void app_main(void)
                 lit |= 1u << (voice[k].note - base);
         for (k = 0; k < 27u; k++)
             fm1_led_key(KEY_LED(k), lit >> k & 1u);
-        fm1_led_key(BTN_OCT_DOWN, set.oct < 0);
-        fm1_led_key(BTN_OCT_UP, set.oct > 0);
+
+        /* Minimal context feedback only; the actual tracker/page screen remains WP2.9. */
+        fm1_led_key(BTN_HOME, !pattern_mode);
+        fm1_led_key(BTN_SEQ, pattern_mode);
+        fm1_led_key(BTN_OCT_DOWN, pattern_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
+        fm1_led_key(BTN_OCT_UP, pattern_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
 
         if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }   /* redraw only what changed */
         if (last_note != note_drawn) { note_drawn = last_note; draw_note(); }
