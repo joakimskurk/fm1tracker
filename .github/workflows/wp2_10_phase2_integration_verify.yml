@@ -1,0 +1,63 @@
+name: WP2.10 Phase 2 integration verification
+
+on:
+  push:
+    branches:
+      - phase2/tracker-core
+    paths:
+      - .github/workflows/wp2_10_phase2_integration_verify.yml
+      - docs/WP2_10_TEST_PLAN.md
+      - tests/test_phase2_integration.c
+      - tests/run_phase2_integration_tests.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase2-integration-model:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify WP2.10 remains test-only at focused gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=47e9093ae300043b804f85ce62fee1fe758fc943
+          git diff --exit-code "$base" -- \
+            firmware \
+            tools \
+            build.sh
+          echo "WP2_10_PRODUCTION_SOURCE_UNCHANGED=1"
+
+      - name: Run direct Phase 2 integration test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_phase2_integration_tests.sh | tee build/wp2_10_phase2_integration_tests.log
+          grep -F "PHASE2_INTEGRATION_TESTS_OK=1" build/wp2_10_phase2_integration_tests.log
+          grep -F "visited_steps=64 tracks=8 edits_track=7 wrap=63_to_0 page_cross=15_to_16 boundaries_120=64 loop_frames=352800 final_cursor=20 final_page=1 final_track=7" build/wp2_10_phase2_integration_tests.log
+          grep -F "store_bytes=65896 final_events=note,empty,tie,off proof_lane=track0_unchanged screen_window=16_23" build/wp2_10_phase2_integration_tests.log
+
+      - name: Run inherited core unit regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_model_tests.sh
+          sh tests/run_store_tests.sh
+          sh tests/run_transport_tests.sh
+          sh tests/run_playback_tests.sh
+          sh tests/run_pattern_input_tests.sh
+          sh tests/run_step_record_tests.sh
+          sh tests/run_tracker_screen_tests.sh
+
+      - name: Upload focused WP2.10 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp2-10-focused-integration-evidence
+          path: build/wp2_10_phase2_integration_tests.log
