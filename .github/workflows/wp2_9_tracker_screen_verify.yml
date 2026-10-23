@@ -1,0 +1,87 @@
+name: WP2.9 tracker screen verification
+
+on:
+  push:
+    branches:
+      - phase2/tracker-core
+    paths:
+      - .github/workflows/wp2_9_tracker_screen_verify.yml
+      - firmware/src/fmt_tracker_screen.h
+      - firmware/src/fmt_tracker_screen.c
+      - tests/test_fmt_tracker_screen.c
+      - tests/run_tracker_screen_tests.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tracker-screen-model:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify WP2.9 model scope boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=5c2830cf2d37c8466f8564aab9a1bd89feaad38a
+          git diff --exit-code "$base" -- \
+            firmware/app.ld \
+            firmware/src/platform.c \
+            firmware/src/fmt_model.h \
+            firmware/src/fmt_store.h \
+            firmware/src/fmt_store.c \
+            firmware/src/fmt_transport.h \
+            firmware/src/fmt_transport.c \
+            firmware/src/fmt_playback.h \
+            firmware/src/fmt_playback.c \
+            firmware/src/fmt_pattern_input.h \
+            firmware/src/fmt_pattern_input.c \
+            firmware/src/fmt_step_record.h \
+            firmware/src/fmt_step_record.c \
+            firmware/src/dinghy.c \
+            firmware/hal \
+            firmware/loader \
+            tools/build.py \
+            tools/fm1pkg_make.py \
+            tools/fm1_install.py \
+            tools/build_fm1tracker.py
+          ! grep -E '\b(uint64_t|int64_t|float|double)\b' \
+            firmware/src/fmt_tracker_screen.h firmware/src/fmt_tracker_screen.c
+          grep -F 'FMT_TRACKER_SCREEN_ROWS                 8u' firmware/src/fmt_tracker_screen.h
+          grep -F 'FMT_TRACKER_SCREEN_REGION_COUNT        10u' firmware/src/fmt_tracker_screen.h
+          grep -F 'FMT_TRACKER_SCREEN_MAX_REGIONS_PER_POLL 2u' firmware/src/fmt_tracker_screen.h
+          echo "WP2_9_MODEL_SCOPE_OK=1"
+
+      - name: Run inherited model tests
+        run: sh tests/run_model_tests.sh
+
+      - name: Run inherited store tests
+        run: sh tests/run_store_tests.sh
+
+      - name: Run inherited transport tests
+        run: sh tests/run_transport_tests.sh
+
+      - name: Run inherited playback tests
+        run: sh tests/run_playback_tests.sh
+
+      - name: Run inherited pattern input tests
+        run: sh tests/run_pattern_input_tests.sh
+
+      - name: Run inherited STEP REC tests
+        run: sh tests/run_step_record_tests.sh
+
+      - name: Run tracker screen model tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_tracker_screen_tests.sh | tee build/wp2_9_tracker_screen_tests.log
+          grep -F "FMT_TRACKER_SCREEN_TESTS_OK=1" build/wp2_9_tracker_screen_tests.log
+          grep -F "rows=8 regions=10 max_regions_per_poll=2 pattern=0" build/wp2_9_tracker_screen_tests.log
+
+      - name: Verify no song-store mutation by display model
+        run: grep -F "FMT_TRACKER_SCREEN_TESTS_OK=1" build/wp2_9_tracker_screen_tests.log
