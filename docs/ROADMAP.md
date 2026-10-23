@@ -2,6 +2,29 @@
 
 This roadmap is ordered to reduce risk on the FM-1 hardware. A phase is complete only when its exit criteria pass; later features should not bypass a failing earlier layer.
 
+## Product north star — tracker depth, immediate capture
+
+FM1Tracker should ultimately combine the depth and editability of a tracker with the immediacy of a performance instrument.
+
+The target experience is **play first, capture when inspiration happens**:
+
+- playback can continue while the user plays the currently selected track;
+- pressing REC during playback arms live capture without stopping transport;
+- changing tracks during playback is fast and does not interrupt unrelated tracks;
+- drum performance participates in the same play/record workflow;
+- a transport-locked metronome can be enabled when wanted;
+- FX/parameter pages can be performed live in CHANNEL or GLOBAL scope;
+- REC can capture selected parameter/effect gestures as bounded, tracker-editable automation/locks/events;
+- the tracker remains the source of truth, so captured performances can always be edited precisely afterward.
+
+The eight logical tracker tracks remain the baseline. A practical reference setup should be able to contain at least drums, bass, one polyphonic synth and one lead synth while leaving the remaining tracks flexible. These are roles, not hard-coded channel types.
+
+Target 3–6 voices for at least one polyphonic instrument/track if measured CPU/RAM budgets allow it. Do not silently reduce the eight logical tracks to obtain polyphony; any compromise must be an explicit measured decision.
+
+Detailed product and architecture direction: [`LIVE_PERFORMANCE_CAPTURE_VISION.md`](LIVE_PERFORMANCE_CAPTURE_VISION.md).
+
+This direction does **not** change the current bounded Phase 2 sequence. Stopped STEP REC is the precise foundation; live performance capture is a later core layer built on transport, p-lock/event and engine foundations.
+
 ## Phase 0 — foundation
 
 Goal: freeze the product boundary before firmware code grows around assumptions.
@@ -184,6 +207,52 @@ Exit criteria:
 - stable pitch/modulation behavior;
 - normal worst-case render target remains below half audio callback budget or voice/algorithm limits are explicitly reduced.
 
+## Core milestone after Phases 4/5 — live performance capture and performance FX
+
+Goal: make FM1Tracker fast enough for idea capture and performance that the tracker depth becomes almost invisible until the user wants to edit.
+
+Status: **PLANNED CORE MILESTONE — package IDs intentionally deferred until the Phase 3–5 event/engine budgets are measured**
+
+This milestone is not optional. It builds on the precise stopped STEP REC workflow rather than replacing it.
+
+Required direction:
+
+- playback continues while the keyboard auditions the selected logical track;
+- REC can arm/disarm note capture while playback continues;
+- track selection can change the live capture target without stopping transport or cutting unrelated tracks;
+- drum-oriented performance and capture use the same workflow;
+- a transport-derived metronome can be enabled independently;
+- captured notes/hits become deterministic, editable tracker events;
+- CHANNEL performance scope targets the selected track/instrument;
+- GLOBAL performance scope targets master/global FX/control state;
+- effects may use a keyboard-distributed performance layout where musically useful, inspired by OP-Z immediacy but represented as explicit tracker data;
+- holding/selecting an effect/parameter context plus turning encoders should work as a performance gesture;
+- with REC armed, selected encoder/effect gestures are captured as bounded p-lock/automation/effect events rather than an unbounded raw control stream;
+- overwrite/merge/overdub, quantization and automation-thinning rules must be explicitly decided before implementation;
+- global automation gets explicit ownership and is not silently forced into one normal track's p-locks;
+- preserve all eight logical tracks;
+- benchmark a reference configuration containing at least drums, bass, poly synth and lead synth plus four flexible tracks;
+- target 3–6 voices for at least one polyphonic instrument/track if measured hardware budget allows it, with deterministic voice allocation/stealing.
+
+Dependencies:
+
+- Phase 2 deterministic transport/editor semantics;
+- Phase 3 stable parameter IDs, bounded p-lock storage and bounded event handoff;
+- measured Phase 4/5 engine and voice costs.
+
+Exit criteria:
+
+- PLAY -> REC -> capture -> REC-off works without stopping transport;
+- switching the selected capture track during playback is deterministic and glitch-safe;
+- live note and drum capture replay as editable tracker data;
+- metronome remains phase-locked to the same transport;
+- recorded parameter/effect gestures reproduce deterministically within documented quantization rules;
+- CHANNEL and GLOBAL automation ownership is unambiguous;
+- eight logical tracks are preserved;
+- the drums/bass/poly/lead reference setup is demonstrated within measured CPU/RAM limits, or any necessary polyphony compromise is recorded explicitly rather than hidden.
+
+Detailed direction: [`LIVE_PERFORMANCE_CAPTURE_VISION.md`](LIVE_PERFORMANCE_CAPTURE_VISION.md).
+
 ## Phase 6 — song/order mode and persistence
 
 Goal: move from one pattern to complete songs.
@@ -217,13 +286,20 @@ Test specifically:
 - hold-step + knob p-lock ergonomics;
 - current lowest-note/full-release chord-entry behavior;
 - OCT buttons as page navigation outside STEP REC and pitch octave inside STEP REC;
-- readability of the tracker view on 240 x 240.
+- readability of the tracker view on 240 x 240;
+- PLAY -> live REC without stopping musical flow;
+- fast track switching while playback/capture continues;
+- drum, bass, poly and lead reference workflow;
+- metronome discoverability and usefulness;
+- CHANNEL versus GLOBAL FX performance mode;
+- keyboard-distributed FX gestures and encoder capture ergonomics.
 
 Exit criteria:
 
 - final V1 control map documented;
 - no frequently used action needs an uncomfortable multi-button gesture;
-- STEP REC can be used without consulting documentation after initial learning.
+- STEP REC can be used without consulting documentation after initial learning;
+- live audition/capture can be understood and used without fighting the tracker UI.
 
 ## Phase 8 — interoperability
 
@@ -244,14 +320,15 @@ Every imported format is a compatibility layer outside the real-time synth core.
 Only after measurement:
 
 - WAVETABLE-16
-- PCM/sample playback
+- PCM/sample playback beyond any specifically approved drum/performance need
 - swing
-- microtiming
+- microtiming beyond the bounded live-capture/event model
 - per-track lengths/polymeter
-- live recording
 - mixed 8-BIT/16-BIT tracks
-- delay/chorus/reverb
+- additional delay/chorus/reverb or other DSP algorithms beyond the core performance-control architecture
 - specifically named chip emulation cores that pass license/resource audits
+
+**Live performance capture itself is not optional Phase 9 work.** It is the core milestone defined above. Phase 9 may expand what can be captured or processed, not whether seamless live capture exists.
 
 ## Release philosophy
 
@@ -263,7 +340,8 @@ Prefer small playable releases:
 0.3 p-lock tracker
 0.4 8-BIT playable
 0.5 16-BIT FM4
-0.6 song/save
+0.6 live performance capture
+0.7 song/save
 1.0 hardware UX freeze
 ```
 
