@@ -212,3 +212,29 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 ### Next
 
 **WP3.2 - sparse four-lock-per-step storage**, issue #21, is READY TO START. D028 must freeze the concrete record/allocator/pool design before source. No WP3.2 implementation has begun.
+
+## 2026-10-24 - Phase 3 continued
+
+### WP3.2 - Sparse four-lock-per-step storage
+
+- Frozen D028 before source implementation.
+- Corrected the earlier planning arithmetic: the song has 8,192 resident steps, so four locks on every step would require 32,768 records. V0.1 instead intentionally uses one global sparse pool of 2,048 records.
+- Added exact 8-byte `FmtLock` records with 16-bit next/value/owner fields, one-byte D027 parameter ID and one-byte state.
+- Added a 16,384-byte `.pool` lock array and exact 4-byte allocator runtime state.
+- Added owner IDs covering all 8,192 song steps so in-range cross-step links are rejected rather than aliasing another step's locks.
+- Active lists are strictly sorted by semantic parameter ID; duplicate set replaces in place and consumes no record.
+- Enforced max four locks on any individual step and distinct STEP_FULL versus global POOL_FULL outcomes.
+- Added deterministic reset/free-list, remove, clear, exhaustion/recovery and corruption-no-partial-mutation tests.
+- Added a test-only fifth-ID lockability harness to prove STEP_FULL without assigning a fifth production D027 parameter.
+- Preserved every Phase 2 and WP3.1 regression plus the exact frozen WAV.
+- JieLi PI32v2 target compilation, pinned AC79 SDK inputs, HAL-only register access and package identity `FM-1_987` remain green.
+- Final linked symbols: song store at `.pool` `0x01C20000` / 65,896 B; lock store at `.pool` `0x01C30168` / 16,384 B; allocator runtime at `.bss` `0x01C0B080` / 4 B.
+- Final resources: 59,388 B image, 12,468 B normal RAM, 113,000 B pool. Delta vs WP3.1: **+136 B image / +4 B RAM / +16,384 B pool**.
+- Editable core + lock records total 82,280 B, remaining 16,024 B below the 96 KiB editable-song target.
+- Final artifacts: `fm1tracker.bin` `b717a504f96601393e493f52142e3120204051c5e11b733b0113309e0219ac2b`; `fm1tracker-0.1.fwsc` `36c054c0f6c0cc8e86dd869fadf8d0093a560f5851a9ebd9b2405552642d5966`.
+- Final verification: Actions run `40038453521`, job `120703577806`; evidence artifact ID `12538271532`, ZIP SHA-256 `ecb0985b24201e3506d1512ead85e406e4226bebc7915d945cd5812e5dbd1830`.
+- Detailed evidence: `docs/WP3_2_VERIFICATION.md`.
+
+### Next
+
+**WP3.3 - hold-step + encoder p-lock editing**, issue #22, is READY TO START. Its exact gesture/context/value contract must be frozen before source. No WP3.3 implementation has begun.
