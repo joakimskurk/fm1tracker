@@ -10,11 +10,11 @@ Update this file whenever work starts, stops, is blocked, or completes. A new ch
 
 ## Active work package
 
-**WP1.2 — minimal complete Dinghy import**
+**WP1.3 — pristine baseline verification**
 
 State: **IN PROGRESS**
 
-GitHub issue: #4
+GitHub issue: #5
 
 ### Already complete
 
@@ -22,27 +22,26 @@ GitHub issue: #4
 - Dinghy selected as platform baseline.
 - Dinghy upstream pinned to commit `d44df7db09b98ccad2f1233b8f83f5f09c04829e`.
 - WP1.1 provenance freeze completed.
-- `THIRD_PARTY.md` records upstream provenance and external SDK inputs.
-- `docs/UPSTREAM_DINGHY.md` records baseline policy.
-- `docs/DINGHY_IMPORT_MANIFEST.md` records exact import paths, upstream blob IDs, exclusions and verification procedure.
-- Dinghy logo explicitly excluded from FM1Tracker.
+- WP1.2 minimal complete Dinghy import completed on 2026-10-23.
+- Every imported manifest file was compared against the pinned upstream Git blob SHA and Git mode in GitHub Actions; all matched.
+- Root GPL-3.0-only license and Terminus OFL material are present and byte-identical to upstream.
+- Executable bits for upstream scripts are preserved.
+- Dinghy logo/branding assets are absent.
 - Furnace remains reference/interoperability only; no Furnace code imported.
-- Phase 1 is split into issues #3–#7 under parent issue #2.
+- The import-manifest typo for `firmware/hal/fm1_uart.h` was corrected to the actual pinned blob SHA `5d5ef83dad665f239df83bb8fbfd4d405e28fbfb`.
 
 ### Current objective
 
-Perform a mechanical, reviewable import of the pinned Dinghy build/platform baseline with **zero FM1Tracker tracker or synth changes**.
+Prove the pristine imported baseline before **any** FM1Tracker identity rename or tracker/synth behavior change.
 
 ### Immediate next actions
 
-1. Copy files listed as import targets in `DINGHY_IMPORT_MANIFEST.md` from the pinned commit.
-2. Preserve all upstream SPDX/copyright headers.
-3. Include root GPL-3.0-only license text and Terminus OFL license.
-4. Do not import Dinghy logo/branding assets or unnecessary Dinghy product docs/screenshots.
-5. Compare the imported tree against the manifest and pinned upstream.
-6. Update `THIRD_PARTY.md` to `baseline imported, pristine verification pending`.
-7. Close WP1.2 only when the import itself is audit-ready.
-8. Then start WP1.3: pristine host/device build verification before any renaming.
+1. Run the pristine host test harness and preserve the exact result.
+2. Verify expected host WAV/screen artifacts where the harness produces them.
+3. Attempt the pristine firmware build without vendoring external SDK files.
+4. If the full firmware build is blocked by the external JieLi SDK/toolchain, record the exact missing dependency and keep that separate from source correctness.
+5. Do not rename `dinghy.c`, package identity, product IDs or artifacts until WP1.3 is closed.
+6. Move to WP1.4 only after the pristine baseline is verified or the external build blocker is precisely documented.
 
 ## Current constraints that must not be forgotten
 
@@ -51,7 +50,7 @@ Perform a mechanical, reviewable import of the pinned Dinghy build/platform base
 - Audio callback total period is about 5.8 ms for 256 frames at 44.1 kHz; normal design target is below half that budget where practical.
 - Platform plumbing should remain upstream-like until Phase 1 is verified.
 - No tracker implementation before the pristine baseline has been validated or a precise external blocker is documented.
-- No FM1Tracker identity rename during WP1.2; pristine verification comes first.
+- No FM1Tracker identity rename during WP1.3; pristine verification comes first.
 - No PCM/sample subsystem before tracker core is proven.
 - V0.1: 8 tracks, 64 steps/pattern, 16 patterns, max four p-locks/step.
 - STEP REC, REST, and parameter locks are core product behavior, not optional polish.
@@ -59,19 +58,19 @@ Perform a mechanical, reviewable import of the pinned Dinghy build/platform base
 
 ## Blockers
 
-None intrinsic to WP1.2.
+None for host verification.
 
-Potential build-environment blockers for WP1.3/WP1.5:
-- JieLi AC79 toolchain availability;
+Potential device-build/environment blockers:
+- JieLi `pi32v2` toolchain availability;
 - required external AC79 SDK build inputs;
 - no physical FM-1 available to the project owner yet, so hardware-only verification must be clearly separated from host verification.
 
 ## Definition of next milestone
 
-**WP1.2 complete** means the repository contains the exact minimal pinned Dinghy baseline specified by the manifest, with licensing intact and no behavior changes.
+**WP1.3 complete** means the pristine host baseline is verified and the device build is either verified or has a precisely documented external dependency blocker.
 
 **Phase 1 complete** means FM1Tracker builds/runs as a renamed clean Dinghy-derived firmware, provenance is complete, and baseline memory/code/timing numbers are captured. Only then does Phase 2 tracker implementation start.
 
 ## Last updated
 
-2026-10-23 — WP1.1 completed; WP1.2 active.
+2026-10-23 — WP1.2 completed with exact blob/mode verification; WP1.3 active.
