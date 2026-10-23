@@ -237,3 +237,16 @@ The transport runtime state is a small ordinary-RAM control object: 32-bit phase
 **Reason:** This formulation contains no floating point, no division in the real-time path and no runtime 64-bit arithmetic. Because the phase is always below 661500 and a 16-bit BPM is at most 65535, one frame can cross at most one step boundary and `phase + bpm` cannot overflow 32 bits. It also preserves the exact fractional remainder automatically, so tempos such as 137 BPM cannot accumulate drift from repeatedly rounded frame intervals. A per-frame tick naturally exposes the exact frame where a future WP2.4 note event belongs without adding event dispatch in WP2.3.
 
 **Consequence:** WP2.3 host tests must prove exact accumulator/reference equivalence over long runs, deterministic start/stop/reset and exact 64-step wrap. The device integration may advance the transport from the audio callback, but it remains stopped in WP2.3 so no audible behavior changes. Audible row dispatch begins only in WP2.4. This runtime default does not yet redefine persisted `FmtSongMeta` defaults or create a file-format tempo rule.
+
+## D021 — WP2.4 dispatches step 0 at frame 0 and applies boundaries to the next rendered frame
+
+Date: 2026-10-23  
+Status: accepted for the one-track playback proof
+
+**Decision:** WP2.4 starts playback from a reset transport by dispatching pattern 0 / track 0 / step 0 exactly once before the first audio frame is rendered, then starts the D020 transport. During audio rendering, the current tracker voice is rendered first and `fmt_transport_tick_frame()` is applied at the end of that frame. If the tick crosses a step boundary, the newly selected row is decoded immediately and becomes active from the next rendered frame.
+
+For the WP2.4 proof, only ordinary note values `0..127` create note events. `FMT_NOTE_EMPTY` creates no event and therefore sustains the current proof voice. `TIE`, `OFF` and malformed/special note values are treated as no event in this package; their full playback/editor semantics remain WP2.8. The proof is fixed to pattern 0, logical track 0 and one dedicated monophonic instance of the existing baseline sine tone. It does not create a general event queue, track-selection system or new synth engine.
+
+**Reason:** Dispatching step 0 before frame 0 gives an unambiguous musical start. Ticking after each rendered frame makes the D020 accumulator represent elapsed frames directly: at 120 BPM, step 1 begins on frame 5513 and the first complete 64-step loop returns to step 0 on frame 352800. Processing the single proof lane per frame also preserves exact sub-block boundaries inside the normal 256-frame callback instead of quantizing row changes to callback edges.
+
+**Consequence:** WP2.4 tests must prove the initial frame-0 event, exact representative boundary offsets, exact `63 -> 0` loop timing and deterministic note-event traces from the real pool-backed store. The dedicated proof voice may add only small bounded control state and reuses the existing integer sine primitive. General note-off/tie semantics, editing, multitrack dispatch and any bounded sequencer-to-audio queue remain later work packages.
