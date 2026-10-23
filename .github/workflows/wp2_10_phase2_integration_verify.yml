@@ -9,6 +9,9 @@ on:
       - docs/WP2_10_TEST_PLAN.md
       - tests/test_phase2_integration.c
       - tests/run_phase2_integration_tests.sh
+      - tests/wp2_10_phase2_integration.script
+      - tests/wp2_10_home_equivalent_control.script
+      - tests/run_phase2_integration_host.sh
   workflow_dispatch:
 
 permissions:
@@ -56,8 +59,23 @@ jobs:
           sh tests/run_step_record_tests.sh
           sh tests/run_tracker_screen_tests.sh
 
+      - name: Run full-app Phase 2 integration scenario
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_phase2_integration_host.sh | tee build/wp2_10_full_app_gate.log
+          grep -F "WP2_10_HOME_RETURN_PIXEL_IDENTICAL=1" build/wp2_10_full_app_gate.log
+          grep -F "WP2_10_FULL_APP_HOST_OK=1 midi_note_pairs=4 traversed_steps=64 selected_track=8" build/wp2_10_full_app_gate.log
+
       - name: Upload focused WP2.10 evidence
         uses: actions/upload-artifact@v4
         with:
           name: wp2-10-focused-integration-evidence
-          path: build/wp2_10_phase2_integration_tests.log
+          path: |
+            build/wp2_10_phase2_integration_tests.log
+            build/wp2_10_full_app_gate.log
+            build/wp2_10_phase2_integration_host.log
+            build/wp2_10_home_control_host.log
+            build/host/fm1tracker_wp2_10_integration-1000.ppm
+            build/host/fm1tracker_wp2_10_integration-3000.ppm
+            build/host/fm1tracker_wp2_10_home_control-3000.ppm
