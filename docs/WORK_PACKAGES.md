@@ -155,25 +155,53 @@ Evidence: `WP2_6_VERIFICATION.md`.
 
 **Goal:** write one deterministic ordinary note to the currently selected D022/D023 step and track while STEP REC is active, then advance the edit cursor exactly one logical step.
 
-Status: **READY TO START** — issue #15
+Status: **COMPLETE — 2026-10-23** — issue #15
 
-Required direction:
-- define the exact REC/STEP REC entry/exit and transport-stopped contract before code;
-- use the existing selected track and 64-step cursor as the write target;
-- one valid note gesture writes exactly one ordinary note event to exactly one step/track;
-- successful note entry advances exactly one logical step with explicit step-63 boundary behavior;
-- performance audition remains intact outside STEP REC;
-- ambiguous chord/multi-key behavior must be explicitly resolved or safely deferred, not left order-dependent;
-- host-test write target, neighbor isolation, one-step advance, wrap and context gating;
-- preserve prior regressions and measure device resource delta.
+Verified:
+- D024 freezes STEP REC as a stopped-transport editor submode of SEQ;
+- REC is ignored while transport runs and can enter only after the audio-side stopped acknowledgement;
+- PLAY/STOP uses a bounded main-to-audio request handoff so audio remains sole writer of live transport state;
+- REC entry preserves current page/local step and selected track;
+- REC exit remains in SEQ; HOME exits to PERFORMANCE; PLAY exits STEP REC before playback resumes;
+- all 27 note keys become pitch input in STEP REC and use the same pitch for audition and storage;
+- physical pitch formula is `53 + 12 * octave + key_index`, octave `-2..+2`, range 29..103;
+- OCT-/OCT+ control pitch octave in STEP REC while ordinary SEQ retains four-page navigation;
+- simultaneous downs choose the lowest physical key/lowest pitch for the one stored note;
+- one write gesture remains latched until all note keys are released, preventing duplicate step advances from chord-like/staggered presses;
+- only the selected row's `note` byte is changed; instrument/volume/effect/effect-value/flags/lock-head are preserved;
+- successful entry advances exactly one global step modulo 64 and step 63 wraps to 0 while selected track is preserved;
+- exact write/no-neighbor-corruption, invalid-state rejection and wrap behavior are host-tested;
+- WP2.5/WP2.6 full-app context regressions remain green;
+- default WP2.4 audible host WAV remains byte-identical;
+- `FmtStepRecord` is 2 B in `.bss` at `0x01C0B060`;
+- final resources: 56,548 B image, 12,404 B normal RAM, 96,616 B pool RAM;
+- delta vs WP2.6: +488 B image, +4 B normal RAM, +0 B pool;
+- final verification run `39999680852` passed with package identity and inherited device safety gates green.
 
-Non-goals:
-- no REST/TIE/OFF editing — WP2.8;
-- no tracker screen — WP2.9;
-- no general multitrack playback, p-locks, new engine or persistence.
+Evidence: `WP2_7_VERIFICATION.md`.
 
 ## WP2.8 — REST / TIE / NOTE-OFF semantics
-Implement and host-test explicit event semantics before more effects.
+
+**Goal:** define and implement explicit editor and playback semantics for the frozen special note values on top of the verified STEP REC path.
+
+Status: **READY TO START** — issue #16
+
+Required direction before code:
+- record exact REST write semantics and target-field preservation/clearing policy;
+- decide whether provisional `FX + SELECT` remains NOTE OFF;
+- choose and document the TIE editing gesture — it is not yet frozen;
+- define EMPTY/TIE/OFF playback meaning for the existing monophonic proof lane;
+- preserve D024 stopped-transport safety and exact modulo-64 cursor advance;
+- each successful special-event write must advance exactly once;
+- special sentinels must never be interpreted as raw pitches;
+- host-test edit isolation plus exact playback meaning at D020/D021 boundaries;
+- preserve WP2.1-WP2.7 regressions and measure device resource delta.
+
+Non-goals:
+- no tracker screen — WP2.9;
+- no general multitrack playback, p-locks, new engine or persistence;
+- no HAL/loader/update redesign;
+- do not begin WP2.9 in this package.
 
 ## WP2.9 — tracker screen
 Add compact tracker rows and bounded/dirty rendering.
