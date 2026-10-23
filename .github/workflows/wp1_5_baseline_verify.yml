@@ -62,27 +62,22 @@ jobs:
           test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
           "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
 
-      - name: Fetch exact official JieLi AC79 SDK build inputs
+      - name: Checkout exact official JieLi AC79 SDK release
         shell: bash
         run: |
           set -euo pipefail
           sdk="$RUNNER_TEMP/ac79-sdk"
-          mkdir -p "$sdk/cpu/wl82/tools/cfg"
-          base="https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK/raw/AC79NN_SDK_V1.2.1_2023-12-13/cpu/wl82/tools"
-          curl --fail --location --retry 3 --retry-delay 2 "$base/uboot.boot" \
-            --output "$sdk/cpu/wl82/tools/uboot.boot"
-          curl --fail --location --retry 3 --retry-delay 2 "$base/cfg_tool.bin" \
-            --output "$sdk/cpu/wl82/tools/cfg_tool.bin"
-          curl --fail --location --retry 3 --retry-delay 2 "$base/cfg/eq_cfg_hw.bin" \
-            --output "$sdk/cpu/wl82/tools/cfg/eq_cfg_hw.bin"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$sdk"
+          actual="$(git -C "$sdk" rev-parse HEAD)"
+          echo "AC79_SDK_COMMIT=$actual"
+          test "$actual" = "d179b4484759423312073f5fbb232501aa491047"
           test "$(sha256sum "$sdk/cpu/wl82/tools/uboot.boot" | awk '{print $1}')" = \
             "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
           test "$(sha256sum "$sdk/cpu/wl82/tools/cfg_tool.bin" | awk '{print $1}')" = \
             "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b"
           test "$(sha256sum "$sdk/cpu/wl82/tools/cfg/eq_cfg_hw.bin" | awk '{print $1}')" = \
             "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d"
-          echo "AC79_SDK_TAG=AC79NN_SDK_V1.2.1_2023-12-13"
-          echo "AC79_SDK_TAG_COMMIT=d179b4484759423312073f5fbb232501aa491047"
           echo "AC79_SDK_INPUTS_OK=1"
 
       - name: Build renamed FM1Tracker device package
@@ -116,7 +111,7 @@ jobs:
             echo "WP1.5 FM1Tracker renamed baseline metrics"
             echo "commit=$GITHUB_SHA"
             echo "sdk_tag=AC79NN_SDK_V1.2.1_2023-12-13"
-            echo "sdk_tag_commit=d179b4484759423312073f5fbb232501aa491047"
+            echo "sdk_commit=d179b4484759423312073f5fbb232501aa491047"
             echo "package_identity=FM-1_987"
             echo "callback_frames=256"
             echo "sample_rate_hz=44100"
