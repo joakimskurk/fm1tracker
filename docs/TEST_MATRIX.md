@@ -66,8 +66,8 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Step 0 dispatches before playback frame 0 | required | compile | later | ✅ WP2.4 run `39991490860` |
 | Audible one-track 64-step pattern loops on exact transport boundaries | required | required | later | ✅ WP2.4, frame 352800 at 120 BPM |
 | Fractional step boundary is not callback-quantized | required | compile | later | ✅ WP2.4, step 1 begins frame 5513 inside 256-frame grouping |
-| EMPTY produces no new playback note event | required | compile | later | ✅ WP2.4 |
-| TIE/OFF cannot become accidental raw note pitches before semantics are implemented | required | compile | n/a | ✅ WP2.4 safe no-event behavior |
+| EMPTY produces no new playback note event | required | compile | later | ✅ WP2.4 interim behavior; full special-event semantics belong to WP2.8 |
+| TIE/OFF cannot become accidental raw note pitches before semantics are implemented | required | compile | n/a | ✅ WP2.4 safe no-event behavior; full semantics WP2.8 |
 | Audible host tracker output is deterministic | required | required | n/a | ✅ WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440` |
 | Tracker audio exists before simulated manual audition input | required | n/a | n/a | ✅ first 100 ms contains 8,820 non-zero stereo samples |
 | Continuous tracker playback cannot trigger inherited flash erase via `quiet()` | inspect/host behavior | compile | preferred | ✅ WP2.4 counts proof lane as sounding; settings write deferred |
@@ -77,7 +77,7 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | SEQ context consumes white-key step selection without note audition | required | compile | required | ✅ WP2.5 host gesture test |
 | Page navigation clamps at first/last page and preserves local step | required | compile | required | ✅ WP2.5 D022 |
 | Step/page selection cannot mutate `FmtSong` | required | compile | n/a | ✅ WP2.5 byte-for-byte song snapshot |
-| Performance note release remains safe across SEQ context change | required | compile | required | ✅ WP2.5 and WP2.6 held-note host gesture tests |
+| Performance note release remains safe across SEQ context change | required | compile | required | ✅ WP2.5/WP2.6 and WP2.7 host gesture tests |
 | WP2.5 preserves frozen WP2.4 audible output | required | required | n/a | ✅ exact WAV SHA-256 unchanged |
 | WP2.5 resource delta recorded | n/a | required | n/a | ✅ +288 B image, +4 B normal RAM, +0 B pool |
 | Eight physical black keys map bijectively to logical tracks 0..7 | required | compile | required | ✅ WP2.6 run `39995856373` |
@@ -88,13 +88,23 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Track selection cannot mutate `FmtSong` | required | compile | n/a | ✅ WP2.6 byte-identical full-song snapshot |
 | WP2.6 preserves frozen WP2.4 audible output | required | required | n/a | ✅ exact WAV SHA-256 unchanged |
 | WP2.6 resource delta recorded | n/a | required | n/a | ✅ +80 B image, +0 B normal RAM, +0 B pool |
-| STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
-| Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
-| STEP REC honors selected track and never writes previous track accidentally | required | required | required | ⬜ WP2.7 |
+| STEP REC enters only after real stopped-transport acknowledgement | required | compile | required | ✅ WP2.7 run `39999680852`; REC while running rejected |
+| Main/editor does not race-write live transport running state | inspect/test | compile | n/a | ✅ WP2.7 request/ack handoff; audio owns transport mutations |
+| STEP REC inserts note at cursor | required | required | required | ✅ WP2.7 exact target snapshot/write test |
+| Note entry changes only the target note byte | required | compile | n/a | ✅ target instrument/volume/effect/effect value/flags/lock-head preserved |
+| Note entry advances exactly one logical step | required | required | required | ✅ WP2.7 modulo-64 advance; 63 -> 0 verified |
+| STEP REC honors selected track and never writes previous/neighbor track accidentally | required | required | required | ✅ WP2.7 exact selected-track/full-song isolation test |
+| Stored STEP REC pitch matches physical audition pitch | required | compile | required | ✅ D024 formula `53 + 12*octave + key_index`, physical range 29..103 |
+| Simultaneous note downs have deterministic monophonic policy | required | compile | required | ✅ lowest physical key/pitch wins one write |
+| Chord-like/staggered presses cannot advance twice before full release | required | compile | required | ✅ WP2.7 gesture latch test |
+| STEP REC OCT controls pitch while ordinary SEQ OCT controls page | required | compile | required | ✅ WP2.7 full-app host gesture test |
+| REC exit remains SEQ; HOME restores PERFORMANCE; PLAY exits REC before resume | required | compile | required | ✅ WP2.7 host gesture fixture |
+| Edit while stopped is deterministic and bounds-safe | required | required | required | ✅ WP2.7 note-write layer; physical feel still unverified |
+| WP2.7 preserves frozen WP2.4 audible output by default | required | required | n/a | ✅ exact WAV SHA-256 unchanged |
+| WP2.7 resource delta recorded | n/a | required | n/a | ✅ +488 B image, +4 B normal RAM, +0 B pool |
 | REST creates empty step and advances once | required | required | required | ⬜ WP2.8 |
-| TIE semantics deterministic | required | required | required | ⬜ WP2.8 |
+| TIE semantics deterministic | required | required | required | ⬜ WP2.8; editing gesture not yet frozen |
 | NOTE OFF semantics deterministic | required | required | required | ⬜ WP2.8 |
-| Edit while stopped is deterministic | required | required | required | ⬜ later Phase 2 |
 | Tracker display uses bounded/dirty redraw | inspect/test | required | required | ⬜ WP2.9 |
 
 WP2.1 compile-time-model evidence is recorded in `WP2_1_VERIFICATION.md`.
@@ -108,6 +118,8 @@ WP2.4 audible-playback evidence is recorded in `WP2_4_VERIFICATION.md`. The fina
 WP2.5 page-input evidence is recorded in `WP2_5_VERIFICATION.md`. The final host/device verification run is `39994230797`. Mapping/context/store-integrity are verified host-side and through the device build; physical key/page ergonomics remain unverified.
 
 WP2.6 track-selection evidence is recorded in `WP2_6_VERIFICATION.md`. The final host/device verification run is `39995856373`. Black-key mapping/context/store-integrity are verified host-side and through the device build; physical black-key ergonomics remain unverified.
+
+WP2.7 STEP REC evidence is recorded in `WP2_7_VERIFICATION.md`. The final host/device verification run is `39999680852`. Note-write isolation, stopped-transport gating, monophonic gesture policy, exact cursor advance and device/resource behavior are verified host-side/build-side; physical STEP REC/chord ergonomics remain unverified.
 
 ## Phase 3 p-locks/effects
 
