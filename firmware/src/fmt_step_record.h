@@ -25,6 +25,11 @@ void fmt_step_record_exit(FmtStepRecord *record);
 int fmt_step_record_is_active(const FmtStepRecord *record);
 void fmt_step_record_release_gesture(FmtStepRecord *record);
 
+/* D024 monophonic chord rule. From a physical key-down bitmask, return the
+ * lowest valid FM-1 note-key index 0..26. Bits above the physical key span are
+ * ignored. Output is reset to 0 on rejection. */
+int fmt_step_record_lowest_key(uint32_t down_mask, uint8_t *key_index);
+
 /* D024 note-only write. Returns 1 only when exactly one note byte was written
  * and the cursor advanced one global step. No other FmtStep field is touched. */
 int fmt_step_record_write_note(FmtStepRecord *record,
