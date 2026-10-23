@@ -31,6 +31,16 @@ cmp build/host/fm1tracker_wp2_9_home_return-3000.ppm \
 
 echo "WP2_9_HOME_RETURN_PIXEL_IDENTICAL=1"
 
+# These raw PPM hashes were visually reviewed from run 40009374414. Freeze the
+# exact framebuffer output rather than the PNG encoder output.
+seq_sha="$(sha256sum build/host/fm1tracker_wp2_9_tracker-1000.ppm | awk '{print $1}')"
+rec_sha="$(sha256sum build/host/fm1tracker_wp2_9_tracker-3000.ppm | awk '{print $1}')"
+test "$seq_sha" = "e67d0cf9aa2fa391464237a40ed795bb6ba881e15aff40340e1b92a4a8eccb7a"
+test "$rec_sha" = "4b0192b084e6ee483d7a8f98add2ae95229dcc914583d3cbe957944824cb6424"
+echo "WP2_9_SEQ_SCREEN_SHA256=$seq_sha"
+echo "WP2_9_STEP_REC_SCREEN_SHA256=$rec_sha"
+echo "WP2_9_REVIEWED_SCREEN_HASHES_OK=1"
+
 python3 - <<'PY'
 from pathlib import Path
 from PIL import Image
