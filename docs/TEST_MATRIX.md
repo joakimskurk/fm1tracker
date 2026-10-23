@@ -15,15 +15,21 @@ Legend:
 | Pinned Dinghy provenance complete | n/a | n/a | n/a | ✅ |
 | Pristine Dinghy host build | required | n/a | n/a | ✅ 2026-10-23 - Actions run `39958478536` |
 | Pristine Dinghy firmware build | n/a | required | optional | ⛔ external AC79 SDK checkout absent; toolchain verified |
-| FM1Tracker renamed host build | required | n/a | n/a | ⬜ |
-| FM1Tracker renamed firmware build | n/a | required | optional | ⬜ |
-| USB rescue/update path unchanged | n/a | inspect/build | required later | ⬜ |
-| Baseline RAM usage captured | host estimate optional | required | n/a | ⬜ |
-| Baseline pool usage captured | host estimate optional | required | n/a | ⬜ |
-| Baseline code size captured | n/a | required | n/a | ⬜ |
-| Baseline audio callback timing | useful | useful | preferred | ⬜ |
+| FM1Tracker package identity selected | n/a | inspect | n/a | ✅ `FM-1_987`, checked against live Hub 2026-10-23 |
+| Protected baseline unchanged through WP1.4 | inspect | inspect | n/a | ✅ Actions run `39969032366` |
+| FM1Tracker renamed host build | required | n/a | n/a | ✅ Actions run `39969032366` |
+| FM1Tracker visible host screen identity | required | n/a | n/a | ✅ `FM1TRACKER` verified |
+| FM1Tracker host audio matches pristine baseline | required | n/a | n/a | ✅ exact WP1.3 WAV SHA-256 match |
+| FM1Tracker renamed firmware/package build | n/a | required | optional | ⛔ WP1.5; external AC79 SDK checkout absent |
+| USB rescue/update path unchanged | n/a | inspect/build | required later | 🟨 source unchanged in WP1.4; full renamed build/hardware still pending |
+| Baseline RAM usage captured | host estimate optional | required | n/a | ⬜ WP1.5 |
+| Baseline pool usage captured | host estimate optional | required | n/a | ⬜ WP1.5 |
+| Baseline code size captured | n/a | required | n/a | ⬜ WP1.5 |
+| Baseline audio callback timing | useful | useful | preferred | ⬜ WP1.5 |
 
-WP1.3 evidence and exact artifact hashes are recorded in `WP1_3_VERIFICATION.md`. The pristine host harness produced a WAV and two screen PNGs. The JieLi toolchain installed and executed successfully; only the separately required AC79 SDK checkout prevented the device firmware build. No physical FM-1 test has been performed.
+WP1.3 evidence and exact pristine artifact hashes are recorded in `WP1_3_VERIFICATION.md`.
+
+WP1.4 evidence and renamed host hashes are recorded in `WP1_4_VERIFICATION.md`. The FM1Tracker WAV is byte-for-byte identical to the pristine WP1.3 audio render, while the screen/artifact identity is renamed. Protected application/platform/HAL/loader/build-driver paths were verified unchanged. A complete renamed device build remains pending WP1.5 because the external AC79 SDK checkout is not available. No physical FM-1 test has been performed.
 
 ## Phase 2 tracker core
 
