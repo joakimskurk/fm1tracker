@@ -12,7 +12,7 @@
 
 static void test_reset_entry_exit_and_transport_gate(void)
 {
-    FmtStepRecord record = {99u, 99u};
+    FmtStepRecord record = {99u, 99u, 99u};
     FmtPatternInput input;
     FmtTransport transport;
 
@@ -20,9 +20,10 @@ static void test_reset_entry_exit_and_transport_gate(void)
     fmt_pattern_input_reset(&input);
     fmt_transport_reset(&transport);
 
-    assert(sizeof record == 2u);
+    assert(sizeof record == 3u);
     assert(!fmt_step_record_is_active(&record));
     assert(record.gesture_latched == 0u);
+    assert(record.fx_pending == 0u);
 
     input.page = 2u;
     input.local_step = 7u;
@@ -42,9 +43,11 @@ static void test_reset_entry_exit_and_transport_gate(void)
     assert(!fmt_step_record_enter(&record, &input, &transport));
 
     record.gesture_latched = 1u;
+    record.fx_pending = 1u;
     fmt_step_record_exit(&record);
     assert(!fmt_step_record_is_active(&record));
     assert(record.gesture_latched == 0u);
+    assert(record.fx_pending == 0u);
 
     fmt_step_record_reset(NULL);
     fmt_step_record_exit(NULL);
@@ -53,6 +56,7 @@ static void test_reset_entry_exit_and_transport_gate(void)
     assert(!fmt_step_record_enter(NULL, &input, &transport));
     assert(!fmt_step_record_enter(&record, NULL, &transport));
     assert(!fmt_step_record_enter(&record, &input, NULL));
+    assert(!fmt_step_record_special_input(NULL, &input, &transport, 1, 0, 0));
 }
 
 static void test_lowest_key_rule(void)
@@ -161,7 +165,7 @@ static void test_special_values_mutate_only_note_and_advance_once(void)
         fmt_pattern_input_reset(&input);
         fmt_transport_reset(&transport);
         input.page = 2u;
-        input.local_step = 3u; /* global 35 */
+        input.local_step = 3u;
         input.selected_track = 6u;
 
         target = fmt_store_step(0u, 6u, 35u);
@@ -187,6 +191,71 @@ static void test_special_values_mutate_only_note_and_advance_once(void)
     }
 }
 
+static void test_special_button_grammar_and_cancel(void)
+{
+    FmtStepRecord record;
+    FmtPatternInput input;
+    FmtTransport transport;
+    uint8_t before_step;
+
+    fmt_store_reset();
+    fmt_step_record_reset(&record);
+    fmt_pattern_input_reset(&input);
+    fmt_transport_reset(&transport);
+    input.selected_track = 4u;
+    assert(fmt_step_record_enter(&record, &input, &transport));
+
+    /* FX down only arms REST. Release performs the one write. */
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 1, 0, 0));
+    assert(record.fx_pending == 1u);
+    assert(fmt_pattern_input_global_step(&input) == 0u);
+    assert(fmt_store_step_const(0u, 4u, 0u)->note == FMT_NOTE_EMPTY);
+    assert(fmt_step_record_special_input(&record, &input, &transport, 0, 1, 0));
+    assert(record.fx_pending == 0u);
+    assert(fmt_store_step_const(0u, 4u, 0u)->note == FMT_NOTE_EMPTY);
+    assert(fmt_pattern_input_global_step(&input) == 1u);
+
+    fmt_step_record_release_gesture(&record);
+
+    /* SELECT by itself is TIE. */
+    assert(fmt_step_record_special_input(&record, &input, &transport, 0, 0, 1));
+    assert(fmt_store_step_const(0u, 4u, 1u)->note == FMT_NOTE_TIE);
+    assert(fmt_pattern_input_global_step(&input) == 2u);
+
+    fmt_step_record_release_gesture(&record);
+
+    /* Hold FX then SELECT is OFF; later FX release cannot add REST. */
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 1, 0, 0));
+    assert(record.fx_pending == 1u);
+    assert(fmt_step_record_special_input(&record, &input, &transport, 0, 0, 1));
+    assert(record.fx_pending == 0u);
+    assert(fmt_store_step_const(0u, 4u, 2u)->note == FMT_NOTE_OFF);
+    assert(fmt_pattern_input_global_step(&input) == 3u);
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 0, 1, 0));
+    assert(fmt_pattern_input_global_step(&input) == 3u);
+
+    fmt_step_record_release_gesture(&record);
+
+    /* Exiting STEP REC cancels a pending FX tap with no latent write. */
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 1, 0, 0));
+    assert(record.fx_pending == 1u);
+    before_step = fmt_pattern_input_global_step(&input);
+    fmt_step_record_exit(&record);
+    assert(record.fx_pending == 0u);
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 0, 1, 0));
+    assert(fmt_pattern_input_global_step(&input) == before_step);
+
+    /* Re-enter and prove an invalid/running write consumes pending FX rather
+     * than turning a failed OFF/REST attempt into a later surprise write. */
+    assert(fmt_step_record_enter(&record, &input, &transport));
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 1, 0, 0));
+    fmt_transport_start(&transport);
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 0, 1, 0));
+    assert(record.fx_pending == 0u);
+    assert(fmt_pattern_input_global_step(&input) == before_step);
+    fmt_transport_stop(&transport);
+}
+
 static void test_gesture_latch_blocks_note_and_special_double_writes(void)
 {
     FmtStepRecord record;
@@ -210,6 +279,7 @@ static void test_gesture_latch_blocks_note_and_special_double_writes(void)
 
     assert(!fmt_step_record_write_note(&record, &input, &transport, 64u));
     assert(!fmt_step_record_write_special(&record, &input, &transport, FMT_NOTE_TIE));
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 0, 0, 1));
     assert(fmt_pattern_input_global_step(&input) == 1u);
     assert(memcmp(before, fmt_store_song_const(), sizeof *before) == 0);
 
@@ -245,6 +315,7 @@ static void test_rejection_paths_do_not_mutate_or_advance(void)
 
     assert(!fmt_step_record_write_note(&record, &input, &transport, 60u));
     assert(!fmt_step_record_write_special(&record, &input, &transport, FMT_NOTE_EMPTY));
+    assert(!fmt_step_record_special_input(&record, &input, &transport, 1, 1, 1));
     assert(memcmp(before, fmt_store_song_const(), sizeof *before) == 0);
     assert(fmt_pattern_input_global_step(&input) == 0u);
 
@@ -322,12 +393,13 @@ int main(void)
     test_lowest_key_rule();
     test_exact_target_write_and_field_preservation();
     test_special_values_mutate_only_note_and_advance_once();
+    test_special_button_grammar_and_cancel();
     test_gesture_latch_blocks_note_and_special_double_writes();
     test_rejection_paths_do_not_mutate_or_advance();
     test_step_63_wraps_to_zero_for_note_and_specials();
 
     puts("FMT_STEP_RECORD_TESTS_OK=1");
-    printf("state_bytes=%u pattern=%u note_min=%u note_max=%u wrap=63_to_0 chord=lowest_key specials=empty,tie,off\n",
+    printf("state_bytes=%u pattern=%u note_min=%u note_max=%u wrap=63_to_0 chord=lowest_key specials=empty,tie,off fx_modifier=tested\n",
            (unsigned)sizeof(FmtStepRecord),
            (unsigned)FMT_STEP_RECORD_PATTERN,
            (unsigned)FMT_NOTE_MIN,
