@@ -13,6 +13,8 @@
  * What platform.c offers: docs/API.md. The chip's rules: docs/RULES.md. */
 #include "platform.c"
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
+#include "fmt_param_registry.c"                /* WP3.1: stable one-byte semantic parameter IDs */
+#include "fmt_lock_store.c"                    /* WP3.2: bounded global sparse p-lock storage */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
@@ -349,6 +351,7 @@ static void app_main(void)
     uint8_t held[27] = {0};
 
     fmt_store_reset();
+    fmt_lock_store_reset();
     fmt_playback_seed_proof_pattern();
     fmt_transport_reset(&fmt_transport_runtime);
     fmt_playback_reset(&fmt_playback_runtime);
