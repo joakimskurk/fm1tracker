@@ -372,3 +372,42 @@ Registry labels/metadata are presentation/debug aids only. They are not persiste
 **Reason:** One byte preserves the compact lock direction already anticipated by `DATA_MODEL_V0.1.md`, leaves large bounded namespaces for both engine families, and keeps lookup/event payloads cheap on the AC791N. Explicit NONE/INVALID values make zeroed/untrusted data safer. A separate GLOBAL namespace preserves the accepted live-performance vision without prematurely forcing master automation into track-owned locks.
 
 **Consequence:** WP3.1 implements one authoritative registry/API and exhaustively tests all 256 possible byte values for classification, assignment, uniqueness and safe lookup. WP3.2 may use `FmtParamId` when choosing the sparse lock record/allocator, but WP3.1 allocates no lock pool and changes no song layout. Later engine/effect packages may add IDs only inside their documented ranges and must update the registry/tests/decision history rather than scattering numeric literals.
+
+## D028 — WP3.2 uses one 2,048-record global sparse lock pool with owner-checked 8-byte records
+
+Date: 2026-10-24  
+Status: accepted
+
+**Decision:** WP3.2 freezes the first concrete V0.1 p-lock storage representation. The existing `FMT_LOCK_POOL_MAX = 2048` is a **global sparse capacity shared by the complete song**, not a promise that every one of the 8,192 resident steps can simultaneously carry four locks. D005 still guarantees that any individual step may own at most four active locks. If the global 2,048-record pool is exhausted, adding a new lock fails explicitly and leaves all existing data unchanged.
+
+The in-memory lock record is exactly eight bytes and is not a persistence/file-format ABI:
+
+```c
+typedef struct {
+    uint16_t next;      /* active-list or free-list index; 0xFFFF = end */
+    uint16_t value;     /* full 0..65535 storage domain; semantics owned by parameter */
+    uint16_t owner;     /* linear song-step owner 0..8191; 0xFFFF = none */
+    FmtParamId param_id;
+    uint8_t state;      /* FREE or ACTIVE */
+} FmtLock;
+```
+
+Offsets are fixed for the WP3.2 in-memory contract: `next=0`, `value=2`, `owner=4`, `param_id=6`, `state=7`. Two thousand forty-eight records therefore consume exactly 16,384 bytes of `.pool` RAM, matching the conservative eight-bytes-per-entry reservation made in D018. The allocator owns only a 16-bit free-list head and 16-bit used-count in ordinary RAM. `FMT_LOCK_NONE = 0xFFFF` remains the empty `FmtStep.lock_head` and list terminator. `FMT_LOCK_OWNER_NONE = 0xFFFF` means a record has no step owner.
+
+A step owner is the deterministic linear index:
+
+`pattern * (FMT_TRACKS * FMT_STEPS_PER_PATTERN) + track * FMT_STEPS_PER_PATTERN + step`
+
+covering exactly `0..8191`. Active records must carry that exact owner. This lets the storage layer reject an in-range but cross-owned `lock_head`/`next` instead of accidentally reading, replacing or freeing another step's records.
+
+Reset is deterministic startup/editor work, never audio-ISR work. It initializes record indexes `0..2047` as one ascending free list, ending in `FMT_LOCK_NONE`, clears every record's value/owner/parameter/state to the documented free form, sets free-head to record 0 and used-count to zero. The normal complete-song reset must reset both `FmtSong` step heads and this lock allocator so stale records cannot survive a new-song/reset operation.
+
+Each active step list is a singly linked list sorted in **strict ascending `FmtParamId` order**. Storage order therefore does not depend on the user's edit history. Duplicate parameter IDs are never stored on one step. Setting an already-present parameter replaces only its 16-bit value in place and consumes no new record. Adding a new parameter allocates one free record and inserts it in sorted position. A fifth unique lock is rejected as STEP_FULL before allocation. Removing one parameter unlinks exactly one record and returns it to the free list. Clearing a step returns every record in the validated list exactly once and resets that step's `lock_head` to `FMT_LOCK_NONE`.
+
+Only D027 IDs for which the authoritative registry reports `lockable` may be stored. NONE, INVALID, reserved and currently unassigned namespace members are rejected without allocation. The 16-bit value is deliberately opaque to WP3.2: engine/parameter-specific ranges, scaling and audio application remain later packages.
+
+All public lock operations address a song step through bounded pattern/track/step coordinates rather than accepting arbitrary raw step pointers. Before any mutation, the existing list is fully validated with a hard traversal bound of `FMT_LOCKS_PER_STEP`. Validation rejects and reports corruption for any out-of-range record index, non-ACTIVE active-list record, wrong owner, non-lockable stored parameter, duplicate/non-ascending parameter ID, self/cyclic/overlong chain or inconsistent allocator head/count state encountered by the operation. A corruption failure performs **no partial mutation**. Free-list allocation likewise validates the record being popped before changing allocator state. POOL_FULL, STEP_FULL, INVALID_PARAM, BAD_ADDRESS, NOT_FOUND and CORRUPT remain distinct storage outcomes; user-facing wording/gestures belong to WP3.3/WP3.4.
+
+**Reason:** A fixed global sparse pool preserves the V0.1 96 KiB editable-song target while making per-step p-locks first-class. Four locks on every resident step across all 16 patterns would require 32,768 records and cannot fit that target; the earlier data-model example that described 2,048 records as the whole-song worst case omitted the 16 pattern slots and is corrected by this decision. Eight-byte records use the budget already reserved by D018 and buy a 16-bit owner tag that materially improves corruption/isolation safety. Sorted active lists give deterministic lookup/iteration independent of edit order, while a shared `next` field keeps both active lists and the free list compact.
+
+**Consequence:** WP3.2 allocates exactly 16,384 bytes of new pool storage plus four bytes of allocator runtime state before measured code/linker overhead. With the WP3.1 baseline this predicts 113,000 bytes total pool use and 12,468 bytes normal RAM before linker alignment effects, leaving 231,064 bytes of pool. `FmtSong` remains 65,896 bytes and `FmtStep` remains exactly eight bytes. WP3.2 must test all 8,192 owner mappings, exhaustive reset/free-list uniqueness, deterministic set/get/replace/remove/clear, global exhaustion/recovery, cross-owner and malformed-index rejection, no-neighbor mutation and the max-four invariant. Because D027 currently exposes exactly four production-lockable IDs, the fifth-lock rejection branch must additionally be exercised by a focused storage test using a test-only lockability stub; this does not assign a fifth production parameter ID. WP3.3 owns encoder/hold-step editing, WP3.4 owns user-facing replace/delete UX, and WP3.5+ owns application of locks to playback/audio.
