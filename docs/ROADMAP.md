@@ -6,6 +6,8 @@ This roadmap is ordered to reduce risk on the FM-1 hardware. A phase is complete
 
 Goal: freeze the product boundary before firmware code grows around assumptions.
 
+Status: **COMPLETE**
+
 Deliverables:
 
 - architecture contract
@@ -26,23 +28,38 @@ Exit criteria:
 
 Goal: make `fm1tracker` build and run as its own FM-1 firmware before tracker features are added.
 
+Status on 2026-10-23: **IN PROGRESS - WP1.1, WP1.2 and WP1.3 complete; WP1.4 next.**
+
+Verified so far:
+
+- Dinghy provenance is pinned and licensed material is documented;
+- the minimal platform import matches pinned upstream blobs and Git modes;
+- pristine host build/run produces audio and screen artifacts;
+- JieLi toolchain acquisition/execution works;
+- device firmware build is not yet completed because the separately required AC79 SDK checkout is absent;
+- no physical FM-1 test has been performed.
+
+See `WP1_3_VERIFICATION.md` and `TEST_MATRIX.md` for the exact verification level.
+
 Tasks:
 
-1. import a pinned Dinghy baseline with history/provenance recorded;
-2. preserve upstream GPL/credits/headers;
-3. add full GPL-3.0-only license text;
-4. rename application identity/name/build artifacts to FM1Tracker;
-5. choose a currently unused FM-1 package identity after checking the current Firmware Hub/list;
-6. verify unchanged host build;
-7. verify firmware build safety checks;
-8. create `THIRD_PARTY.md` with exact upstream commit;
-9. add CI if the toolchain can be exercised reliably in GitHub Actions without redistributing restricted SDK material.
+1. ✅ import a pinned Dinghy baseline with history/provenance recorded;
+2. ✅ preserve upstream GPL/credits/headers;
+3. ✅ add full GPL-3.0-only license text;
+4. ⬜ rename application identity/name/build artifacts to FM1Tracker;
+5. ⬜ choose a currently unused FM-1 package identity after checking the current Firmware Hub/list;
+6. ✅ verify unchanged host build;
+7. 🟨 verify firmware build safety checks - toolchain verified; full build awaits external AC79 SDK checkout;
+8. ✅ create `THIRD_PARTY.md` with exact upstream commit;
+9. ✅ add automated pristine verification without redistributing SDK material.
 
 Exit criteria:
 
 - `tests/run_host.sh` or equivalent produces FM1Tracker host audio/screen output;
 - firmware build completes with no forbidden symbols/RAM overflow;
 - repo contains clear provenance and reproducible setup instructions.
+
+Phase 1 therefore remains open until WP1.4 identity work and WP1.5 renamed-baseline verification/budget capture are complete.
 
 ## Phase 2 — tracker core without synth ambition
 
