@@ -1,66 +1,26 @@
-name: WP2.10 Phase 2 integration verification
+name: WP2.10 Phase 2 integration verification (historical)
 
 on:
-  push:
-    branches:
-      - phase2/tracker-core
-    paths:
-      - .github/workflows/wp2_10_phase2_integration_verify.yml
-      - docs/WP2_10_TEST_PLAN.md
-      - firmware/**
-      - tests/**
-      - tools/**
-      - build.sh
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  phase2-closeout:
+  historical-checkpoint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout verified Phase 2 closeout checkpoint
         uses: actions/checkout@v4
         with:
+          ref: 7063be51e53c2657178084b3bef5ace813dafcd7
           fetch-depth: 0
 
-      - name: Install inherited host-screen dependency
-        run: python3 -m pip install --disable-pip-version-check Pillow
-
-      - name: Run complete Phase 2 closeout gate
-        shell: bash
-        run: sh tests/run_phase2_closeout_ci.sh
-
-      - name: Upload complete Phase 2 closeout evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: wp2-10-phase2-closeout-evidence
-          path: |
-            build/wp2_10_phase2_integration_tests.log
-            build/wp2_10_model_tests.log
-            build/wp2_10_store_tests.log
-            build/wp2_10_transport_tests.log
-            build/wp2_10_playback_tests.log
-            build/wp2_10_pattern_input_tests.log
-            build/wp2_10_step_record_tests.log
-            build/wp2_10_tracker_screen_tests.log
-            build/wp2_10_wp2_5_context_gate.log
-            build/wp2_10_wp2_6_context_gate.log
-            build/wp2_10_wp2_7_context_gate.log
-            build/wp2_10_wp2_8_context_gate.log
-            build/wp2_10_wp2_9_screen_gate.log
-            build/wp2_10_full_app_gate.log
-            build/wp2_10_phase2_integration_host.log
-            build/wp2_10_home_control_host.log
-            build/wp2_10_host_audio.txt
-            build/wp2_10_device_build.log
-            build/wp2_10_symbols.txt
-            build/wp2_10_*_symbol.txt
-            build/wp2_10_metrics.txt
-            build/fm1tracker.bin
-            build/fm1tracker-0.1.fwsc
-            build/host/fm1tracker.wav
-            build/host/fm1tracker_wp2_10_integration-1000.ppm
-            build/host/fm1tracker_wp2_10_integration-3000.ppm
-            build/host/fm1tracker_wp2_10_home_control-3000.ppm
+      - name: Record frozen verification evidence
+        run: |
+          echo "WP2_10_VERIFIED_COMMIT=7063be51e53c2657178084b3bef5ace813dafcd7"
+          echo "WP2_10_VERIFIED_RUN=40015242947"
+          echo "WP2_10_VERIFIED_JOB=120625519388"
+          echo "WP2_10_EVIDENCE=docs/PHASE2_VERIFICATION.md"
+          echo "WP2_10_EVIDENCE_ARTIFACT_ID=12527623388"
+          test "$(git rev-parse HEAD)" = "7063be51e53c2657178084b3bef5ace813dafcd7"
