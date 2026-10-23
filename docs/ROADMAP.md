@@ -68,20 +68,28 @@ Phase 1 exit criteria are satisfied at the host/firmware-build level. Physical F
 
 Goal: prove editing and transport with the simplest possible tone source.
 
-Status: **READY TO START — WP2.1 is next**
+Status: **IN PROGRESS — WP2.1 and WP2.2 complete; WP2.3 is next**
 
 Tasks:
 
-1. WP2.1 — compile-time V0.1 data model, constants, bounds-safe accessors, static size assertions and host/device compile checks. No UI/audio/transport changes.
-2. WP2.2 — allocate pattern/song state in the intended memory region and test all access boundaries.
-3. WP2.3 — integer transport clock with deterministic wrap/drift tests.
-4. WP2.4 — one-track audible playback using the simplest baseline tone.
-5. WP2.5 — white-key 16-step page input across four pages.
-6. WP2.6 — provisional track-selection prototype.
-7. WP2.7 — STEP REC note entry.
-8. WP2.8 — REST / TIE / NOTE-OFF semantics.
-9. WP2.9 — compact tracker screen with bounded/dirty rendering.
-10. WP2.10 — Phase 2 integration test: enter and play a complete 64-step melody without a computer.
+1. ✅ WP2.1 — compile-time V0.1 data model, constants, bounds-safe accessors, static size assertions and host/device compile checks. No UI/audio/transport changes.
+2. ✅ WP2.2 — one actual 65,896 B `FmtSong` in `.pool`, explicit initialization of all 8,192 steps, runtime bounds/reset tests and measured resource delta. Evidence: `WP2_2_VERIFICATION.md`.
+3. ⬜ WP2.3 — integer/fixed-point transport clock with deterministic 0..63 wrap and long-run drift/error tests. GitHub issue #11 is READY TO START; no implementation yet.
+4. ⬜ WP2.4 — one-track audible playback using the simplest baseline tone.
+5. ⬜ WP2.5 — white-key 16-step page input across four pages.
+6. ⬜ WP2.6 — provisional track-selection prototype.
+7. ⬜ WP2.7 — STEP REC note entry.
+8. ⬜ WP2.8 — REST / TIE / NOTE-OFF semantics.
+9. ⬜ WP2.9 — compact tracker screen with bounded/dirty rendering.
+10. ⬜ WP2.10 — Phase 2 integration test: enter and play a complete 64-step melody without a computer.
+
+Current verified Phase 2 runtime baseline after WP2.2:
+
+- app image: 55,188 B / 581,564 B;
+- normal RAM: 12,368 B / 98,304 B;
+- pool RAM: 96,616 B / 344,064 B;
+- `FmtSong` store: 65,896 B at `.pool` address `0x01C20000`;
+- host audio remains byte-identical to the Phase 1 baseline.
 
 Exit criteria:
 
