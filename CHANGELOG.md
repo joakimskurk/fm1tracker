@@ -192,6 +192,23 @@ The clean platform/identity/build baseline is reproducible and budgeted. Physica
 
 The tracker-core phase is verified complete at the host/device-build level. The system now has deterministic 8-track/64-step editor addressing, stopped STEP REC with ordinary notes and REST/TIE/OFF, exact integer playback timing, a bounded compact tracker display and a complete integrated closeout proof. Physical FM-1 install/audio/timing/readability/ergonomics remain later hardware gates.
 
+## 2026-10-23 - Phase 3 p-locks and tracker effects
+
+### WP3.1 - Stable parameter ID registry
+
+- Created `phase3/plocks-effects` from the complete Phase 2 handoff and opened Phase 3 parent issue #20.
+- Frozen D027 before source implementation: `FmtParamId` is exactly one byte with explicit NONE `0x00`, INVALID `0xFF` and non-overlapping namespaces for common voice, 8-BIT, 16-BIT, track/mixer, channel/effect, GLOBAL/master and future IDs.
+- Assigned only four initial semantic IDs: VOICE LEVEL `0x01`, FINE PITCH `0x02`, TRACK LEVEL `0xA0`, TRACK PAN `0xA1`.
+- Kept tracker effect-command IDs as a separate domain and reserved `0xE0..0xEF` for future GLOBAL/master identity without creating global automation storage.
+- Added one authoritative stateless registry/API plus exhaustive host tests over all 256 possible ID bytes.
+- Unassigned IDs inside valid namespaces remain safely unassigned/ non-lockable; namespace membership never creates semantics.
+- Compiled the new registry translation unit with the real pinned JieLi `pi32v2` target compiler while deliberately leaving it unlinked from `dinghy.c` until WP3.2 consumes IDs in actual lock storage.
+- Preserved every Phase 2 unit/full-app/display/audio regression and the frozen WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
+- Device runtime remains byte-identical to Phase 2: 59,252 B image, 12,464 B normal RAM, 96,616 B pool, delta **0 / 0 / 0 B**.
+- Final artifacts remain `fm1tracker.bin` `34d0e8c4344e091704608e08357964e7ae0b18673dd0b93f36c4e5bcc2cb4c7c` and `fm1tracker-0.1.fwsc` `3cfd0a2da3836720d2f921b04f29e93c16ca83ab18ab7242c99f2c333d890ca7`.
+- Final verification: Actions run `40025790828`, job `120661526848`; evidence artifact ID `12533180473`, ZIP SHA-256 `fa28342bf1fcdf06fb168c8c19b5459afdc6e515bdced044c1f9761efecaee4b`.
+- Detailed evidence: `docs/WP3_1_VERIFICATION.md`.
+
 ### Next
 
-**Phase 3 — parameter locks and tracker effects.** WP3.1 (stable parameter ID registry) is the next bounded package and is READY TO START. No Phase 3 implementation has begun.
+**WP3.2 - sparse four-lock-per-step storage**, issue #21, is READY TO START. D028 must freeze the concrete record/allocator/pool design before source. No WP3.2 implementation has begun.
