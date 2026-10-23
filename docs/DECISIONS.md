@@ -224,3 +224,16 @@ The explicit reset writes the already-frozen WP2.1 empty-step sentinels to all 8
 **Reason:** `firmware/app.ld` provides a 344,064-byte `.pool` specifically for large zero-initialized buffers, while normal `.data + .bss` is limited to 96 KiB. The existing graphics canvas already demonstrates the intended section mechanism. A single 65,896-byte `FmtSong` raises measured pool use from the 30,720-byte Phase 1/WP2.1 baseline to an expected 96,616 bytes before later lock storage, while leaving normal RAM free for small runtime/control state.
 
 **Consequence:** WP2.2 must prove by device symbol inspection that the store is physically inside `.pool`, must verify the actual pool delta, and must keep host audio behavior unchanged. The p-lock allocator remains Phase 3 work, transport remains WP2.3, and persistence remains Phase 6.
+
+## D020 — V0.1 transport uses an exact BPM-per-frame rational phase accumulator
+
+Date: 2026-10-23  
+Status: accepted
+
+**Decision:** WP2.3 represents V0.1 1/16-note timing with a 32-bit integer phase accumulator in the 44.1 kHz frame domain. One 1/16-note step has the exact rational duration `44100 * 15 / BPM` frames, so the implementation uses a fixed threshold of `661500 = 44100 * 15` and adds the integer BPM value once per rendered frame. When phase reaches or exceeds 661500, the threshold is subtracted and the current step advances exactly once, wrapping `63 -> 0`.
+
+The transport runtime state is a small ordinary-RAM control object: 32-bit phase, 16-bit BPM, 8-bit current step and 8-bit running flag. Reset produces a stopped transport at step 0, phase 0 and runtime default tempo 120 BPM. Start resumes from the current step/phase; stop preserves them. A nonzero tempo change preserves phase progress. BPM 0 is rejected rather than used as a hidden stop command.
+
+**Reason:** This formulation contains no floating point, no division in the real-time path and no runtime 64-bit arithmetic. Because the phase is always below 661500 and a 16-bit BPM is at most 65535, one frame can cross at most one step boundary and `phase + bpm` cannot overflow 32 bits. It also preserves the exact fractional remainder automatically, so tempos such as 137 BPM cannot accumulate drift from repeatedly rounded frame intervals. A per-frame tick naturally exposes the exact frame where a future WP2.4 note event belongs without adding event dispatch in WP2.3.
+
+**Consequence:** WP2.3 host tests must prove exact accumulator/reference equivalence over long runs, deterministic start/stop/reset and exact 64-step wrap. The device integration may advance the transport from the audio callback, but it remains stopped in WP2.3 so no audible behavior changes. Audible row dispatch begins only in WP2.4. This runtime default does not yet redefine persisted `FmtSongMeta` defaults or create a file-format tempo rule.
