@@ -33,36 +33,36 @@ Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.
 | Deterministic sentinels/defaults/bounds | required | compile | n/a | ✅ WP2.1/WP2.2 |
 | One 65,896 B `FmtSong` physically linked in `.pool` | inspect/test | required | n/a | ✅ WP2.2, `0x01C20000` |
 | Store reset and mutation isolation | required | compile | n/a | ✅ WP2.2 |
-| Exact integer transport, no cumulative rounding drift | required | required | preferred | ✅ WP2.3 |
+| Exact integer transport, no cumulative rounding drift | required | required | preferred | ✅ WP2.3/WP2.10 |
 | Transport reset/start/stop/resume deterministic | required | required | later | ✅ WP2.3 |
 | No float/runtime division/firmware 64-bit arithmetic in transport | inspect/test | required | n/a | ✅ WP2.3 |
 | Step 0 dispatch before playback frame 0 | required | compile | later | ✅ WP2.4 |
 | Exact sub-block row boundary timing | required | required | later | ✅ WP2.4, step 1 frame 5513 at 120 BPM |
-| Complete 64-step loop exact | required | required | later | ✅ WP2.4, frame 352800 at 120 BPM |
+| Complete 64-step loop exact | required | required | later | ✅ WP2.4/WP2.10, frame 352800 at 120 BPM |
 | Default audible tracker output deterministic | required | required | n/a | ✅ frozen WAV `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440` |
 | Continuous tracker audio blocks unsafe flash erase | inspect/test | compile | preferred | ✅ WP2.4+ |
 | Four 16-step pages cover 0..63 exactly | required | compile | required | ✅ WP2.5 |
 | 16 white physical keys map bijectively to local 0..15 | required | compile | required | ✅ WP2.5 |
 | SEQ step/page navigation cannot mutate song | required | compile | n/a | ✅ WP2.5 |
-| Performance note release safe across context changes | required | compile | required | ✅ WP2.5–WP2.9 regressions |
+| Performance note release safe across context changes | required | compile | required | ✅ WP2.5–WP2.10 regressions |
 | Eight black keys map bijectively to tracks 0..7 | required | compile | required | ✅ WP2.6 |
 | Reserved black keys cannot select unintended track | required | compile | required | ✅ WP2.6 |
 | Track selection preserves page/step and cannot mutate song | required | compile | n/a | ✅ WP2.6 |
-| STEP REC requires real stopped-transport acknowledgement | required | compile | required | ✅ WP2.7 |
+| STEP REC requires real stopped-transport acknowledgement | required | compile | required | ✅ WP2.7/WP2.10 |
 | Main/editor does not race-write live transport state | inspect/test | compile | n/a | ✅ WP2.7 request/ack handoff |
 | STEP REC ordinary note writes exact selected row only | required | required | required | ✅ WP2.7 |
 | Ordinary note entry preserves all other row fields | required | compile | n/a | ✅ WP2.7 |
-| Ordinary note entry advances once, 63 -> 0 | required | required | required | ✅ WP2.7 |
+| Ordinary note entry advances once, 63 -> 0 | required | required | required | ✅ WP2.7/WP2.10 |
 | Stored pitch matches physical audition pitch | required | compile | required | ✅ WP2.7 |
 | Simultaneous downs have deterministic monophonic policy | required | compile | required | ✅ lowest physical key/pitch |
 | Chord-like gesture cannot double-advance before release | required | compile | required | ✅ WP2.7 |
 | STEP REC uses OCT for pitch; ordinary SEQ uses OCT for pages | required | compile | required | ✅ WP2.7 |
-| REST writes `EMPTY` and advances exactly once | required | required | required | ✅ WP2.8 run `40004436981` |
+| REST writes `EMPTY` and advances exactly once | required | required | required | ✅ WP2.8 |
 | TIE editor gesture deterministic | required | required | required | ✅ D025: SELECT without pending FX |
 | NOTE OFF editor gesture deterministic | required | required | required | ✅ D025: hold FX then SELECT |
 | FX+SELECT cannot create a second REST on FX release | required | compile | required | ✅ WP2.8 button grammar + host fixture |
 | Pending REST cancelled by REC/HOME/PLAY exit | required | compile | required | ✅ WP2.8 |
-| REST/TIE/OFF mutate only selected `note` byte | required | compile | n/a | ✅ WP2.8 full-song/field isolation tests |
+| REST/TIE/OFF mutate only selected `note` byte | required | compile | n/a | ✅ WP2.8 |
 | REST/TIE/OFF each advance exactly once, including 63 -> 0 | required | compile | required | ✅ WP2.8 |
 | Playback event remains bounded 4 B | required | required | n/a | ✅ WP2.8 |
 | EMPTY -> NONE playback semantics | required | compile | later | ✅ WP2.8 |
@@ -70,18 +70,26 @@ Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.
 | OFF -> explicit release semantics | required | compile | later | ✅ WP2.8 |
 | Sentinel values can never become raw pitches | required | compile | n/a | ✅ WP2.8 |
 | NOTE OFF produces audible release to exact silence in host proof | required | compile | later | ✅ `before=4410 quiet=0 after=4410` |
-| Historical WP2.5/WP2.6/WP2.7/WP2.8 full-app gestures still pass | required | compile | later | ✅ WP2.9 regression gate |
-| Tracker display uses bounded/dirty redraw | inspect/test | required | required | ✅ WP2.9 run `40009689758`; 10 regions, max 2 per poll |
-| Eight cursor-owned half-page windows are exact | required | compile | required | ✅ WP2.9 all `01-08` through `57-64` windows tested |
-| Selected row and playback row visually distinct | required | compile | required | ✅ D026 `>` / `*` / `>*`, off-screen playhead remains `PLYnn` |
-| Ordinary note + REST/TIE/OFF display deterministic | required | compile | required | ✅ reviewed/frozen SEQ and STEP REC framebuffers |
+| Historical WP2.5–WP2.9 full-app regressions remain green | required | compile | later | ✅ WP2.10 closeout run `40015242947` |
+| Tracker display uses bounded/dirty redraw | inspect/test | required | required | ✅ WP2.9; 10 regions, max 2 per poll |
+| Eight cursor-owned half-page windows are exact | required | compile | required | ✅ WP2.9 |
+| Selected row and playback row visually distinct | required | compile | required | ✅ D026 `>` / `*` / `>*` |
+| Ordinary note + REST/TIE/OFF display deterministic | required | compile | required | ✅ reviewed/frozen framebuffers |
 | Instrument/volume/effect placeholders deterministic | required | compile | n/a | ✅ WP2.9 formatting tests |
-| Drawing/presentation sync cannot mutate song data | required | compile | n/a | ✅ WP2.9 full-song snapshot comparison |
-| Tracker drawing remains outside audio ISR | inspect/test | required | n/a | ✅ WP2.9 sound section byte-identical to start baseline |
-| SEQ -> HOME restores clean performance screen | required | compile | required | ✅ pixel-identical A/B fixture |
-| WP2.9 default WAV remains byte-identical | required | required | n/a | ✅ exact frozen SHA-256 unchanged |
-| WP2.9 resource delta recorded | n/a | required | n/a | ✅ +2,504 B image / +44 B RAM / +0 B pool |
-| Complete computer-free 64-step entry/playback workflow | required | required | required | ⬜ WP2.10 / issue #18 |
+| Drawing/presentation sync cannot mutate song data | required | compile | n/a | ✅ WP2.9/WP2.10 full-song comparison |
+| Tracker drawing remains outside audio ISR | inspect/test | required | n/a | ✅ WP2.9 |
+| SEQ -> HOME restores clean performance screen | required | compile | required | ✅ WP2.9 and full WP2.10 integration A/B |
+| All 64 editor addresses traversed exactly once in one integration scenario | required | compile | required | ✅ WP2.10 |
+| All eight track selectors compose with editor state without mutation | required | compile | required | ✅ WP2.10 |
+| Integrated automatic cursor boundaries 63->0 and 15->16 exact | required | compile | required | ✅ WP2.10 |
+| Final integrated 65,896-byte song matches expected copy byte-for-byte | required | compile | n/a | ✅ WP2.10 |
+| Track-7 integration edits leave track-0 proof lane unchanged | required | compile | n/a | ✅ WP2.10 |
+| Full-app integrated panel scenario leaks no SEQ audition MIDI | required | compile | required | ✅ exactly four intended STEP REC note pairs |
+| Integrated tracker framebuffer reviewed/frozen | required | compile | required | ✅ `a993551ce922d90186080bf554b82477b4336e160a6b301c446f0d275569b6d7` |
+| Complete computer-free Phase 2 workflow composes end-to-end | required | required | required | ✅ host/device-build WP2.10; physical feel remains Phase 7 |
+| WP2.10 production source unchanged from WP2.9 | inspect | required | n/a | ✅ byte-identical `firmware/`, `tools/`, `build.sh` |
+| WP2.10 device artifacts identical to WP2.9 | n/a | required | n/a | ✅ exact BIN/FWSC hashes |
+| Final Phase 2 resource delta recorded | n/a | required | n/a | ✅ +4,164 B image / +96 B RAM / +65,896 B pool vs Phase 1 |
 
 Phase 2 detailed evidence:
 
@@ -95,8 +103,10 @@ Phase 2 detailed evidence:
 - `WP2_8_VERIFICATION.md`
 - `WP2_9_SCREEN_CONTRACT.md`
 - `WP2_9_VERIFICATION.md`
+- `WP2_10_TEST_PLAN.md`
+- `PHASE2_VERIFICATION.md`
 
-Physical key feel, REST/TIE/OFF ergonomics, screen readability, install/audio behavior and actual render timing remain separate hardware gates.
+Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/OFF ergonomics, tracker readability/smoothness, install/audio behavior and measured AC791N render/main-loop timing remain separate hardware gates.
 
 ## Phase 3 p-locks/effects
 
