@@ -154,6 +154,24 @@ The clean platform/identity/build baseline is reproducible and budgeted. Physica
 - Final verification: Actions run `40004436981`, job `120588627172`.
 - Detailed evidence: `docs/WP2_8_VERIFICATION.md`.
 
+### WP2.9 - Compact tracker screen
+
+- Frozen D026 before source implementation and documented the exact 240×240 screen contract in `docs/WP2_9_SCREEN_CONTRACT.md`.
+- Added a 44-byte `FmtTrackerScreen` presentation cache with exactly eight visible rows, ten persistent dirty regions and a hard maximum of two rendered regions per main-loop poll.
+- Implemented cursor-owned half-page windows so playback never scrolls the edit surface under the user's selection.
+- Added independent `>` edit-cursor and `*` playhead markers, including explicit `>*` same-row state and header `PLYnn` when the playhead is off-screen.
+- Added deterministic row notation for ordinary notes, REST `---`, TIE `===`, NOTE OFF `OFF`, malformed values and current instrument/volume/effect placeholders.
+- Integrated tracker drawing only in the main loop; CI proves the complete audio section is byte-identical to the WP2.9 start baseline.
+- Added deterministic SEQ and STEP REC framebuffer fixtures plus a pixel-identical `SEQ -> HOME` A/B proof.
+- Visually reviewed and froze raw framebuffer hashes: SEQ `e67d0cf9aa2fa391464237a40ed795bb6ba881e15aff40340e1b92a4a8eccb7a`; STEP REC `4b0192b084e6ee483d7a8f98add2ae95229dcc914583d3cbe957944824cb6424`.
+- Preserved all WP2.1–WP2.8 unit/full-app regressions and the exact frozen default WAV.
+- Full JieLi device build and safety gates pass with identity `FM-1_987`.
+- Final resources: 59,252 B image (**+2,504 B** vs WP2.8), 12,464 B normal RAM (**+44 B**) and 96,616 B pool (**+0 B**). The RAM delta is exactly the presentation state.
+- Final artifacts: `fm1tracker.bin` `34d0e8c4344e091704608e08357964e7ae0b18673dd0b93f36c4e5bcc2cb4c7c`; `fm1tracker-0.1.fwsc` `3cfd0a2da3836720d2f921b04f29e93c16ca83ab18ab7242c99f2c333d890ca7`.
+- Evidence artifact: ID `12525582378`, ZIP SHA-256 `6c23c962c96de458d5d328e60a3b5cbd224e2011933b2d812ee70d8fe6c8daa8`.
+- Final verification: Actions run `40009689758`, job `120606559644`.
+- Detailed evidence: `docs/WP2_9_VERIFICATION.md`.
+
 ### Next
 
-**WP2.9 — compact tracker screen.** Issue #17 is READY TO START. Before source code, freeze the exact 240×240 tracker-screen contract: visible rows, header/page/track state, edit cursor vs playhead, ordinary/special-event notation, STEP REC indication and bounded dirty-region redraw behavior. No WP2.9 implementation has started yet.
+**WP2.10 — Phase 2 integration test and closeout.** Issue #18 is READY TO START. This is a verification/integration package, not a feature package: exercise the completed 64-step editor, track selection, ordinary/special STEP REC, D026 display, playback and HOME return together; compare final store state directly; record total Phase 2 cost versus Phase 1; then close Phase 2 only if the complete gate is green. Phase 3 remains blocked until then.
