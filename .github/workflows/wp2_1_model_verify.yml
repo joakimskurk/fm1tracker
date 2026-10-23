@@ -10,7 +10,6 @@ on:
       - firmware/src/dinghy.c
       - tests/test_fmt_model.c
       - tests/run_model_tests.sh
-      - docs/**
   workflow_dispatch:
 
 permissions:
