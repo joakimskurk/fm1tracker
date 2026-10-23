@@ -1,0 +1,94 @@
+name: WP1.4 FM1Tracker identity verification
+
+on:
+  push:
+    branches:
+      - phase1/fm1tracker-identity
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-host-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout WP1.4 branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Verify protected baseline code is untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code ff0a095b2384532f19724204b9059e88aac5a52c -- \
+            firmware/src/dinghy.c \
+            firmware/src/platform.c \
+            firmware/hal \
+            firmware/loader \
+            tools/build.py \
+            tools/fm1pkg_make.py \
+            tools/fm1_install.py
+          echo "PROTECTED_BASELINE_UNCHANGED=1"
+
+      - name: Check FM1Tracker build wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/build_fm1tracker.py
+          PYTHONPATH=tools python3 - <<'PY'
+          import build_fm1tracker
+          assert build_fm1tracker.PRODUCT == "FM-1_987"
+          assert build_fm1tracker.APP_NAME == "FM1TRACKER"
+          release, forwarded = build_fm1tracker.parse_release(["build_fm1tracker.py", "--release", "0.1", "--sdk", "/tmp/sdk"])
+          assert release == "0.1"
+          assert forwarded == ["build_fm1tracker.py", "--sdk", "/tmp/sdk"]
+          print("IDENTITY_WRAPPER_OK=1")
+          PY
+
+      - name: Run renamed host harness
+        run: ./tests/run_host.sh
+
+      - name: Verify FM1Tracker host artifacts and unchanged audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/host/fm1tracker.wav
+          test ! -e build/host/dinghy.wav
+          mapfile -t screens < <(find build/host -maxdepth 1 -type f -name 'fm1tracker-*.png' -print | sort)
+          test "${#screens[@]}" -eq 2
+          test "$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')" = "dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b"
+          strings build/host/fm1tracker | grep -F "FM1TRACKER"
+          echo "HOST_AUDIO_IDENTICAL_TO_WP1_3=1"
+          stat -c '%n %s bytes' build/host/fm1tracker.wav "${screens[@]}"
+          sha256sum build/host/fm1tracker.wav "${screens[@]}"
+
+      - name: Verify existing external SDK gate remains explicit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          set +e
+          JIELI_TOOLCHAIN="$RUNNER_TEMP/no-toolchain" \
+          AC79_SDK="$RUNNER_TEMP/no-sdk" \
+          ./build.sh >build/wp1_4_device_gate.log 2>&1
+          rc=$?
+          set -e
+          cat build/wp1_4_device_gate.log
+          test "$rc" -ne 0
+          grep -F "no toolchain" build/wp1_4_device_gate.log
+
+      - name: Upload WP1.4 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp1-4-identity-evidence
+          path: |
+            build/host/fm1tracker.wav
+            build/host/fm1tracker-*.png
+            build/wp1_4_device_gate.log
+          if-no-files-found: error
+          retention-days: 14
