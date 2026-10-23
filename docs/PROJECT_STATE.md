@@ -8,170 +8,162 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 **Phase 3 — p-locks and tracker effects**
 
-State: **IN PROGRESS — WP3.2 active — 2026-10-24**
+State: **IN PROGRESS — WP3.2 complete; WP3.3 ready to start — 2026-10-24**
 
-Phase 3 parent issue: #20
+Parent issue: #20
 
 Current branch: `phase3/plocks-effects`
 
-Phase 3 branch start / completed Phase 2 handoff head:
+Phase 3 branch start / completed Phase 2 handoff:
 
 `c3693d8c7bb3d5306794aa232d6d25bef50c6c99`
 
-## Completed WP3.1 checkpoint
+## Completed WP3.1
 
 **WP3.1 — stable parameter ID registry** — COMPLETE — issue #19
 
-Final verified source/workflow checkpoint:
+Verified checkpoint:
 
 `5af8065a9c98884d22682075b600d9790cfa7940`
 
-Full verification:
+Evidence:
 
-- Actions run `40025790828`
-- job `120661526848` (`param-registry-closeout`)
-- result **SUCCESS**
-- evidence `docs/WP3_1_VERIFICATION.md`
+`docs/WP3_1_VERIFICATION.md`
 
-D027 freezes `FmtParamId` as one byte with `0x00` NONE, `0xFF` INVALID and four currently assigned/lockable IDs: `VOICE_LEVEL`, `PITCH_FINE`, `TRACK_LEVEL`, `TRACK_PAN`. Namespace membership alone never implies assignment.
+D027 freezes one-byte semantic parameter identity, namespace ranges and exactly four initial production-lockable IDs:
 
-WP3.1 runtime remained byte-identical to Phase 2.
+- `0x01` `FMT_PARAM_VOICE_LEVEL`
+- `0x02` `FMT_PARAM_PITCH_FINE`
+- `0xA0` `FMT_PARAM_TRACK_LEVEL`
+- `0xA1` `FMT_PARAM_TRACK_PAN`
 
-## Current milestone
+Namespace membership alone never implies assignment.
 
-**WP3.2 — sparse four-lock-per-step storage**
+## Completed WP3.2
 
-State: **IN PROGRESS — 2026-10-24**
-
-GitHub issue: #21
+**WP3.2 — sparse four-lock-per-step storage** — COMPLETE — issue #21
 
 WP3.2 start head:
 
 `dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e`
 
-### Exact objective
+Final verified source/workflow checkpoint:
 
-Freeze and implement the first concrete bounded p-lock storage layer while preserving the 8-byte `FmtStep`, consuming D027 semantic parameter IDs without renumbering them, and enforcing at most four active locks on any one step.
+`da2f5afe9b1da6defc3857b91f52b40d7525f33b`
 
-Before source code, D028 must freeze the concrete lock record, global capacity, ownership, free-list/allocation rules, deterministic storage primitives, corruption behavior and reset invariants.
+Final GitHub Actions:
 
-### Important capacity clarification
+- run `40038453521`
+- job `120703577806` (`lock-store-closeout`)
+- result **SUCCESS**
 
-`FMT_LOCK_POOL_MAX = 2048` is a **global sparse song pool**, not enough to place four locks on every one of the 8,192 resident song steps simultaneously.
+Durable evidence:
 
-The old `DATA_MODEL_V0.1.md` example that described 2,048 records as the worst case for every step omitted the 16 pattern slots from its arithmetic. WP3.2 must correct that wording rather than silently treating it as a larger allocation requirement.
+`docs/WP3_2_VERIFICATION.md`
 
-The intended V0.1 rule remains:
+### D028 frozen storage contract
 
-- any individual step may own at most four locks;
-- the complete song shares a fixed global pool of 2,048 lock records;
-- pool exhaustion is an explicit deterministic storage result;
-- capacity may only change later through a documented budget/architecture decision.
+The full editable song shares one global sparse pool of 2,048 records. This is a deliberate global capacity, not four locks on all 8,192 resident steps simultaneously.
 
-### D028 design target to freeze before source
+`FmtLock` is exactly 8 B:
 
-The reviewed implementation target is:
+```text
+uint16 next       offset 0
+uint16 value      offset 2
+uint16 owner      offset 4
+uint8  param_id   offset 6
+uint8  state      offset 7
+```
 
-- `FmtLock` is exactly 8 B;
-- 2,048 records = exactly 16,384 B pool RAM;
-- each active record contains a 16-bit next index, 16-bit value, 16-bit linear step owner, one-byte D027 parameter ID and one-byte runtime state;
-- owner IDs cover all 8,192 song steps; `0xFFFF` means no owner;
-- `FmtStep.lock_head` remains the 16-bit first-record index and `0xFFFF` means no list;
-- the same 16-bit `next` field is reused by the free list while a record is free;
-- allocator runtime state is only a 16-bit free head plus 16-bit used count in ordinary RAM;
-- reset builds the free list in ascending record-index order;
-- active step lists are strictly sorted by ascending `FmtParamId`, not insertion order;
-- setting an existing parameter replaces its value in place without allocation;
-- adding a new parameter rejects a fifth lock before allocation;
-- invalid/unassigned D027 IDs are rejected;
-- pool-full is distinct from step-full;
-- remove/clear return records to the free list exactly once;
-- all mutating operations validate the complete bounded step chain before changing state;
-- out-of-range indexes, wrong owner, non-active records, unsorted/duplicate IDs, invalid parameters or chains longer than four are corruption and cause no partial mutation.
+The pool is exactly:
 
-D028 is not accepted until written to `DECISIONS.md` and `DATA_MODEL_V0.1.md` is aligned.
+```text
+2048 * 8 B = 16,384 B
+```
 
-### Expected WP3.2 source/test changes
+Allocator runtime state is exactly 4 B: a 16-bit free head plus 16-bit used count.
 
-Primary expected files:
+Any individual step may own at most four active locks. Active step lists are strictly sorted by ascending D027 parameter ID. Setting an existing parameter replaces in place and consumes no record. A fifth prevalidated unique lock returns `STEP_FULL`; global exhaustion returns `POOL_FULL`.
 
-- `firmware/src/fmt_lock_store.h`
-- `firmware/src/fmt_lock_store.c`
-- `firmware/src/fmt_store.c` / reset integration
-- `firmware/src/dinghy.c` only to link/reset the bounded storage layer, not to expose editing behavior
-- `tests/test_fmt_lock_store.c`
-- focused max-four harness if needed to test a fifth prevalidated ID without assigning a fifth production D027 ID
-- `tests/run_lock_store_tests.sh`
-- WP3.2 CI/evidence files
-- `docs/DECISIONS.md`
-- `docs/DATA_MODEL_V0.1.md`
+Each active record carries a linear step owner `0..8191`, so an in-range index pointing to another step is rejected as corruption. Mutating operations validate the bounded list before changes; malformed/cross-owned/unsorted/overlong chains fail without partial mutation.
 
-### Required verification
+The earlier planning claim that 2,048 records covered four locks on every song step was corrected: 16 patterns × 8 tracks × 64 steps × 4 would require 32,768 records. V0.1 intentionally remains a sparse global pool.
 
-1. exact `FmtLock` size/layout and 2,048-record capacity;
-2. exact pool placement and 16,384 B record-storage cost;
-3. all 8,192 possible step owners map uniquely and safely;
-4. empty/reset state has every record on the free list exactly once;
-5. add/get/replace/remove/clear are deterministic and bounded;
-6. duplicate parameter set replaces in place and does not consume capacity;
-7. max four locks per step is mechanically enforced;
-8. actual D027 unassigned/invalid IDs are rejected;
-9. global pool exhaustion and one-record recovery/reuse are exact;
-10. invalid/cross-owned/corrupt indexes fail without neighbor/pool mutation;
-11. normal song fields and neighboring steps remain byte-identical across lock edits except intended `lock_head` changes;
-12. all Phase 2 + WP3.1 regressions and frozen WAV remain green;
-13. full JieLi device build, fixed identity and safety checks pass;
-14. exact image/RAM/pool delta is recorded;
-15. no WP3.3 editor gesture or WP3.5 playback/effect application exists.
+### Final WP3.2 linked resources
 
-### Strict non-goals
+```text
+01c20000 .pool 00010168 fmt_store_storage
+01c30168 .pool 00004000 fmt_lock_store_storage
+01c0b080 .bss  00000004 fmt_lock_store_runtime
+```
 
-- no encoder/hold-step lock editing — WP3.3;
-- no user-facing replace/delete UX — WP3.4;
-- no playback/audio application of locks — WP3.5+;
-- no tracker-effect implementation;
-- no 8-BIT or FM4 engine implementation;
-- no live-performance capture/automation implementation;
-- no persistence/file-format implementation;
-- no hardware control-map freeze.
+Final footprint:
 
-## Current verified runtime baseline before WP3.2
+| Resource | Used | Limit | Free | Delta vs WP3.1 |
+|---|---:|---:|---:|---:|
+| app image | 59,388 B | 581,564 B | 522,176 B | +136 B |
+| normal RAM | 12,468 B | 98,304 B | 85,836 B | +4 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B | +16,384 B |
 
-| Resource | Used | Limit | Free |
-|---|---:|---:|---:|
-| app image | 59,252 B | 581,564 B | 522,312 B |
-| normal RAM | 12,464 B | 98,304 B | 85,840 B |
-| pool RAM | 96,616 B | 344,064 B | 247,448 B |
+Editable core plus lock records:
 
-Frozen artifacts/regressions before WP3.2:
+```text
+FmtSong core              65,896 B
+lock records              16,384 B
+---------------------------------
+editable core + locks     82,280 B
+```
 
-- `fm1tracker.bin`: `34d0e8c4344e091704608e08357964e7ae0b18673dd0b93f36c4e5bcc2cb4c7c`
-- `fm1tracker-0.1.fwsc`: `3cfd0a2da3836720d2f921b04f29e93c16ca83ab18ab7242c99f2c333d890ca7`
-- package identity: `FM-1_987`
-- frozen host WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
+This remains 16,024 B below the frozen 96 KiB editable-song target.
 
-If the 8-byte / 2,048-record D028 target is accepted unchanged, expected storage-only resource direction before measured code cost is:
+Final artifacts:
 
-- lock records: +16,384 B pool;
-- allocator runtime state: +4 B ordinary RAM;
-- expected total pool use before linker/code measurement: 113,000 B;
-- expected remaining pool: 231,064 B;
-- editable `FmtSong` + lock-record budget: 82,280 B, still inside the frozen 96 KiB editable-song target.
+- `fm1tracker.bin`: `b717a504f96601393e493f52142e3120204051c5e11b733b0113309e0219ac2b`
+- `fm1tracker-0.1.fwsc`: `36c054c0f6c0cc8e86dd869fadf8d0093a560f5851a9ebd9b2405552642d5966`
+- identity `FM-1_987`
+- frozen WAV remains `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
+
+Final evidence artifact:
+
+- ID `12538271532`
+- ZIP SHA-256 `ecb0985b24201e3506d1512ead85e406e4226bebc7915d945cd5812e5dbd1830`
+
+## Next milestone
+
+**WP3.3 — hold-step + encoder p-lock editing**
+
+State: **READY TO START — no WP3.3 implementation has begun**
+
+GitHub issue: #22
+
+Before source code, WP3.3 must record the exact editor/gesture contract. It must freeze at least:
+
+- step-hold/select gesture;
+- SEQ/STEP REC context gating;
+- encoder-to-D027 parameter mapping;
+- deterministic editor value scaling;
+- target step/track ownership during a gesture;
+- release/latch behavior;
+- storage-error handling;
+- minimal editing feedback.
+
+WP3.3 is the first package allowed to call D028 `fmt_lock_set` from the hardware/editor path. It must not add lock delete/clear UX from WP3.4 or apply locks to playback/audio from WP3.5+.
 
 ## Important decisions / do not regress
 
 - D005: 8 logical tracks × 64 steps × 16 patterns.
 - D010: p-locks are first-class bounded sequencer data.
-- D018: frozen 8-byte `FmtStep`; p-lock allocator/layout explicitly deferred to Phase 3.
+- D018: `FmtStep` remains exactly 8 B.
 - D019: one pool-backed runtime `FmtSong`.
-- D020–D026: completed Phase 2 transport/editor/display semantics remain regression requirements.
-- D027: stable one-byte semantic parameter identity and namespaces.
-- Preserve the frozen host WAV unless a later intentional audio change records a superseding decision/test.
-- No floating point in firmware DSP and no runtime 64-bit division.
+- D020–D026: completed Phase 2 timing/editor/display semantics remain regression requirements.
+- D027: stable one-byte parameter identity.
+- D028: 2,048-record owner-checked global sparse lock pool, max four per step.
+- Preserve the frozen WAV unless a deliberate later audio change records a superseding decision/test.
+- No float in firmware DSP and no runtime 64-bit division.
 
 ## Product direction that must not be lost
 
-`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction. WP3.2 stores ordinary per-step track-owned locks only. It must not silently define GLOBAL/master automation ownership or live-capture storage.
+`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction. Current Phase 3 storage/editor work is track/step-owned. Do not silently force future GLOBAL/master automation into D028 track lock ownership.
 
 ## Hardware limitation still open
 
@@ -179,15 +171,16 @@ No physical FM-1 is currently available. Host/device-build verification does not
 
 ## Exact next action
 
-Record D028 and correct the lock-capacity arithmetic/wording in `DATA_MODEL_V0.1.md`. Only after that checkpoint may `fmt_lock_store` source be created. Do not begin WP3.3.
+Start WP3.3 / issue #22 as its own package. Verify actual branch HEAD, mark WP3.3 IN PROGRESS with that start head, then freeze the editor gesture/value contract before source. Do not begin WP3.4.
 
 ## Last relevant checkpoints
 
 - Phase 2 verified implementation/workflow: `7063be51e53c2657178084b3bef5ace813dafcd7`
 - Phase 3 branch start: `c3693d8c7bb3d5306794aa232d6d25bef50c6c99`
-- WP3.1 verified source/workflow: `5af8065a9c98884d22682075b600d9790cfa7940`
-- WP3.2 start head: `dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e`
+- WP3.1 verified: `5af8065a9c98884d22682075b600d9790cfa7940`
+- WP3.2 verified: `da2f5afe9b1da6defc3857b91f52b40d7525f33b`
+- WP3.2 final run: `40038453521`
 
 ## Last updated
 
-2026-10-24 — WP3.2 / issue #21 marked IN PROGRESS at `dc0f4280...`. D028 must be frozen before lock-storage source implementation.
+2026-10-24 — WP3.2 verified complete. WP3.3 / issue #22 is READY TO START; no WP3.3 source exists.
