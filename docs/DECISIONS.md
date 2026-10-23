@@ -295,3 +295,32 @@ A successful write targets pattern 0, the current D023 selected track and the cu
 **Reason:** The existing WP2.4 proof lane auto-starts the D020 transport, so WP2.7 needs an explicit stop/resume gesture before the documented stopped-transport STEP REC workflow can be real. Reusing PLAY and the existing D020 stop/resume semantics keeps that addition minimal. A one-note latch gives deterministic behavior for both simultaneous and staggered chord-like presses, while auditioning remains musical. Writing only the note byte preserves the frozen V0.1 step defaults and avoids inventing instrument/volume semantics before their dedicated editor work.
 
 **Consequence:** WP2.7 must add a small bounded editor state, exact cursor-advance support, host tests for REC/PLAY/context gating, lowest-note chord selection, gesture latching, exact target isolation, field preservation and `63 -> 0` wrap, plus full prior regression/device/resource verification. The default WP2.4 proof playback and host WAV must remain unchanged when no WP2.7 controls are used. Physical chord-entry feel remains provisional until Phase 7.
+
+## D025 — WP2.8 gives REST, TIE and NOTE OFF distinct editor and playback semantics
+
+Date: 2026-10-23  
+Status: accepted for the WP2.8 prototype; physical gesture ergonomics remain provisional
+
+**Decision:** WP2.8 keeps the frozen special note bytes from D018 and assigns them explicit STEP REC and one-lane playback meaning without changing the 8-byte `FmtStep` layout.
+
+Editor gestures while D024 STEP REC is active and transport is stopped are:
+
+- **REST / EMPTY:** press and release `FX` without using its modifier action. The implementation defers the REST write until `FX` release so a NOTE OFF combination cannot accidentally write REST first.
+- **TIE:** press `SELECT` while `FX` is not pending/held.
+- **NOTE OFF:** hold `FX`, then press `SELECT`. This confirms the existing provisional `FX + SELECT` direction with an explicit modifier-first order. The NOTE OFF write happens on the `SELECT` press and cancels the pending REST; releasing `FX` afterward must not write another event.
+
+All three successful special-event edits target pattern 0, the currently selected logical track and current global step. They change **only** `FmtStep.note`, respectively to `FMT_NOTE_EMPTY`, `FMT_NOTE_TIE` or `FMT_NOTE_OFF`; instrument, volume, effect, effect value, flags and lock-head are preserved. Every successful special-event write advances exactly one global step modulo 64 with the same `63 -> 0` rule as D024. They require active STEP REC, a stopped transport, valid cursor/track state and an unlatched D024 write gesture. A successful special event participates in the D024 gesture latch so a simultaneous note-key down cannot also write a second row; the existing all-note-keys-released rule clears the latch. Leaving STEP REC through REC, HOME or PLAY cancels any pending `FX` REST without writing it.
+
+Playback keeps the existing 4-byte `FmtPlaybackEvent` size but replaces the WP2.4 boolean note flag with an explicit bounded event kind: `NONE`, `NOTE`, `TIE` or `OFF`. At each D021 row boundary:
+
+- ordinary note `0..127` emits `NOTE` with that pitch;
+- `FMT_NOTE_EMPTY` emits `NONE`: no pitch or gate command is sent, so the current engine/voice state continues naturally;
+- `FMT_NOTE_TIE` emits `TIE`: do not retrigger or change pitch; if a note is currently gated, keep that gate active through the row. A TIE with no active note does not resurrect a stale pitch;
+- `FMT_NOTE_OFF` emits `OFF`: release the currently gated proof voice without interpreting `0xFE` as pitch;
+- malformed/reserved non-note values emit `NONE` safely.
+
+For the current proof sine, `NOTE` sets pitch and the existing target level, `TIE` preserves the active gate/pitch without retrigger, `OFF` moves the gate target to zero and uses a bounded click-safe release, and `EMPTY` leaves the voice untouched. The default WP2.4 proof pattern contains no TIE/OFF rows, so its frozen WAV hash must remain byte-identical. D021 frame ordering is unchanged: a special event decoded at a crossed boundary applies beginning with the next rendered frame.
+
+**Reason:** REST, TIE and NOTE OFF need different musical intent even when a minimal sustained proof oscillator can make EMPTY and TIE sound similar in some cases. EMPTY means no row command, TIE explicitly means continue an already gated note without retrigger, and OFF explicitly releases it. Keeping edits note-byte-only preserves future effects/p-locks on otherwise note-empty rows. Delaying REST until `FX` release makes the provisional `FX + SELECT` NOTE OFF gesture deterministic without timing races, while direct `SELECT` gives TIE a fast one-button action in STEP REC.
+
+**Consequence:** WP2.8 must host-test all three edit gestures, field/neighbor preservation, modifier ordering, cancellation on mode exit, latch interaction, exact one-step advance including `63 -> 0`, and rejection outside stopped STEP REC. Playback tests must prove exact `NONE/NOTE/TIE/OFF` decoding at D020/D021 boundaries, safe malformed values and no raw sentinel pitch. The full-app proof voice must audibly release on OFF while the default frozen WP2.4 WAV remains unchanged. No tracker screen, general multitrack playback, p-lock implementation or engine work enters WP2.8.
