@@ -1,0 +1,75 @@
+name: WP3.1 parameter registry verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/wp3_1_param_registry_verify.yml
+      - firmware/src/fmt_param_registry.h
+      - firmware/src/fmt_param_registry.c
+      - tests/test_fmt_param_registry.c
+      - tests/run_param_registry_tests.sh
+      - docs/PROJECT_STATE.md
+      - docs/DECISIONS.md
+      - docs/DATA_MODEL_V0.1.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  param-registry-focused:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify focused WP3.1 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=c3693d8c7bb3d5306794aa232d6d25bef50c6c99
+          python3 - <<'PY'
+          import subprocess
+          base = 'c3693d8c7bb3d5306794aa232d6d25bef50c6c99'
+          allowed = {
+              '.github/workflows/wp3_1_param_registry_verify.yml',
+              'docs/PROJECT_STATE.md',
+              'docs/DECISIONS.md',
+              'docs/DATA_MODEL_V0.1.md',
+              'firmware/src/fmt_param_registry.h',
+              'firmware/src/fmt_param_registry.c',
+              'tests/test_fmt_param_registry.c',
+              'tests/run_param_registry_tests.sh',
+          }
+          changed = set(subprocess.check_output(
+              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
+          ).splitlines())
+          unexpected = sorted(changed - allowed)
+          assert not unexpected, unexpected
+          print('WP3_1_FOCUSED_SCOPE_OK=1')
+          PY
+
+      - name: Run exhaustive parameter registry tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_param_registry_tests.sh | tee build/wp3_1_param_registry_tests.log
+          grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1' build/wp3_1_param_registry_tests.log
+          grep -F 'id_bytes=1 assigned=4 exhaustive_values=256 none=0x00 invalid=0xFF global_reserved=0xE0_0xEF' build/wp3_1_param_registry_tests.log
+
+      - name: Run inherited Phase 2 unit regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_model_tests.sh | grep -F 'FMT_MODEL_TESTS_OK=1'
+          sh tests/run_store_tests.sh | grep -F 'FMT_STORE_TESTS_OK=1'
+          sh tests/run_transport_tests.sh | grep -F 'FMT_TRANSPORT_TESTS_OK=1'
+          sh tests/run_playback_tests.sh | grep -F 'FMT_PLAYBACK_TESTS_OK=1'
+          sh tests/run_pattern_input_tests.sh | grep -F 'FMT_PATTERN_INPUT_TESTS_OK=1'
+          sh tests/run_step_record_tests.sh | grep -F 'FMT_STEP_RECORD_TESTS_OK=1'
+          sh tests/run_tracker_screen_tests.sh | grep -F 'FMT_TRACKER_SCREEN_TESTS_OK=1'
+          echo 'WP3_1_PHASE2_UNIT_REGRESSIONS_OK=1'
