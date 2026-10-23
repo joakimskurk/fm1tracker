@@ -12,7 +12,7 @@
  * tests/host.c runs this file on a computer: the screen as a PNG, the sound as a WAV.
  * What platform.c offers: docs/API.md. The chip's rules: docs/RULES.md. */
 #include "platform.c"
-#include "fmt_model.h"                         /* WP2.1 types/assertions only; no storage or behavior yet */
+#include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 
 /* ---- the sound (runs in the audio ISR: keep it short, no flash, no screen) */
 #define NV 4u                                   /* voices */
@@ -143,6 +143,8 @@ static void app_main(void)
     uint32_t prev = 0, k, t_change = 0, dirty = 0, lit_drawn = ~0u, note_drawn = ~0u;
     int32_t oct_drawn = 99;
     uint8_t held[27] = {0};                     /* the note each key plays */
+
+    fmt_store_reset();                          /* WP2.2: deterministic empty 16-pattern tracker store */
     settings_load(&set, sizeof set);
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
 
