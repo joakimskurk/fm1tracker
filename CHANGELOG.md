@@ -2,7 +2,7 @@
 
 Git remains the detailed history. This file records milestone-level changes only.
 
-## 2026-10-23 - Phase 0 and early Phase 1
+## 2026-10-23 - Phase 0 and Phase 1 baseline work
 
 ### Foundation complete
 
@@ -34,6 +34,18 @@ Git remains the detailed history. This file records milestone-level changes only
 - No physical FM-1 verification performed.
 - Detailed evidence: `docs/WP1_3_VERIFICATION.md`.
 
+### WP1.4 - FM1Tracker identity rename
+
+- Checked the current Firmware Hub identity list and selected fixed package identity `FM-1_987`.
+- Added `tools/build_fm1tracker.py` as an identity wrapper around the unchanged verified Dinghy build driver.
+- Routed `build.sh` through the FM1Tracker wrapper while preserving the existing toolchain/SDK gates.
+- Renamed host output artifacts to `fm1tracker*` and compiled visible app name `FM1TRACKER`.
+- Added a WP1.4 CI regression gate proving the protected Dinghy app/platform/HAL/loader/build-driver paths stayed unchanged.
+- Verified the FM1Tracker host screen identity and produced renamed host artifacts.
+- Verified the FM1Tracker WAV is bit-identical to the pristine WP1.3 WAV (`dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b`).
+- Full renamed device package build/resource capture remains WP1.5 and requires the external AC79 SDK checkout.
+- Detailed evidence: `docs/WP1_4_VERIFICATION.md`.
+
 ### Next
 
-WP1.4 - identity-only rename from Dinghy to FM1Tracker, beginning with a current collision check for the FM-1 package identity. No tracker behavior belongs in WP1.4.
+WP1.5 - renamed baseline verification and budget capture. No tracker implementation begins until Phase 1 is closed.
