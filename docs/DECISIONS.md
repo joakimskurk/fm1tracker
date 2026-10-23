@@ -339,3 +339,36 @@ The 240×240 tracker UI is tiled into ten bounded regions: one `240×64` header,
 **Reason:** A stable cursor-owned viewport preserves the direct physical relationship between the 16 step keys and the edit cursor while playback runs; following the playhead would make the editing surface move underneath the user. Eight rows leave enough 240×240 space for explicit context and readable tracker fields. Independent cursor/playhead markers avoid conflating editing with transport. The two-region limit turns redraw cost into a measurable bounded main-loop operation rather than a hidden full-screen refresh.
 
 **Consequence:** WP2.9 must unit-test all eight possible row windows, note/placeholder formatting, marker independence, read-only song access and dirty-mask drain behavior. Representative host screenshots must be deterministic and visually inspected. HOME behavior and all WP2.1–WP2.8 regressions, including the frozen default WAV, must remain unchanged. Device build/resource evidence must prove the presentation state stays <=64 B ordinary RAM, adds no pool allocation and does not alter HAL/loader/audio architecture. WP2.10 and Phase 3 remain out of scope.
+
+## D027 — WP3.1 freezes an 8-bit stable parameter-ID namespace before p-lock storage
+
+Date: 2026-10-23  
+Status: accepted
+
+**Decision:** `FmtParamId` is exactly one unsigned byte. Parameter identity is semantic and stable: it is never derived from an encoder number, UI page position, table index or compiler enum ordinal. `0x00` is `FMT_PARAM_NONE`, meaning no parameter and never a valid active p-lock target. `0xFF` is `FMT_PARAM_INVALID`, used for invalid/corrupt lookup results and never assignable.
+
+The V0.1 identity space is partitioned as follows:
+
+- `0x01..0x1F` — common voice parameters shared across compatible engines;
+- `0x20..0x5F` — 8-BIT engine-specific parameters;
+- `0x60..0x9F` — 16-BIT engine-specific parameters;
+- `0xA0..0xBF` — track/mixer parameters;
+- `0xC0..0xDF` — channel/send/effect parameters;
+- `0xE0..0xEF` — future GLOBAL/master parameter namespace, reserved and unassigned in WP3.1;
+- `0xF0..0xFE` — future/reserved and unassigned;
+- `0xFF` — INVALID.
+
+A namespace range does **not** make every byte in that range a valid parameter. Only IDs present in the authoritative registry are assigned/lockable. WP3.1 assigns only the minimum useful cross-phase set:
+
+- `0x01` — `FMT_PARAM_VOICE_LEVEL`;
+- `0x02` — `FMT_PARAM_PITCH_FINE`;
+- `0xA0` — `FMT_PARAM_TRACK_LEVEL`;
+- `0xA1` — `FMT_PARAM_TRACK_PAN`.
+
+Envelope parameters, oscillator/wavetable/noise controls, FM operator controls, send/effect controls and all GLOBAL/master parameters remain unassigned until their owning work packages establish real semantics. The `FmtStep.effect` tracker-command byte remains a separate identity domain; tracker effect command IDs are not allocated from `FmtParamId` merely because the effect may later expose lockable parameters.
+
+Registry labels/metadata are presentation/debug aids only. They are not persistence keys and may be refined without renumbering a semantic ID. Once an ID is used by a released project format or public interchange contract, it must never be recycled for unrelated meaning; any future incompatible change requires a new ID and migration rule. Reserving `0xE0..0xEF` for GLOBAL/master identity does not imply that per-step track p-lock storage may own global automation; global storage/ownership remains a separate future decision.
+
+**Reason:** One byte preserves the compact lock direction already anticipated by `DATA_MODEL_V0.1.md`, leaves large bounded namespaces for both engine families, and keeps lookup/event payloads cheap on the AC791N. Explicit NONE/INVALID values make zeroed/untrusted data safer. A separate GLOBAL namespace preserves the accepted live-performance vision without prematurely forcing master automation into track-owned locks.
+
+**Consequence:** WP3.1 implements one authoritative registry/API and exhaustively tests all 256 possible byte values for classification, assignment, uniqueness and safe lookup. WP3.2 may use `FmtParamId` when choosing the sparse lock record/allocator, but WP3.1 allocates no lock pool and changes no song layout. Later engine/effect packages may add IDs only inside their documented ranges and must update the registry/tests/decision history rather than scattering numeric literals.
