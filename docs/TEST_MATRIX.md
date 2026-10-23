@@ -56,10 +56,15 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Pattern store reset restores deterministic defaults | required | compile | n/a | ✅ WP2.2 |
 | Pattern store does not consume ordinary RAM | n/a | required | n/a | ✅ WP2.2 normal-RAM delta 0 B; pool delta +65,896 B |
 | WP2.2 host audio regression remains unchanged | required | required | n/a | ✅ exact Phase 1/WP2.1 WAV SHA-256 |
-| Pattern wrap is exactly 64 steps | required | required later | later | ⬜ WP2.3/WP2.4 |
+| Transport wraps exactly from step 63 to step 0 | required | required | later | ✅ WP2.3 run `39988630290` |
+| Integer clock has no cumulative interval-rounding drift | required | required | preferred | ✅ WP2.3 six one-hour reference runs + max-uint16 BPM test |
+| Transport reset/start/stop/resume state is deterministic | required | required | later | ✅ WP2.3 |
+| Bulk transport advance equals frame-by-frame timing | required | compile | n/a | ✅ WP2.3 representative BPM/frame matrix |
+| Firmware transport path avoids float, firmware 64-bit math and runtime division | inspect/test | required | n/a | ✅ WP2.3 scope/build gate |
+| Transport state is bounded ordinary RAM and does not grow pool | n/a | required | n/a | ✅ 8 B `.bss`, normal RAM +8 B, pool +0 B |
+| WP2.3 host audio remains unchanged while transport is stopped | required | required | n/a | ✅ exact baseline WAV SHA-256 |
+| Audible one-track 64-step pattern loops on transport boundaries | required | required | later | ⬜ WP2.4 |
 | Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ⬜ WP2.5 |
-| Integer clock has no cumulative drift over long run | required | required | preferred | ⬜ WP2.3 |
-| Transport reset/start/stop state deterministic | required | required | later | ⬜ WP2.3 |
 | STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
 | Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
 | REST creates empty step and advances once | required | required | required | ⬜ WP2.8 |
@@ -72,6 +77,8 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 WP2.1 compile-time-model evidence is recorded in `WP2_1_VERIFICATION.md`.
 
 WP2.2 pattern-store evidence is recorded in `WP2_2_VERIFICATION.md`. The full host/device verification run is `39986704633`; physical FM-1 behavior remains untested.
+
+WP2.3 transport evidence is recorded in `WP2_3_VERIFICATION.md`. The full host/device verification run is `39988630290`. Timing is verified mathematically/host-side and through the device build; physical callback execution time remains unmeasured.
 
 ## Phase 3 p-locks/effects
 
