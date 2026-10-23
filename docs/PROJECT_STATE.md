@@ -6,145 +6,149 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 ## Current phase
 
-**Phase 1 - clean Dinghy baseline**
+**Phase 2 - tracker core without synth ambition**
+
+State: **READY TO START**
+
+Phase 1 is complete. Phase 2 implementation has **not** started yet.
+
+Phase 2 parent issue: #8
 
 ## Current milestone
 
-**WP1.5 - renamed baseline verification and budget capture**
+**WP2.1 - compile-time tracker data model**
 
-State: **IN PROGRESS**
+State: **READY TO START**
 
-GitHub issue: #7
+GitHub issue: #9
 
-Working branch: `phase1/fm1tracker-identity`
+Current repository branch at Phase 1 closeout:
 
-WP1.5 start commit:
+`phase1/fm1tracker-identity`
 
-`57617e288972a476fd221ae379e7bb75853b7451`
+Before WP2.1 code changes, create/use a dedicated Phase 2 working branch from the completed Phase 1 head and mark WP2.1 `IN PROGRESS` here according to `EXECUTION_PROTOCOL.md`.
 
-## Current implementation state
+## Completed Phase 1 baseline
 
-WP1.1 through WP1.4 are complete. The repository contains the pinned Dinghy-derived FM-1 baseline from upstream commit `d44df7db09b98ccad2f1233b8f83f5f09c04829e` plus an identity-only FM1Tracker layer.
+Pinned Dinghy upstream:
 
-Current identity state:
+`d44df7db09b98ccad2f1233b8f83f5f09c04829e`
+
+FM1Tracker identity:
 
 - visible app name: `FM1TRACKER`;
 - fixed package identity: `FM-1_987`;
-- device build entry point: `build.sh` -> `tools/build_fm1tracker.py` -> unchanged Dinghy build driver;
 - host artifacts: `build/host/fm1tracker.wav` and `fm1tracker-*.png`;
-- WP1.4 host WAV is bit-identical to the pristine WP1.3 WAV;
-- protected app/platform/HAL/loader/build-driver implementation remained unchanged during WP1.4.
+- device artifacts: `build/fm1tracker.bin` and versioned `fm1tracker-*.fwsc`.
 
-No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine, 16-BIT FM4 engine or Furnace source has been added.
+Protected Dinghy app/platform/HAL/loader/build-driver implementation remained unchanged through Phase 1. The FM1Tracker identity is supplied by the thin wrapper/build layer introduced in WP1.4.
 
-## WP1.5 objective
+No tracker engine, transport, STEP REC implementation, p-lock editing, song mode, 8-BIT engine, 16-BIT FM4 engine or Furnace source has been added yet.
 
-Establish the clean renamed FM1Tracker baseline as the measurable reference that Phase 2 will build on.
+## Phase 1 verification baseline
 
-Required outputs:
+Final-current-workflow verification:
 
-1. confirm/reuse the renamed host verification;
-2. run the renamed firmware/package build and inherited safety checks if a legitimate external AC79 SDK checkout can be supplied;
-3. capture code size, normal RAM usage and pool RAM usage from the renamed device build when possible;
-4. capture baseline audio callback timing at the highest honest verification level available;
-5. update reproducible setup/build instructions;
-6. record unavailable measurements explicitly rather than substituting invented estimates.
+- GitHub Actions run: `39970562995`;
+- job: `120471807329`;
+- verified code/workflow commit: `14e57e071daa40ca09576c54720b384b6ada609b`;
+- result: **SUCCESS**.
 
-## WP1.5 non-goals
+External SDK build input:
 
-- no tracker/sequencer data structures;
+- official repository: `https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git`;
+- tag: `AC79NN_SDK_V1.2.1_2023-12-13`;
+- resolved commit: `d179b4484759423312073f5fbb232501aa491047`;
+- consumed SDK package inputs matched the frozen SHA-256 hashes in `THIRD_PARTY.md` / `WP1_5_VERIFICATION.md`;
+- SDK remains external and is not vendored into FM1Tracker.
+
+Verified clean renamed device baseline:
+
+| Resource | Used | Limit | Free |
+|---|---:|---:|---:|
+| app image | 55,088 B | 581,564 B | 526,476 B |
+| normal RAM (`.data + .bss`) | 12,368 B | 98,304 B | 85,936 B |
+| pool RAM | 30,720 B | 344,064 B | 313,344 B |
+
+Verified final artifacts:
+
+- `fm1tracker.bin` - 55,088 B - SHA-256 `7b313502f2ab222e6ecf19f970772a36f314bce7c880b505157d4d5a2e4dfbaf`;
+- `fm1tracker-0.1.fwsc` - 610,110 B - SHA-256 `a3afcc069e4a9fe161f8470f477a76720b411fc6f302ebcf862c272a9a683bc2`;
+- host WAV - SHA-256 `dac1695b8e69f26334d548005e6cae505cf39ace297dcf6a57338e70fc386b9b`, identical to the pristine WP1.3 baseline;
+- decoded package identity: `FM-1_987`.
+
+Inherited build safety checks pass, including image/RAM/pool limits, `.ram_text` call restriction and HAL-only direct register access.
+
+Nominal callback period:
+
+`256 / 44100 = 5.804988662 ms`
+
+This is the available callback period, **not measured firmware execution time**.
+
+Physical FM-1 install/boot/audio/panel/update behavior and actual callback execution time remain **NOT TESTED** because hardware is not currently available.
+
+Durable evidence:
+
+- `docs/WP1_3_VERIFICATION.md`
+- `docs/WP1_4_VERIFICATION.md`
+- `docs/WP1_5_VERIFICATION.md`
+- `docs/TEST_MATRIX.md`
+- `THIRD_PARTY.md`
+
+Phase 1 issues #2 through #7 are closed/completed.
+
+## WP2.1 objective
+
+Implement only the already-approved V0.1 compile-time tracker data model.
+
+Required deliverables:
+
+1. compile-time constants for 8 tracks, 64 steps/pattern, 16 patterns and max four p-locks/step;
+2. V0.1 song/pattern/track/step structures from `DATA_MODEL_V0.1.md`;
+3. bounds-safe accessors appropriate to this layer;
+4. static size/budget assertions;
+5. host tests for structure sizes, defaults and access bounds;
+6. host + device compile/build verification;
+7. measured image/RAM/pool delta against the Phase 1 baseline.
+
+## WP2.1 non-goals
+
 - no transport clock;
-- no STEP REC/REST implementation;
-- no p-lock implementation;
-- no 8-BIT or 16-BIT engine work;
-- no HAL/loader/rescue/USB redesign;
-- no vendoring or fabricating third-party SDK files merely to make CI green.
+- no playback scheduling;
+- no STEP REC or REST behavior;
+- no tracker UI;
+- no p-lock editing behavior beyond the already-approved storage representation;
+- no 8-BIT or FM4 synthesis work;
+- no HAL, loader, rescue/update or USB redesign;
+- no Furnace source import.
 
-## Files expected to change
-
-Only verification/setup/project-memory material unless a build-only fix is genuinely required:
-
-- `README.md` / setup documentation;
-- `docs/PROJECT_STATE.md`;
-- `docs/TEST_MATRIX.md`;
-- `docs/ROADMAP.md` / `docs/WORK_PACKAGES.md` at closeout;
-- a dedicated WP1.5 verification/budget record;
-- CI verification workflow if needed;
-- `THIRD_PARTY.md` only if external SDK provenance is clarified.
-
-The protected Dinghy app/platform/HAL/loader behavior should not change in WP1.5.
-
-## Required verification
-
-WP1.5 should capture, separately and honestly:
-
-- renamed host build/run status;
-- renamed device build status;
-- build safety-check status;
-- app image/code size;
-- normal `.data + .bss` RAM usage;
-- pool RAM usage;
-- baseline audio timing measurement or a precise statement of why hardware timing is unavailable;
-- physical FM-1 status;
-- exact external dependency/provenance for any SDK checkout used.
-
-## Existing verified evidence
-
-### WP1.3 pristine baseline
-
-Actions run `39958478536`:
-
-- pristine host build/run: PASS;
-- host audio/screen artifacts: PASS;
-- JieLi toolchain acquisition/execution: PASS;
-- full device build: blocked by missing external AC79 SDK checkout;
-- physical FM-1: not tested.
-
-### WP1.4 FM1Tracker identity
-
-Actions run `39969032366`:
-
-- protected baseline unchanged: PASS;
-- identity wrapper configuration: PASS;
-- FM1Tracker host build/run: PASS;
-- visible `FM1TRACKER` screen identity: PASS;
-- host audio bit-identical to WP1.3: PASS;
-- package identity `FM-1_987`: selected after live Firmware Hub collision check;
-- full renamed device build: not completed because the external AC79 SDK checkout remains unavailable.
-
-Exact evidence: `docs/WP1_3_VERIFICATION.md` and `docs/WP1_4_VERIFICATION.md`.
-
-## Active blocker to investigate first
-
-The pinned build expects a separately obtained JieLi SDK checkout:
-
-`AC79NN_SDK_V1.2.1_2023-12-13`
-
-Expected files/hashes are frozen in `docs/DINGHY_IMPORT_MANIFEST.md` and `THIRD_PARTY.md`.
-
-WP1.5 must first determine whether an exact, legitimate external source for that SDK is available in the current environment. Do not copy it into the FM1Tracker repository. If no trustworthy source is available, keep the blocker explicit and complete all remaining host/static measurements that are still meaningful.
+Do not begin WP2.2 in the same change.
 
 ## Important decisions / do not regress
 
 - D016: fixed package identity is `FM-1_987`; release version lives in `APP_VER` and artifact filenames.
-- D017: full renamed device build/resource capture belongs to WP1.5.
-- Do not modify proven HAL, loader, rescue/update or USB behavior without a separately justified need.
-- Keep the baseline sine/test-tone behavior unchanged through Phase 1.
-- Do not start tracker implementation before WP1.5 is complete or explicitly superseded by a recorded decision.
-- No Furnace source import without a fresh exact-file/license audit.
+- Preserve the Phase 1 host/device regression gates as tracker code is introduced.
+- Use the Phase 1 code/RAM/pool numbers above as the reference budget and record meaningful deltas.
+- Keep the baseline tone/platform behavior unchanged during WP2.1; this package is data-model only.
 - No floating point in FM-1 firmware DSP; avoid runtime 64-bit division.
+- V0.1 remains 8 tracks, 64 steps/pattern, 16 patterns, max four p-locks/step unless a superseding decision is recorded first.
+- STEP REC, REST and p-lock editing remain later bounded packages; do not pull them into WP2.1.
+- No Furnace source/core import without a fresh exact-file/license audit.
+- Physical hardware verification must remain distinct from host/device-build verification.
 
 ## Next recommended step
 
-Inspect the pinned Dinghy upstream documentation/history and current public sources for the exact AC79 SDK acquisition/provenance path. If an exact legitimate checkout can be used externally, wire it into a one-off/CI build without committing SDK material. If not, document the blocker and continue with host/static baseline measurements.
+Start a new dedicated Phase 2 branch from the completed Phase 1 head, set WP2.1 / issue #9 to `IN PROGRESS`, then inspect `docs/DATA_MODEL_V0.1.md` and the current build/test integration points before adding the smallest compile-time data-model implementation. Do not add transport, UI, STEP REC or synth behavior in that work package.
 
-## Last relevant commits
+## Last relevant checkpoints
 
 - pristine code verification target: `21cb59ee455205a8243fee381e24eda517da2c23`
 - WP1.4 branch start: `ff0a095b2384532f19724204b9059e88aac5a52c`
 - WP1.4 verified implementation: `78a8f70879a2daec1ad5f99f95fbe5cfbdd5bba3`
 - WP1.5 start: `57617e288972a476fd221ae379e7bb75853b7451`
+- WP1.5 final-current-workflow verified code/workflow: `14e57e071daa40ca09576c54720b384b6ada609b`
+- WP1.5 final Actions run: `39970562995`
 
 ## Last updated
 
-2026-10-23 - WP1.5 started. First task is external SDK provenance/build-environment audit; no tracker implementation is permitted.
+2026-10-23 - WP1.5 and Phase 1 completed. Phase 2 / WP2.1 is prepared but not started; no tracker implementation has been written yet.
