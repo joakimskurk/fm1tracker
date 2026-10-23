@@ -19,8 +19,9 @@ jobs:
           fetch-depth: 0
 
       - name: Close WP1.2 and activate WP1.3
-        shell: python
+        shell: bash
         run: |
+          python3 - <<'PY'
           from pathlib import Path
 
           def replace(path, old, new):
@@ -135,7 +136,6 @@ Potential device-build/environment blockers:
 '''
           Path("docs/PROJECT_STATE.md").write_text(project_state)
 
-          # One-shot helpers must not remain in the project tree.
           for helper in (
               ".github/workflows/wp1_2_pristine_import.yml",
               ".github/workflows/wp1_2_closeout.yml",
@@ -143,6 +143,7 @@ Potential device-build/environment blockers:
               p = Path(helper)
               if p.exists():
                   p.unlink()
+          PY
 
       - name: Commit closeout
         shell: bash
