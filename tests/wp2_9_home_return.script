@@ -1,0 +1,4 @@
+# Enter tracker context, let its bounded regions render, then return HOME.
+100 btn 11
+500 btn 8
+3100 end
