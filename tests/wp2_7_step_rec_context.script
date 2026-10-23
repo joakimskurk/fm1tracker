@@ -1,0 +1,43 @@
+# REC while the default proof transport is running must be ignored.
+100 btn 13
+150 keys 1
+200 keys 0
+
+# Stop transport, wait for the audio-side stopped acknowledgement, then enter STEP REC.
+250 btn 12
+350 btn 13
+
+# In STEP REC OCT+ changes pitch octave, not the 16-step page.
+400 btn 1
+
+# Simultaneous white-key downs audition both notes; D024 writes only the lowest
+# pitch internally and latches the write gesture until all note keys release.
+450 keys 5
+500 keys 0
+
+# A new fully released gesture auditions/writes the next step.
+550 keys 8
+600 keys 0
+
+# PLAY while STEP REC is active exits STEP REC before resuming transport.
+650 btn 12
+700 keys 1
+750 keys 0
+
+# HOME restores normal PERFORMANCE audition at the STEP REC octave.
+800 btn 8
+850 keys 1
+900 keys 0
+
+# Stop again, enter and leave STEP REC with REC, then prove REC exit remains SEQ.
+950 btn 12
+1050 btn 13
+1100 btn 13
+1150 keys 1
+1200 keys 0
+
+# HOME returns to performance once more.
+1250 btn 8
+1300 keys 1
+1350 keys 0
+1450 end
