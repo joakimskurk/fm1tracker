@@ -176,3 +176,14 @@ Status: accepted
 **Reason:** The project must survive new chats, long pauses and handoffs without reconstructing intent from memory.
 
 **Consequence:** `PROJECT_STATE.md` is updated as execution changes; architectural deviations are recorded here.
+
+## D016 — fixed FM1Tracker package identity
+
+Date: 2026-10-23  
+Status: accepted
+
+**Decision:** FM1Tracker uses the fixed package/device identity `FM-1_987` across releases. Release version remains in `APP_VER` and artifact filenames rather than changing the package identity.
+
+**Reason:** The Firmware Hub live identity table was checked on 2026-10-23 and did not list `FM-1_987`. Keeping the identity in the `FM-1_9NN` form also preserves the existing Felucca/Dinghy interrupted-update/resume assumptions, whereas a longer project/version identity would change that behavior in the current updater tooling.
+
+**Consequence:** `tools/build.py` must not derive the product identity from the release version. Future releases keep `FM-1_987` unless a documented collision forces a superseding decision. Before any public release, re-check the live Firmware Hub identity table.
