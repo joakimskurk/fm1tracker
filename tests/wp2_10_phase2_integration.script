@@ -1,0 +1,182 @@
+# WP2.10 full-app Phase 2 integration scenario
+100 btn 11  # SEQ
+
+# Traverse page 1/4
+110 keys 0x1
+111 keys 0
+112 keys 0x4
+113 keys 0
+114 keys 0x10
+115 keys 0
+116 keys 0x40
+117 keys 0
+118 keys 0x80
+119 keys 0
+120 keys 0x200
+121 keys 0
+122 keys 0x800
+123 keys 0
+124 keys 0x1000
+125 keys 0
+126 keys 0x4000
+127 keys 0
+128 keys 0x10000
+129 keys 0
+130 keys 0x40000
+131 keys 0
+132 keys 0x80000
+133 keys 0
+134 keys 0x200000
+135 keys 0
+136 keys 0x800000
+137 keys 0
+138 keys 0x1000000
+139 keys 0
+140 keys 0x4000000
+141 keys 0
+142 btn 1  # OCT+ = next page
+
+# Traverse page 2/4
+144 keys 0x1
+145 keys 0
+146 keys 0x4
+147 keys 0
+148 keys 0x10
+149 keys 0
+150 keys 0x40
+151 keys 0
+152 keys 0x80
+153 keys 0
+154 keys 0x200
+155 keys 0
+156 keys 0x800
+157 keys 0
+158 keys 0x1000
+159 keys 0
+160 keys 0x4000
+161 keys 0
+162 keys 0x10000
+163 keys 0
+164 keys 0x40000
+165 keys 0
+166 keys 0x80000
+167 keys 0
+168 keys 0x200000
+169 keys 0
+170 keys 0x800000
+171 keys 0
+172 keys 0x1000000
+173 keys 0
+174 keys 0x4000000
+175 keys 0
+176 btn 1  # OCT+ = next page
+
+# Traverse page 3/4
+178 keys 0x1
+179 keys 0
+180 keys 0x4
+181 keys 0
+182 keys 0x10
+183 keys 0
+184 keys 0x40
+185 keys 0
+186 keys 0x80
+187 keys 0
+188 keys 0x200
+189 keys 0
+190 keys 0x800
+191 keys 0
+192 keys 0x1000
+193 keys 0
+194 keys 0x4000
+195 keys 0
+196 keys 0x10000
+197 keys 0
+198 keys 0x40000
+199 keys 0
+200 keys 0x80000
+201 keys 0
+202 keys 0x200000
+203 keys 0
+204 keys 0x800000
+205 keys 0
+206 keys 0x1000000
+207 keys 0
+208 keys 0x4000000
+209 keys 0
+210 btn 1  # OCT+ = next page
+
+# Traverse page 4/4
+212 keys 0x1
+213 keys 0
+214 keys 0x4
+215 keys 0
+216 keys 0x10
+217 keys 0
+218 keys 0x40
+219 keys 0
+220 keys 0x80
+221 keys 0
+222 keys 0x200
+223 keys 0
+224 keys 0x800
+225 keys 0
+226 keys 0x1000
+227 keys 0
+228 keys 0x4000
+229 keys 0
+230 keys 0x10000
+231 keys 0
+232 keys 0x40000
+233 keys 0
+234 keys 0x80000
+235 keys 0
+236 keys 0x200000
+237 keys 0
+238 keys 0x800000
+239 keys 0
+240 keys 0x1000000
+241 keys 0
+242 keys 0x4000000
+243 keys 0
+
+# Direct black-key track selection: physical index 17 -> logical track 7 / UI T8.
+245 keys 0x20000
+246 keys 0
+
+# Stop the auto-started proof transport and wait for audio-side stopped ack.
+250 btn 12
+270 btn 13  # STEP REC
+
+# Step 64 -> 1 wrap, then another ordinary note at step 1.
+280 keys 0x1
+281 keys 0
+290 keys 0x4
+291 keys 0
+300 btn 13  # leave STEP REC, remain SEQ
+
+# Select step 16, then STEP REC note entry must advance 16 -> 17 / page 2.
+310 keys 0x4000000
+311 keys 0
+320 btn 13
+330 keys 0x80
+331 keys 0
+
+# D025 special-event grammar on visible page-2 rows.
+340 btndown 2
+341 btnup 2    # REST at step 17
+350 btn 3      # TIE at step 18
+360 btndown 2
+361 btn 3      # OFF at step 19
+362 btnup 2    # must not add REST
+370 keys 0x800 # E4 / MIDI 64 at step 20
+371 keys 0
+
+# PLAY while STEP REC is active exits STEP REC before resuming playback.
+500 btn 12
+
+# Built-in host shot at 1000 ms captures the integrated tracker state.
+1100 btn 8  # HOME
+
+# Built-in host shot at 3000 ms captures HOME after the complete workflow.
+3200 end
