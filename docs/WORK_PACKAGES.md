@@ -160,12 +160,60 @@ Evidence: `WP2_1_VERIFICATION.md`.
 
 **Goal:** allocate pattern/song state in the intended memory region and make all pattern/track/step access deterministic and bounds-safe at runtime.
 
-Status: **READY TO START**
+Deliverables:
+- exactly one runtime `FmtSong` backing store;
+- store placed in the linker `.pool` region rather than ordinary `.bss`;
+- deterministic explicit initialization/reset of every step to the WP2.1 empty/inherit/no-lock sentinels;
+- narrow bounds-safe song/pattern/step store API;
+- host tests for all defaults, valid boundaries, out-of-range rejection, mutation isolation and reset;
+- device symbol/address inspection plus actual image/RAM/pool delta.
 
-Do not begin until WP2.1 closeout is accepted as the branch checkpoint. WP2.2 must remain a separate change/package.
+Exit:
+- all 8,192 steps initialize deterministically;
+- first/last valid accesses work and every out-of-range dimension is rejected safely;
+- reset after mutation restores defaults;
+- linked device symbol proves the store is in `.pool`;
+- host audio remains unchanged;
+- build/safety gates remain green;
+- normal RAM does not absorb the song store.
+
+Status: **COMPLETE — 2026-10-23**
+
+Verified result:
+- one 65,896-byte `FmtSong` is linked at `.pool` address `0x01C20000`;
+- all 8,192 steps are explicitly initialized to tracker sentinels;
+- store bounds, mapping, mutation isolation and reset are host-tested;
+- host WAV remains byte-identical to Phase 1/WP2.1;
+- device build/package identity and inherited safety checks pass;
+- app image: 55,188 B (**+100 B** vs WP2.1);
+- normal RAM: 12,368 B (**0 B delta**);
+- pool RAM: 96,616 B (**+65,896 B**, exactly `sizeof(FmtSong)`);
+- remaining physical pool: 247,448 B;
+- no transport/playback/editor/UI/p-lock/synth/persistence behavior added.
+
+Evidence: `WP2_2_VERIFICATION.md`.
 
 ## WP2.3 — integer transport clock
-Implement deterministic step clock and host tests for wrap/drift.
+
+**Goal:** implement deterministic integer/fixed-point transport timing for the V0.1 1/16-note grid without audible playback or editor/UI behavior.
+
+Required direction:
+- advance against the 44.1 kHz frame domain;
+- use an accumulated remainder/error rather than repeatedly rounding a samples-per-step interval;
+- make stopped/reset/start state deterministic;
+- wrap exactly from step 63 to step 0;
+- host-test representative BPM values and long-run timing error/drift;
+- preserve WP2.2 store and host/device regression gates.
+
+Non-goals:
+- no audible note/voice triggering;
+- no sequencer-to-audio event dispatch;
+- no STEP REC/REST/TIE/NOTE-OFF editing;
+- no page/track UI or tracker screen;
+- no swing/polymeter/general microtiming;
+- no p-lock/synth/persistence work.
+
+Status: **READY TO START** — GitHub issue #11
 
 ## WP2.4 — one-track audible playback
 Use the simplest baseline tone to prove note events and 64-step looping.
