@@ -68,7 +68,7 @@ Phase 1 exit criteria are satisfied at the host/firmware-build level. Physical F
 
 Goal: prove editing and transport with the simplest possible tone source.
 
-Status: **IN PROGRESS — WP2.1 through WP2.4 complete; WP2.5 is next**
+Status: **IN PROGRESS — WP2.1 through WP2.5 complete; WP2.6 is next**
 
 Tasks:
 
@@ -76,25 +76,27 @@ Tasks:
 2. ✅ WP2.2 — one actual 65,896 B `FmtSong` in `.pool`, explicit initialization of all 8,192 steps, runtime bounds/reset tests and measured resource delta. Evidence: `WP2_2_VERIFICATION.md`.
 3. ✅ WP2.3 — exact integer/fixed-point transport clock in the 44.1 kHz frame domain, deterministic 0..63 wrap, reset/start/stop/resume semantics and long-run no-drift verification. Evidence: `WP2_3_VERIFICATION.md`.
 4. ✅ WP2.4 — deterministic one-track audible playback with exact sub-block row timing, frame-0 step dispatch and exact 64-step loop. Evidence: `WP2_4_VERIFICATION.md`.
-5. ⬜ WP2.5 — white-key 16-step page input across four pages. Issue #13 is READY TO START; no implementation yet.
-6. ⬜ WP2.6 — provisional track-selection prototype.
+5. ✅ WP2.5 — D022 SEQ-context white-key 16-step page input across four clamped pages, with no song mutation and frozen audible playback preserved. Evidence: `WP2_5_VERIFICATION.md`.
+6. ⬜ WP2.6 — provisional black-key track-selection prototype. Issue #14 is READY TO START; no implementation yet.
 7. ⬜ WP2.7 — STEP REC note entry.
 8. ⬜ WP2.8 — REST / TIE / NOTE-OFF semantics.
 9. ⬜ WP2.9 — compact tracker screen with bounded/dirty rendering.
 10. ⬜ WP2.10 — Phase 2 integration test: enter and play a complete 64-step melody without a computer.
 
-Current verified Phase 2 runtime baseline after WP2.4:
+Current verified Phase 2 runtime baseline after WP2.5:
 
-- app image: 55,692 B / 581,564 B;
-- normal RAM: 12,396 B / 98,304 B;
+- app image: 55,980 B / 581,564 B;
+- normal RAM: 12,400 B / 98,304 B;
 - pool RAM: 96,616 B / 344,064 B;
 - `FmtSong` store: 65,896 B at `.pool` address `0x01C20000`;
-- `FmtTransport`: 8 B at `.bss` address `0x01C0B060`;
-- `FmtPlayback`: 1 B at `.bss` address `0x01C0B068`;
+- `FmtPatternInput`: 3 B at `.bss` address `0x01C0B060`;
+- `FmtTransport`: 8 B at `.bss` address `0x01C0B064`;
+- `FmtPlayback`: 1 B at `.bss` address `0x01C0B06C`;
+- four page × sixteen local positions cover all 64 pattern steps exactly;
 - transport phase threshold: 661,500;
 - deterministic 120 BPM full-pattern loop: 352,800 frames;
-- deterministic audible host WAV SHA-256: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
-- physical FM-1 audio and actual callback execution time remain unverified.
+- deterministic audible host WAV SHA-256 remains `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`;
+- physical FM-1 key/page ergonomics, audio behavior and actual callback execution time remain unverified.
 
 Exit criteria:
 
