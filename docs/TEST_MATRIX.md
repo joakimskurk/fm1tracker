@@ -75,18 +75,25 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ✅ WP2.5 run `39994230797`; global indexes 0..63 exactly once |
 | Exactly 16 physical white keys map bijectively to local steps 0..15 | required | compile | required | ✅ WP2.5 all 27 key indexes classified |
 | SEQ context consumes white-key step selection without note audition | required | compile | required | ✅ WP2.5 host gesture test |
-| Black keys cannot move the step cursor before WP2.6 | required | compile | n/a | ✅ WP2.5 |
 | Page navigation clamps at first/last page and preserves local step | required | compile | required | ✅ WP2.5 D022 |
 | Step/page selection cannot mutate `FmtSong` | required | compile | n/a | ✅ WP2.5 byte-for-byte song snapshot |
-| Performance note release remains safe across SEQ context change | required | compile | required | ✅ WP2.5 held-note host gesture test |
+| Performance note release remains safe across SEQ context change | required | compile | required | ✅ WP2.5 and WP2.6 held-note host gesture tests |
 | WP2.5 preserves frozen WP2.4 audible output | required | required | n/a | ✅ exact WAV SHA-256 unchanged |
 | WP2.5 resource delta recorded | n/a | required | n/a | ✅ +288 B image, +4 B normal RAM, +0 B pool |
+| Eight physical black keys map bijectively to logical tracks 0..7 | required | compile | required | ✅ WP2.6 run `39995856373` |
+| Reserved black keys cannot select an unintended track | required | compile | required | ✅ WP2.6 indexes 20,22,25 rejected |
+| Track selection acts only in SEQ; black keys still audition in PERFORMANCE | required | compile | required | ✅ WP2.6 host gesture test |
+| Track changes preserve page/local/global step and selected track survives context changes | required | compile | required | ✅ WP2.6 D023 tests |
+| White-key/page navigation preserves selected track | required | compile | n/a | ✅ WP2.6 regression tests |
+| Track selection cannot mutate `FmtSong` | required | compile | n/a | ✅ WP2.6 byte-identical full-song snapshot |
+| WP2.6 preserves frozen WP2.4 audible output | required | required | n/a | ✅ exact WAV SHA-256 unchanged |
+| WP2.6 resource delta recorded | n/a | required | n/a | ✅ +80 B image, +0 B normal RAM, +0 B pool |
 | STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
 | Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
+| STEP REC honors selected track and never writes previous track accidentally | required | required | required | ⬜ WP2.7 |
 | REST creates empty step and advances once | required | required | required | ⬜ WP2.8 |
 | TIE semantics deterministic | required | required | required | ⬜ WP2.8 |
 | NOTE OFF semantics deterministic | required | required | required | ⬜ WP2.8 |
-| Track switch never writes previous track accidentally | required | required | required | ⬜ WP2.6/integration |
 | Edit while stopped is deterministic | required | required | required | ⬜ later Phase 2 |
 | Tracker display uses bounded/dirty redraw | inspect/test | required | required | ⬜ WP2.9 |
 
@@ -99,6 +106,8 @@ WP2.3 transport evidence is recorded in `WP2_3_VERIFICATION.md`. The full host/d
 WP2.4 audible-playback evidence is recorded in `WP2_4_VERIFICATION.md`. The final host/device verification run is `39991490860`; physical FM-1 audio and callback execution time remain unverified.
 
 WP2.5 page-input evidence is recorded in `WP2_5_VERIFICATION.md`. The final host/device verification run is `39994230797`. Mapping/context/store-integrity are verified host-side and through the device build; physical key/page ergonomics remain unverified.
+
+WP2.6 track-selection evidence is recorded in `WP2_6_VERIFICATION.md`. The final host/device verification run is `39995856373`. Black-key mapping/context/store-integrity are verified host-side and through the device build; physical black-key ergonomics remain unverified.
 
 ## Phase 3 p-locks/effects
 
