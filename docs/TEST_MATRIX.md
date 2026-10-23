@@ -72,7 +72,15 @@ WP1.5 final renamed device-build/resource evidence is recorded in `WP1_5_VERIFIC
 | Tracker audio exists before simulated manual audition input | required | n/a | n/a | ✅ first 100 ms contains 8,820 non-zero stereo samples |
 | Continuous tracker playback cannot trigger inherited flash erase via `quiet()` | inspect/host behavior | compile | preferred | ✅ WP2.4 counts proof lane as sounding; settings write deferred |
 | WP2.4 resource delta recorded | n/a | required | n/a | ✅ +364 B image, +20 B normal RAM, +0 B pool |
-| Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ⬜ WP2.5 |
+| Four 16-step pages map to 1–64 without overlap/gaps | required | compile | required | ✅ WP2.5 run `39994230797`; global indexes 0..63 exactly once |
+| Exactly 16 physical white keys map bijectively to local steps 0..15 | required | compile | required | ✅ WP2.5 all 27 key indexes classified |
+| SEQ context consumes white-key step selection without note audition | required | compile | required | ✅ WP2.5 host gesture test |
+| Black keys cannot move the step cursor before WP2.6 | required | compile | n/a | ✅ WP2.5 |
+| Page navigation clamps at first/last page and preserves local step | required | compile | required | ✅ WP2.5 D022 |
+| Step/page selection cannot mutate `FmtSong` | required | compile | n/a | ✅ WP2.5 byte-for-byte song snapshot |
+| Performance note release remains safe across SEQ context change | required | compile | required | ✅ WP2.5 held-note host gesture test |
+| WP2.5 preserves frozen WP2.4 audible output | required | required | n/a | ✅ exact WAV SHA-256 unchanged |
+| WP2.5 resource delta recorded | n/a | required | n/a | ✅ +288 B image, +4 B normal RAM, +0 B pool |
 | STEP REC inserts note at cursor | required | required | required | ⬜ WP2.7 |
 | Note entry advances exactly one logical step | required | required | required | ⬜ WP2.7 |
 | REST creates empty step and advances once | required | required | required | ⬜ WP2.8 |
@@ -89,6 +97,8 @@ WP2.2 pattern-store evidence is recorded in `WP2_2_VERIFICATION.md`. The full ho
 WP2.3 transport evidence is recorded in `WP2_3_VERIFICATION.md`. The full host/device verification run is `39988630290`. Timing is verified mathematically/host-side and through the device build; physical callback execution time remains unmeasured.
 
 WP2.4 audible-playback evidence is recorded in `WP2_4_VERIFICATION.md`. The final host/device verification run is `39991490860`; physical FM-1 audio and callback execution time remain unverified.
+
+WP2.5 page-input evidence is recorded in `WP2_5_VERIFICATION.md`. The final host/device verification run is `39994230797`. Mapping/context/store-integrity are verified host-side and through the device build; physical key/page ergonomics remain unverified.
 
 ## Phase 3 p-locks/effects
 
