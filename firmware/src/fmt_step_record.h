@@ -30,11 +30,21 @@ void fmt_step_record_release_gesture(FmtStepRecord *record);
  * ignored. Output is reset to 0 on rejection. */
 int fmt_step_record_lowest_key(uint32_t down_mask, uint8_t *key_index);
 
-/* D024 note-only write. Returns 1 only when exactly one note byte was written
- * and the cursor advanced one global step. No other FmtStep field is touched. */
+/* D024 ordinary-note write. Returns 1 only when exactly one note byte was
+ * written and the cursor advanced one global step. No other FmtStep field is
+ * touched. Special sentinel values are rejected here. */
 int fmt_step_record_write_note(FmtStepRecord *record,
                                FmtPatternInput *input,
                                const FmtTransport *transport,
                                uint32_t note);
+
+/* D025 special-note write. `special_note` must be exactly EMPTY, TIE or OFF.
+ * The same stopped-transport/context/latch gate as ordinary note entry applies.
+ * A successful special write mutates only FmtStep.note, advances exactly one
+ * global step modulo 64 and latches the gesture against a same-poll note write. */
+int fmt_step_record_write_special(FmtStepRecord *record,
+                                  FmtPatternInput *input,
+                                  const FmtTransport *transport,
+                                  uint32_t special_note);
 
 #endif /* FM1TRACKER_FMT_STEP_RECORD_H */
