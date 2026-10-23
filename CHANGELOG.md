@@ -77,6 +77,23 @@ The clean platform/identity/build baseline is now reproducible and budgeted. No 
 - Host WAV, `fm1tracker.bin` and `fm1tracker-0.1.fwsc` remain byte-identical to Phase 1.
 - Detailed evidence: `docs/WP2_1_VERIFICATION.md`.
 
+### WP2.2 - Bounds-safe pattern store
+
+- Added a narrow FM1Tracker-owned runtime store API in `fmt_store.h/.c`.
+- Allocated exactly one 65,896-byte `FmtSong` in linker section `.pool` and verified the linked device symbol at `0x01C20000`.
+- Added an explicit bounded reset rather than treating zeroed RAM as valid empty tracker data.
+- Explicitly initialized all 8,192 steps to the frozen EMPTY/instrument-inherit/volume-inherit/no-lock sentinels.
+- Added host tests for all defaults, first/last valid indexes, all out-of-range dimensions including `UINT32_MAX`, mutation isolation and reset-after-mutation.
+- Preserved the existing app/audio behavior: host WAV remains byte-identical to Phase 1/WP2.1.
+- Completed full JieLi device build and safety verification with package identity `FM-1_987`.
+- Measured app image at 55,188 B, a **+100 B** code delta.
+- Normal RAM remains 12,368 B, a **0 B** delta.
+- Pool RAM is 96,616 B, exactly **+65,896 B**, matching `sizeof(FmtSong)`.
+- Remaining physical pool after WP2.2 is 247,448 B.
+- New artifact hashes: `fm1tracker.bin` `c952d8cfc0f8d9ae1b18750f40753663d0c14cdaa1d493e43c9502572af6d578`; `fm1tracker-0.1.fwsc` `859892524248ee64e1ebb85c3808468f087665b39e603876b97b754e28550bd0`.
+- No transport, audible playback, STEP REC, UI, p-lock allocator, synth or persistence behavior was added.
+- Detailed evidence: `docs/WP2_2_VERIFICATION.md`.
+
 ### Next
 
-**WP2.2 — bounds-safe pattern store.** Allocate the approved model in the intended memory region and test runtime storage/access boundaries. It remains a separate work package and has not started yet.
+**WP2.3 — integer transport clock.** Implement only deterministic integer/fixed-point 1/16-note timing, exact 0..63 wrap and long-run drift/error tests. Audible playback remains WP2.4. GitHub issue #11 is prepared; WP2.3 implementation has not started yet.
