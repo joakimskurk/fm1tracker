@@ -250,3 +250,18 @@ For the WP2.4 proof, only ordinary note values `0..127` create note events. `FMT
 **Reason:** Dispatching step 0 before frame 0 gives an unambiguous musical start. Ticking after each rendered frame makes the D020 accumulator represent elapsed frames directly: at 120 BPM, step 1 begins on frame 5513 and the first complete 64-step loop returns to step 0 on frame 352800. Processing the single proof lane per frame also preserves exact sub-block boundaries inside the normal 256-frame callback instead of quantizing row changes to callback edges.
 
 **Consequence:** WP2.4 tests must prove the initial frame-0 event, exact representative boundary offsets, exact `63 -> 0` loop timing and deterministic note-event traces from the real pool-backed store. The dedicated proof voice may add only small bounded control state and reuses the existing integer sine primitive. General note-off/tie semantics, editing, multitrack dispatch and any bounded sequencer-to-audio queue remain later work packages.
+
+## D022 — WP2.5 uses clamped four-page cursor addressing in explicit SEQ context
+
+Date: 2026-10-23  
+Status: accepted for the WP2.5 input layer; hardware ergonomics remain provisional
+
+**Decision:** WP2.5 introduces a small pattern-edit cursor state with four pages (`0..3`), sixteen local step positions (`0..15`) and a derived global step `page * 16 + local`, covering exactly `0..63`. The physical white-key indexes are fixed to `0,2,4,6,7,9,11,12,14,16,18,19,21,23,24,26`, mapping in order to local steps `0..15`. Other note-key indexes are not step selectors in WP2.5.
+
+`SEQ` enters the pattern-edit input context and `HOME` returns to normal performance context. In performance context all 27 note keys retain the existing audition/MIDI behavior. In pattern-edit context, a white-key press updates cursor state only and is consumed as a step selection; black-key presses are ignored until WP2.6 rather than auditioning or selecting tracks. Releases of notes that were started in performance context are still honored after a context change so entering SEQ cannot create stuck manual voices.
+
+`OCT-` / `OCT+` navigate pattern pages only while in pattern-edit context. Page navigation is clamped at page 0 and page 3 rather than wrapping. Changing page preserves the current local step index, so the selected global step moves by exactly 16 where a page move succeeds. Reset starts in performance context with page 0, local step 0 and selected global step 0. No WP2.5 action mutates pattern data.
+
+**Reason:** The explicit SEQ/HOME context preserves the baseline keyboard instrument outside pattern editing and makes the white-key reinterpretation intentional. Clamped page navigation prevents a repeated previous/next gesture from unexpectedly jumping between opposite ends of the 64-step pattern, while preserving the local physical key position gives a simple and learnable relation between pages. The exact hardware ergonomics can still be superseded after Phase 7 physical testing without changing pattern data or timing semantics.
+
+**Consequence:** WP2.5 must host-test all 64 global mappings, all 27 physical note-key indexes, clamped page boundaries, local-index preservation, context transitions and proof that step selection does not mutate the song store. It may add only small bounded ordinary-RAM cursor state and main-loop input handling. Black-key track selection remains WP2.6, note writes remain WP2.7 and no tracker screen is added here.
