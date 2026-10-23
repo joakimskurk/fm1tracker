@@ -6,12 +6,15 @@ on:
       - phase3/plocks-effects
     paths:
       - .github/workflows/wp3_2_lock_store_verify.yml
+      - firmware/src/dinghy.c
       - firmware/src/fmt_lock_store.h
       - firmware/src/fmt_lock_store.c
       - tests/test_fmt_lock_store.c
       - tests/test_fmt_lock_limit.c
       - tests/run_lock_store_tests.sh
+      - tests/run_wp3_2_closeout_ci.sh
       - docs/PROJECT_STATE.md
+      - docs/WORK_PACKAGES.md
       - docs/DECISIONS.md
       - docs/DATA_MODEL_V0.1.md
   workflow_dispatch:
@@ -20,7 +23,7 @@ permissions:
   contents: read
 
 jobs:
-  lock-store-focused:
+  lock-store-closeout:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout FM1Tracker
@@ -28,7 +31,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify focused WP3.2 scope
+      - name: Install inherited host-screen dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Verify WP3.2 scope
         shell: bash
         run: |
           set -euo pipefail
@@ -38,39 +44,59 @@ jobs:
           allowed = {
               '.github/workflows/wp3_2_lock_store_verify.yml',
               'docs/PROJECT_STATE.md',
+              'docs/WORK_PACKAGES.md',
               'docs/DECISIONS.md',
               'docs/DATA_MODEL_V0.1.md',
+              'firmware/src/dinghy.c',
               'firmware/src/fmt_lock_store.h',
               'firmware/src/fmt_lock_store.c',
               'tests/test_fmt_lock_store.c',
               'tests/test_fmt_lock_limit.c',
               'tests/run_lock_store_tests.sh',
+              'tests/run_wp3_2_closeout_ci.sh',
           }
           changed = set(subprocess.check_output(
               ['git', 'diff', '--name-only', base, 'HEAD'], text=True
           ).splitlines())
           unexpected = sorted(changed - allowed)
           assert not unexpected, unexpected
-          print('WP3_2_FOCUSED_SCOPE_OK=1')
+          print('WP3_2_SCOPE_OK=1')
           PY
 
-      - name: Run D028 lock storage tests
+      - name: Run complete WP3.2 gate
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build
-          sh tests/run_lock_store_tests.sh | tee build/wp3_2_lock_store_tests.log
-          grep -F 'FMT_LOCK_STORE_TESTS_OK=1' build/wp3_2_lock_store_tests.log
-          grep -F 'record_bytes=8 capacity=2048 storage_bytes=16384 runtime_bytes=4 owners=8192 max_per_step=4' build/wp3_2_lock_store_tests.log
-          grep -F 'pool_exhaustion=explicit owner_check=1 sorted_by_param=1 replace_in_place=1 corruption_no_partial_mutation=1' build/wp3_2_lock_store_tests.log
-          grep -F 'FMT_LOCK_LIMIT_TESTS_OK=1' build/wp3_2_lock_store_tests.log
-          grep -F 'max_per_step=4 fifth_prevalidated=STEP_FULL used_unchanged=1' build/wp3_2_lock_store_tests.log
+        run: sh tests/run_wp3_2_closeout_ci.sh
 
-      - name: Run WP3.1 registry and core model/store regressions
-        shell: bash
-        run: |
-          set -euo pipefail
-          sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
-          sh tests/run_model_tests.sh | grep -F 'FMT_MODEL_TESTS_OK=1'
-          sh tests/run_store_tests.sh | grep -F 'FMT_STORE_TESTS_OK=1'
-          echo 'WP3_2_FOUNDATION_REGRESSIONS_OK=1'
+      - name: Upload WP3.2 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-2-lock-store-evidence
+          path: |
+            build/wp3_2_lock_store_tests.log
+            build/wp3_2_param_registry_tests.log
+            build/wp3_2_model_tests.log
+            build/wp3_2_store_tests.log
+            build/wp3_2_transport_tests.log
+            build/wp3_2_playback_tests.log
+            build/wp3_2_pattern_input_tests.log
+            build/wp3_2_step_record_tests.log
+            build/wp3_2_tracker_screen_tests.log
+            build/wp3_2_wp2_5_context.log
+            build/wp3_2_wp2_6_context.log
+            build/wp3_2_wp2_7_context.log
+            build/wp3_2_wp2_8_context.log
+            build/wp3_2_wp2_9_screen.log
+            build/wp3_2_phase2_integration.log
+            build/wp3_2_phase2_full_app.log
+            build/wp3_2_host_audio.txt
+            build/wp3_2_device_build.log
+            build/wp3_2_symbols.txt
+            build/wp3_2_lock_storage_symbol.txt
+            build/wp3_2_lock_runtime_symbol.txt
+            build/wp3_2_song_store_symbol.txt
+            build/wp3_2_metrics.txt
+            build/wp3_2_fmt_param_registry.o
+            build/wp3_2_fmt_lock_store.o
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
