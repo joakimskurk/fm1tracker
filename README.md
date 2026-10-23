@@ -6,18 +6,20 @@ FM1Tracker is inspired by classic trackers and by workflow ideas demonstrated by
 
 ## Current status
 
-**Phase 1 — clean Dinghy baseline is in progress. WP1.1 through WP1.4 are complete; WP1.5 is next.**
+**Phase 1 — clean Dinghy baseline is complete. Phase 2 has not started yet.**
 
-The repository now contains the pinned Dinghy-derived platform baseline and an identity-only FM1Tracker layer:
+The repository contains the pinned Dinghy-derived platform baseline plus a verified identity-only FM1Tracker layer:
 
 - visible app name: `FM1TRACKER`;
 - fixed FM-1 package identity: `FM-1_987`;
 - host artifacts: `build/host/fm1tracker.wav` and `fm1tracker-*.png`;
-- the WP1.4 host WAV is bit-identical to the pristine Dinghy-derived WP1.3 baseline;
-- protected HAL/loader/platform/test-tone implementation was not changed for the rename;
-- complete device package verification still requires the separately obtained JieLi AC79 SDK checkout.
+- device artifacts: `build/fm1tracker.bin` and versioned `fm1tracker-*.fwsc`;
+- the host WAV is bit-identical to the pristine Dinghy-derived baseline;
+- protected HAL/loader/platform/test-tone implementation remained unchanged through Phase 1;
+- the full renamed device build and inherited safety checks pass with the pinned official external JieLi SDK release;
+- reference budgets are recorded in `docs/WP1_5_VERIFICATION.md`.
 
-No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine or 16-BIT FM4 engine has been added yet. Phase 2 does not start until WP1.5 is closed.
+No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine or 16-BIT FM4 engine has been added yet. The next bounded work package is **WP2.1 — compile-time tracker data model**.
 
 For exact continuation state, start with [`START_HERE.md`](START_HERE.md) and [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
 
@@ -74,24 +76,49 @@ The exact verified hashes and CI runs are recorded in:
 
 - `docs/WP1_3_VERIFICATION.md`
 - `docs/WP1_4_VERIFICATION.md`
+- `docs/WP1_5_VERIFICATION.md`
 - `docs/TEST_MATRIX.md`
 
 ## Device build
 
-The intended entry point is:
+The verified build entry point is:
 
 ```sh
-./build.sh
+./build.sh --release 0.1
 ```
 
-Required external inputs include:
+Required external inputs:
 
-- the JieLi `pi32v2` toolchain, installable through `tools/get_toolchain.sh`;
-- a separately obtained `AC79NN_SDK_V1.2.1_2023-12-13` checkout, supplied through `AC79_SDK`.
+1. JieLi `pi32v2` toolchain:
 
-The AC79 SDK is a build dependency and is **not vendored** into this repository. See `THIRD_PARTY.md` and `docs/DINGHY_IMPORT_MANIFEST.md` for the exact expected SDK files/hashes and provenance boundary.
+```sh
+tools/get_toolchain.sh
+```
 
-WP1.5 is responsible for the complete renamed firmware/package build and baseline code/RAM/pool/timing capture.
+2. Exact official JieLi AC79 SDK release, kept outside this repository:
+
+```sh
+git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+  https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK
+```
+
+The verified SDK tag resolves to commit:
+
+`d179b4484759423312073f5fbb232501aa491047`
+
+`JIELI_TOOLCHAIN` and `AC79_SDK` may point elsewhere if your copies live in different locations.
+
+The AC79 SDK remains an external build dependency and is **not vendored** into this repository. `THIRD_PARTY.md` and `docs/WP1_5_VERIFICATION.md` record the exact provenance, hashes and verification state.
+
+### Phase 1 reference build budget
+
+The verified clean renamed baseline uses:
+
+- app image/code: 55,088 B of 581,564 B;
+- normal RAM (`.data + .bss`): 12,368 B of 98,304 B;
+- pool RAM: 30,720 B of 344,064 B.
+
+These are measured build outputs from the renamed device build. The nominal audio callback period is about 5.805 ms for 256 frames at 44.1 kHz, but actual hardware render time has **not** been measured because no physical FM-1 is currently available.
 
 ## Furnace relationship
 
