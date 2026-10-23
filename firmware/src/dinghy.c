@@ -14,13 +14,20 @@
 #include "platform.c"
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
+#include "fmt_playback.c"                      /* WP2.4: exact one-lane row dispatch */
 
-/* Externally visible only so CI can verify this small control state stays in
- * ordinary RAM and does not consume song/DSP pool space. WP2.3 leaves it stopped. */
+/* Externally visible so CI can verify the small runtime control states stay in
+ * ordinary RAM and never consume editable-song pool space. */
 FmtTransport fmt_transport_runtime;
+FmtPlayback fmt_playback_runtime;
+
+/* app_main seeds the proof pattern before setting this one-way handoff. Audio
+ * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
+static volatile uint32_t tracker_ready;
 
 /* ---- the sound (runs in the audio ISR: keep it short, no flash, no screen) */
-#define NV 4u                                   /* voices */
+#define NV 4u                                   /* manual/audition voices */
+#define TRACKER_TARGET_AMP 6000
 static struct {
     volatile uint32_t inc;                      /* phase step per frame: f * 2^32 / 44100 */
     volatile int32_t gate;                      /* target level, Q15: 0 = released */
@@ -28,6 +35,23 @@ static struct {
     uint32_t ph, age;
     uint8_t note;
 } voice[NV];
+
+/* Dedicated monophonic WP2.4 proof voice. It reuses the same integer sine
+ * primitive as the baseline audition voices and does not create a new engine. */
+static struct {
+    uint32_t inc;
+    uint32_t ph;
+    int32_t amp;
+} tracker_voice;
+
+static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
+    815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
+    1153098554u, 1221665363u, 1294309365u, 1371273005u, 1452813141u, 1539201906u};
+
+static uint32_t note_inc(uint32_t note)
+{
+    return INC_C9[note % 12u] >> (10u - note / 12u);
+}
 
 static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32767..32767 (a refined parabola, ~0.1 %) */
 {
@@ -38,14 +62,60 @@ static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32
     return y > 32767 ? 32767 : y < -32767 ? -32767 : y;
 }
 
+static void tracker_apply_event(const FmtPlaybackEvent *event)
+{
+    if (event && event->has_note && event->note <= FMT_NOTE_MAX)
+        tracker_voice.inc = note_inc(event->note);
+}
+
+static void tracker_render_frame(int32_t *out)
+{
+    uint32_t ph, inc;
+    int32_t amp, s;
+
+    inc = tracker_voice.inc;
+    if (!inc)
+        return;
+
+    ph = tracker_voice.ph + inc;
+    amp = tracker_voice.amp;
+    if (amp < TRACKER_TARGET_AMP) {
+        amp += 48;
+        if (amp > TRACKER_TARGET_AMP)
+            amp = TRACKER_TARGET_AMP;
+    }
+    s = (sine(ph) * amp) >> 15;
+    out[0] += s;
+    out[1] += s;
+    tracker_voice.ph = ph;
+    tracker_voice.amp = amp;
+}
+
 static void app_audio(int32_t *out, uint32_t n)
 {
     uint32_t v, i;
+    FmtPlaybackEvent event;
 
-    /* Timing is wired into the real frame domain now, but remains stopped in
-     * WP2.3. WP2.4 will own row dispatch and audible use of step boundaries. */
-    (void)fmt_transport_advance(&fmt_transport_runtime, n);
+    /* D021: app_main publishes readiness only after the proof pattern and both
+     * control states are initialized. The first ISR after that dispatches step
+     * 0 before its first tracker frame, so playback frame 0 is unambiguous. */
+    if (tracker_ready && !fmt_playback_runtime.started) {
+        if (fmt_playback_start(&fmt_playback_runtime, &fmt_transport_runtime, &event))
+            tracker_apply_event(&event);
+    }
 
+    /* One proof lane must observe sub-block row boundaries exactly. Render the
+     * current row first, then tick elapsed time; a crossed row applies to the
+     * next frame, even when the boundary lands inside a normal 256-frame block. */
+    if (fmt_playback_runtime.started) {
+        for (i = 0u; i < n; i++) {
+            tracker_render_frame(out + 2u * i);
+            if (fmt_playback_end_frame(&fmt_playback_runtime, &fmt_transport_runtime, &event))
+                tracker_apply_event(&event);
+        }
+    }
+
+    /* Preserve Dinghy's original manual/audition voice path unchanged. */
     for (v = 0; v < NV; v++) {
         uint32_t ph = voice[v].ph, step = voice[v].inc;
         int32_t amp = voice[v].amp, g = voice[v].gate;
@@ -66,9 +136,6 @@ static void app_audio(int32_t *out, uint32_t n)
 }
 
 /* ---- notes (main loop) */
-static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
-    815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
-    1153098554u, 1221665363u, 1294309365u, 1371273005u, 1452813141u, 1539201906u};
 static uint32_t ages, last_note = 255;
 
 static void play(uint32_t note, uint32_t vel)
@@ -82,7 +149,7 @@ static void play(uint32_t note, uint32_t vel)
     }
     voice[pick].note = (uint8_t)note;
     voice[pick].age = ++ages;
-    voice[pick].inc = INC_C9[note % 12u] >> (10u - note / 12u);
+    voice[pick].inc = note_inc(note);
     voice[pick].gate = (int32_t)(vel * 90u);    /* 127 -> 11430: four voices stay under full scale */
     last_note = note;
 }
@@ -154,8 +221,14 @@ static void app_main(void)
     int32_t oct_drawn = 99;
     uint8_t held[27] = {0};                     /* the note each key plays */
 
-    fmt_store_reset();                          /* WP2.2: deterministic empty 16-pattern tracker store */
-    fmt_transport_reset(&fmt_transport_runtime);/* WP2.3: stopped, step 0, phase 0, 120 BPM */
+    /* Audio IRQs are already enabled before app_main. Keep tracker_ready zero
+     * until the entire proof song/control state is safe for the ISR to read. */
+    fmt_store_reset();
+    fmt_playback_seed_proof_pattern();
+    fmt_transport_reset(&fmt_transport_runtime);
+    fmt_playback_reset(&fmt_playback_runtime);
+    tracker_ready = 1u;
+
     settings_load(&set, sizeof set);
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
 
@@ -187,7 +260,7 @@ static void app_main(void)
         }
 
         base = (uint32_t)(KEY0 + 12 * set.oct);
-        for (k = 0; k < NV; k++)                /* what sounds, on the keys of this octave */
+        for (k = 0; k < NV; k++)                /* what manual audition plays on the keys of this octave */
             if (voice[k].gate && voice[k].note >= base && voice[k].note < base + 27u)
                 lit |= 1u << (voice[k].note - base);
         for (k = 0; k < 27u; k++)
