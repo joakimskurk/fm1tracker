@@ -41,6 +41,23 @@ void fmt_step_record_release_gesture(FmtStepRecord *record)
         record->gesture_latched = 0u;
 }
 
+int fmt_step_record_lowest_key(uint32_t down_mask, uint8_t *key_index)
+{
+    uint32_t key;
+
+    if (key_index)
+        *key_index = 0u;
+
+    for (key = 0u; key < FMT_PATTERN_INPUT_KEY_COUNT; key++) {
+        if (down_mask >> key & 1u) {
+            if (key_index)
+                *key_index = (uint8_t)key;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int fmt_step_record_write_note(FmtStepRecord *record,
                                FmtPatternInput *input,
                                const FmtTransport *transport,
