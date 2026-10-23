@@ -172,6 +172,26 @@ The clean platform/identity/build baseline is reproducible and budgeted. Physica
 - Final verification: Actions run `40009689758`, job `120606559644`.
 - Detailed evidence: `docs/WP2_9_VERIFICATION.md`.
 
+### WP2.10 - Phase 2 integration and closeout
+
+- Added a direct module-composition integration test covering all 64 editor addresses, all eight track selectors, exact `63 -> 0` and `15 -> 16` cursor transitions, ordinary note / REST / TIE / OFF entry, D026 screen synchronization and exact 352,800-frame transport-loop timing.
+- Compared the complete 65,896-byte final `FmtSong` against an expected copy byte-for-byte and proved track-7 integration edits leave the fixed track-0 proof lane unchanged.
+- Added a full-app host scenario through the real unchanged `dinghy.c` panel path. Ordinary SEQ traversal leaks no audition MIDI; only four deliberate STEP REC note gestures produce MIDI pairs.
+- Visually reviewed and froze the integrated tracker framebuffer SHA-256 `a993551ce922d90186080bf554b82477b4336e160a6b301c446f0d275569b6d7`.
+- Proved HOME return after the full workflow is pixel-identical to an equivalent HOME-only control (`ea33024427340416c17a73ecfb2303e37262b8c61e2f2d30ca06265ba6e0b899`).
+- Ran every WP2.1–WP2.9 unit/full-app regression in one closeout gate and preserved the frozen default WAV SHA-256 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
+- Full JieLi device build, identity `FM-1_987`, HAL-only register access and resource checks remain green.
+- WP2.10 required **zero production-source changes** relative to the WP2.9 closeout baseline. Final BIN/FWSC artifacts are byte-identical to WP2.9.
+- Final Phase 2 resources: 59,252 B image, 12,464 B normal RAM, 96,616 B pool.
+- Total Phase 2 cost versus Phase 1: **+4,164 B image, +96 B normal RAM, +65,896 B pool**.
+- Final artifacts: `fm1tracker.bin` `34d0e8c4344e091704608e08357964e7ae0b18673dd0b93f36c4e5bcc2cb4c7c`; `fm1tracker-0.1.fwsc` `3cfd0a2da3836720d2f921b04f29e93c16ca83ab18ab7242c99f2c333d890ca7`.
+- Final verification: Actions run `40015242947`, job `120625519388`; evidence artifact ID `12527623388`, ZIP SHA-256 `2a4cbcda3e7f1f26fe2f117062fdd72c9fb274ae0ce8aa4ccfa1a7763829bd9c`.
+- Durable evidence: `docs/PHASE2_VERIFICATION.md`.
+
+### Phase 2 complete
+
+The tracker-core phase is verified complete at the host/device-build level. The system now has deterministic 8-track/64-step editor addressing, stopped STEP REC with ordinary notes and REST/TIE/OFF, exact integer playback timing, a bounded compact tracker display and a complete integrated closeout proof. Physical FM-1 install/audio/timing/readability/ergonomics remain later hardware gates.
+
 ### Next
 
-**WP2.10 — Phase 2 integration test and closeout.** Issue #18 is READY TO START. This is a verification/integration package, not a feature package: exercise the completed 64-step editor, track selection, ordinary/special STEP REC, D026 display, playback and HOME return together; compare final store state directly; record total Phase 2 cost versus Phase 1; then close Phase 2 only if the complete gate is green. Phase 3 remains blocked until then.
+**Phase 3 — parameter locks and tracker effects.** WP3.1 (stable parameter ID registry) is the next bounded package and is READY TO START. No Phase 3 implementation has begun.
