@@ -28,65 +28,60 @@ Exit criteria:
 
 Goal: make `fm1tracker` build and run as its own FM-1 firmware before tracker features are added.
 
-Status on 2026-10-23: **IN PROGRESS - WP1.1 through WP1.4 complete; WP1.5 next.**
+Status: **COMPLETE — 2026-10-23**
 
-Verified so far:
+Verified:
 
 - Dinghy provenance is pinned and licensed material is documented;
 - the minimal platform import matches pinned upstream blobs and Git modes;
-- pristine host build/run produces audio and screen artifacts;
+- pristine and renamed host builds produce verified audio/screen artifacts;
 - JieLi toolchain acquisition/execution works;
 - FM1Tracker identity is fixed as `FM-1_987` after a current Firmware Hub collision check;
 - renamed host artifacts and visible screen identity are verified;
 - renamed host audio is bit-identical to the pristine baseline;
-- protected Dinghy app/platform/HAL/loader/build-driver implementation remained unchanged during WP1.4;
-- complete renamed device firmware/package build is still blocked by the separately required AC79 SDK checkout;
-- no physical FM-1 test has been performed.
+- protected Dinghy app/platform/HAL/loader/build-driver implementation remained unchanged through Phase 1;
+- official JieLi AC79 SDK tag `AC79NN_SDK_V1.2.1_2023-12-13` is externally pinned to commit `d179b4484759423312073f5fbb232501aa491047` and its consumed package inputs are hash-verified;
+- complete renamed device firmware/package build passes with inherited safety checks;
+- clean reference usage is 55,088 B image, 12,368 B normal RAM and 30,720 B pool RAM;
+- nominal callback period is 5.804988662 ms at 256 frames / 44.1 kHz;
+- actual physical-hardware render time and install behavior remain untested because no FM-1 is currently available.
 
-See `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md` and `TEST_MATRIX.md` for the exact verification level.
+See `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.md` and `TEST_MATRIX.md` for exact verification levels.
 
-Tasks:
+Completed tasks:
 
 1. ✅ import a pinned Dinghy baseline with history/provenance recorded;
 2. ✅ preserve upstream GPL/credits/headers;
 3. ✅ add full GPL-3.0-only license text;
 4. ✅ rename application identity/name/build artifacts to FM1Tracker;
-5. ✅ choose a currently unused FM-1 package identity after checking the current Firmware Hub/list (`FM-1_987`);
-6. ✅ verify unchanged pristine host build;
-7. 🟨 verify firmware build safety checks - toolchain verified; full build still awaits external AC79 SDK checkout;
-8. ✅ create `THIRD_PARTY.md` with exact upstream commit;
+5. ✅ choose a currently unused FM-1 package identity (`FM-1_987`);
+6. ✅ verify unchanged pristine/renamed host behavior;
+7. ✅ verify renamed firmware build safety checks;
+8. ✅ create/maintain `THIRD_PARTY.md` with exact upstream and SDK provenance;
 9. ✅ add automated pristine verification without redistributing SDK material;
 10. ✅ add automated identity-only host regression verification;
-11. ⬜ complete WP1.5 renamed device-build/resource/timing baseline and reproducible setup closeout.
+11. ✅ complete renamed device-build/resource baseline and reproducible setup closeout.
 
-Exit criteria:
-
-- `tests/run_host.sh` produces FM1Tracker host audio/screen output;
-- firmware build completes with no forbidden symbols/RAM overflow, or any still-unavailable external prerequisite is precisely documented under the package exit rules;
-- repo contains clear provenance and reproducible setup instructions;
-- baseline code/RAM/pool/timing measurements required by WP1.5 are recorded at the highest verification level the available environment honestly permits.
-
-Phase 1 remains open until WP1.5 is complete. Phase 2 must not begin early.
+Phase 1 exit criteria are satisfied at the host/firmware-build level. Physical FM-1 testing remains an explicit later hardware verification layer rather than a claimed Phase 1 result.
 
 ## Phase 2 — tracker core without synth ambition
 
 Goal: prove editing and transport with the simplest possible tone source.
 
+Status: **READY TO START — WP2.1 is next**
+
 Tasks:
 
-- implement V0.1 song structs in pool RAM;
-- implement pattern/track/step bounds-safe accessors;
-- integer transport clock;
-- 64-step playback / 4 x 16 pages;
-- single simple oscillator voice for audible validation;
-- white-key step selection;
-- track selection prototype;
-- STEP REC note entry;
-- dedicated REST action;
-- NOTE OFF / TIE semantics;
-- screen tracker row view;
-- dirty-region rendering;
-- host tests for wrap/bounds/timing.
+1. WP2.1 — compile-time V0.1 data model, constants, bounds-safe accessors, static size assertions and host/device compile checks. No UI/audio/transport changes.
+2. WP2.2 — allocate pattern/song state in the intended memory region and test all access boundaries.
+3. WP2.3 — integer transport clock with deterministic wrap/drift tests.
+4. WP2.4 — one-track audible playback using the simplest baseline tone.
+5. WP2.5 — white-key 16-step page input across four pages.
+6. WP2.6 — provisional track-selection prototype.
+7. WP2.7 — STEP REC note entry.
+8. WP2.8 — REST / TIE / NOTE-OFF semantics.
+9. WP2.9 — compact tracker screen with bounded/dirty rendering.
+10. WP2.10 — Phase 2 integration test: enter and play a complete 64-step melody without a computer.
 
 Exit criteria:
 
@@ -250,4 +245,4 @@ Prefer small playable releases:
 1.0 hardware UX freeze
 ```
 
-Version numbers are illustrative until the baseline build/release tooling is imported.
+Version numbers are illustrative until the release strategy is explicitly frozen.
