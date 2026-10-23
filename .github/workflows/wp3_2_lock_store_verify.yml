@@ -1,0 +1,76 @@
+name: WP3.2 sparse lock storage verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/wp3_2_lock_store_verify.yml
+      - firmware/src/fmt_lock_store.h
+      - firmware/src/fmt_lock_store.c
+      - tests/test_fmt_lock_store.c
+      - tests/test_fmt_lock_limit.c
+      - tests/run_lock_store_tests.sh
+      - docs/PROJECT_STATE.md
+      - docs/DECISIONS.md
+      - docs/DATA_MODEL_V0.1.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock-store-focused:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify focused WP3.2 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          base = 'dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e'
+          allowed = {
+              '.github/workflows/wp3_2_lock_store_verify.yml',
+              'docs/PROJECT_STATE.md',
+              'docs/DECISIONS.md',
+              'docs/DATA_MODEL_V0.1.md',
+              'firmware/src/fmt_lock_store.h',
+              'firmware/src/fmt_lock_store.c',
+              'tests/test_fmt_lock_store.c',
+              'tests/test_fmt_lock_limit.c',
+              'tests/run_lock_store_tests.sh',
+          }
+          changed = set(subprocess.check_output(
+              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
+          ).splitlines())
+          unexpected = sorted(changed - allowed)
+          assert not unexpected, unexpected
+          print('WP3_2_FOCUSED_SCOPE_OK=1')
+          PY
+
+      - name: Run D028 lock storage tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_lock_store_tests.sh | tee build/wp3_2_lock_store_tests.log
+          grep -F 'FMT_LOCK_STORE_TESTS_OK=1' build/wp3_2_lock_store_tests.log
+          grep -F 'record_bytes=8 capacity=2048 storage_bytes=16384 runtime_bytes=4 owners=8192 max_per_step=4' build/wp3_2_lock_store_tests.log
+          grep -F 'pool_exhaustion=explicit owner_check=1 sorted_by_param=1 replace_in_place=1 corruption_no_partial_mutation=1' build/wp3_2_lock_store_tests.log
+          grep -F 'FMT_LOCK_LIMIT_TESTS_OK=1' build/wp3_2_lock_store_tests.log
+          grep -F 'max_per_step=4 fifth_prevalidated=STEP_FULL used_unchanged=1' build/wp3_2_lock_store_tests.log
+
+      - name: Run WP3.1 registry and core model/store regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
+          sh tests/run_model_tests.sh | grep -F 'FMT_MODEL_TESTS_OK=1'
+          sh tests/run_store_tests.sh | grep -F 'FMT_STORE_TESTS_OK=1'
+          echo 'WP3_2_FOUNDATION_REGRESSIONS_OK=1'
