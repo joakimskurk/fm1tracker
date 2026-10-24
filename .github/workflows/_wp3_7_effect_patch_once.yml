@@ -1,0 +1,39 @@
+name: WP3.7 effect core patch once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_7_effect_patch_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  effect-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch D032 command domain for D033
+        run: python3 .github/tmp/wp3_7_effect_patch.py
+
+      - name: Run D033 row-event tests
+        run: sh tests/run_tracker_event_tests.sh
+
+      - name: Run inherited D032 tracker-effect tests
+        run: sh tests/run_tracker_effect_tests.sh
+
+      - name: Commit verified effect core changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firmware/src/fmt_tracker_effect.c
+          git commit -m 'feat: extend D032 effect core for D033 events'
+          git push origin HEAD:phase3/plocks-effects
