@@ -1,4 +1,5 @@
 name: WP3.7 full closeout verification
+# Final clean-tree gate after removing one-shot integration helpers.
 
 on:
   push:
