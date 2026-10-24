@@ -458,3 +458,71 @@ WP3.3 changes storage only. Encoder p-lock writes must not alter `FmtStep.note`,
 **Reason:** A held physical step plus relative detent movement is the direct hardware gesture already anticipated by the control map, while the existing HAL gives a reliable one-click relative intent signal so no guessed analog pickup threshold is required. Snapshotting and then freezing the target prevents track/page/cursor changes from redirecting a write. Continuously draining inactive encoders prevents stale motion from becoming an accidental lock. A normalized byte-scale editor domain is compact, readable and sufficient to prove the edit architecture without prematurely freezing DSP units.
 
 **Consequence:** WP3.3 must introduce a small bounded editor state/module, extend the host harness with deterministic encoder-delta events, and test context gating, all sixteen white-key targets across pages, all eight tracks, target snapshot/focus locking, stale-delta discard, release-before-delta precedence, fixed four-encoder ordering, first-lock references, clamping, replacement-in-place, editor-range rejection and D028 storage-error propagation. The full app must demonstrate hold-step + encoder editing without MIDI audition or unintended cursor/track movement. All Phase 2, WP3.1 and WP3.2 regressions plus the frozen default WAV remain required. Physical comfort of holding a white key while turning encoders is still a Phase 7 hardware-UX question. WP3.4 owns delete/clear UX; WP3.5+ owns p-lock application to playback/audio.
+
+## D030 — WP3.4 browses existing locks with SELECT and requires an armed EDIT -> SEL confirmation to delete one lock
+
+Date: 2026-10-24  
+Status: accepted for the WP3.4 prototype; physical ergonomics remain provisional
+
+**Decision:** WP3.4 extends the existing D029 held-white-step editor with bounded browse/select/delete behavior only. It does not change D028 storage layout/capacity, D027 parameter identity, D029 target ownership or playback/audio behavior.
+
+The WP3.4 destructive editor exists only while a valid D029 lock hold is already active in ordinary SEQ. The target remains D029's snapshotted **pattern 0 + logical track + global step** for the entire hold. PERFORMANCE, STEP REC, HOME/context exit or owner-key release cannot browse or delete and cancel all WP3.4 destructive state immediately.
+
+### Existing-lock selection and browse
+
+At the beginning of a held-step gesture, WP3.4 queries D028's fully validated count/ordinal APIs. If the target has one or more locks, the initial selected lock is ordinal 0 in D028's strict ascending `FmtParamId` order. If the target has zero locks, selection is NONE and browse/delete are safe no-ops.
+
+The **SELECT encoder** (`ENC_SELECT`) is the browse control while the D029 hold is active. Its relative delta moves through the currently existing lock list in D028 ordinal order. Browse is **clamped**, not wrapped: movement below the first lock stays on the first lock and movement above the last stays on the last. Multi-detent deltas are applied in one bounded operation. At most four records can be visited, so refresh/search work is hard-bounded by `FMT_LOCKS_PER_STEP`.
+
+`ENC_SELECT` is drained on every main-loop poll, including when no lock hold exists. Its delta is discarded while inactive and on the poll that begins, releases or cancels a D029 hold, exactly like D029's KNOB1..4 stale-delta rule. Therefore pre-hold SELECT movement cannot silently select a different lock on a new target.
+
+A successful D029 KNOB1..4 set/replace makes that parameter the currently selected lock after the write. This includes a newly created lock. An unsuccessful D029 write does not invent a selection. Selection is always refreshed through validated D028 data before destructive mutation.
+
+### One-lock delete gesture
+
+WP3.4 exposes **one-lock deletion only**. There is deliberately no user-facing clear-all gesture in this package.
+
+Deletion is a two-stage destructive action:
+
+1. while a held-step target has a valid selected lock, press `EDIT` to **arm** deletion of that selected semantic parameter;
+2. on a **later main-loop poll**, press `SEL` to confirm while that arm is still valid.
+
+`EDIT` alone never removes anything. `EDIT` + `SEL` arriving together in the same poll also never removes anything: the confirm is accepted only if the delete arm already existed before that poll. After one successful delete, the arm is consumed, so another lock cannot be deleted until EDIT is released/pressed and a new arm is created.
+
+Releasing `EDIT` before confirmation cancels the arm. Owner-key release, HOME/context exit, successful STEP REC entry, invalid/corrupt target data, or any storage failure also cancels it. PLAY remains allowed to toggle transport without changing the D029 target, but a PLAY press cancels a pending delete arm before transport handling so a latent destructive confirmation cannot survive an unrelated transport action. OCT/page intent and any additional note-key down remain suppressed by D029 while the hold is active; if a delete arm is pending, such unrelated focus/navigation intent cancels the arm even though it still cannot retarget the held step.
+
+While a delete arm is pending, all SELECT and KNOB1..4 encoder deltas are still drained but **discarded**. They may not change selection, write a lock or alter the armed semantic parameter. This makes the confirmation target stable and prevents a same-hand encoder adjustment from changing what SEL would delete. BTN_SEL is otherwise unused in ordinary SEQ, so the confirmation does not conflict with D025's TIE/OFF behavior, which only exists in STEP REC.
+
+On confirmation, the editor revalidates that the armed semantic parameter still exists on the snapshotted D029 target, then calls D028 `fmt_lock_remove()` once. `NOT_FOUND`, `BAD_ADDRESS` or `CORRUPT` produce no mutation and explicit feedback. The implementation never retries or falls back to a different lock automatically.
+
+After a successful delete, the held-step gesture remains active. If locks remain, selection moves deterministically to the lock now occupying the deleted lock's old ordinal; if the deleted item was the last ordinal, selection clamps to the new last lock. If no locks remain, selection becomes NONE. Exactly one D028 record is returned to the free list and the surrounding step/list state remains validated.
+
+### No clear-all gesture in WP3.4
+
+D028's internal `fmt_lock_clear()` primitive remains verified and available, but WP3.4 intentionally does **not** expose it on the panel. A step can hold at most four locks, so deliberate one-by-one deletion is bounded and fast enough for this prototype. A mass-destructive shortcut would add disproportionate accidental-loss risk before physical hardware ergonomics are known. A later focused editor or Phase 7 decision may add clear-all with its own explicit safeguard without changing D028 storage.
+
+### Feedback and value handling
+
+WP3.4 continues to use only the existing D026 footer region. Full row lock markers remain WP3.9.
+
+While a valid lock is selected, the footer may show ordinal/count, semantic short name and value. A stored current-ID value above D029's `0..255` editor domain is still a structurally valid D028 lock: browse may identify it as RANGE and deletion remains allowed because removal does not reinterpret its value. Zero locks show explicit no-lock feedback. An armed delete shows the semantic target and confirmation hint. Successful delete and D028 NOT_FOUND/BAD_ADDRESS/CORRUPT failures have explicit bounded feedback. Footer updates remain main-loop-only and under the existing D026 two-regions-per-poll redraw limit.
+
+### Input order
+
+For a stable D029 hold, WP3.4 input precedence is deterministic:
+
+1. HOME/context exit, STEP REC transition and owner-key release cancel the hold/arm first;
+2. all SELECT + KNOB1..4 encoder streams are drained;
+3. unrelated focus/navigation/PLAY intent cancels a pending delete arm before any confirmation;
+4. an existing delete arm may accept a later SEL confirm;
+5. a new EDIT press may arm deletion only if no confirm occurred and a valid selected lock exists;
+6. if no delete arm is active, SELECT browse is applied before KNOB1..4 edits;
+7. KNOB1..4 retain D029's fixed K1 -> K4 order, and a successful write selects that parameter.
+
+A poll that begins or ends a held-step gesture consumes no browse/edit deltas. A poll that creates a delete arm cannot also confirm it.
+
+WP3.4 remains storage-only. Delete/browse operations must not alter `FmtStep.note`, instrument, volume, effect, effect value or flags, proof/manual voice state, base instrument/track parameters or transport timing. No p-lock is read or applied by audio yet.
+
+**Reason:** D028 already supplies sorted bounded iteration and corruption-safe one-lock removal, so WP3.4 should expose those primitives without inventing a second storage model. SELECT is the panel's natural navigation encoder. Requiring an EDIT arm followed by a later SEL confirm makes deletion intentional, gives the display time to name the destructive target, and prevents same-poll chords or stray knob motion from deleting data. Deferring clear-all keeps the first destructive UX small and recoverable while physical ergonomics remain unknown.
+
+**Consequence:** WP3.4 may extend `FmtLockEditor` with only the small bounded selection/arm state required by this contract. Tests must cover zero/one/four-lock browse, clamping, stale SELECT discard, KNOB-write selection, same-poll EDIT+SEL rejection, EDIT-release cancellation, PLAY/unrelated-input cancellation, first/middle/last/only deletion, exactly-one-record free-list recovery, neighbor/row isolation, RANGE-value deletion, and D028 NOT_FOUND/BAD_ADDRESS/CORRUPT failure paths. The full app must demonstrate the real panel sequence with zero unintended MIDI. All Phase 2, WP3.1, WP3.2 and WP3.3 regressions plus the frozen WAV remain required. WP3.5+ still owns application of locks to playback/audio, and Phase 7 still owns final physical gesture approval.
