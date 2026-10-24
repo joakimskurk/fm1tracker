@@ -1,0 +1,52 @@
+name: WP4.2 PULSE closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_engine_pitch.h
+      - firmware/src/fmt_engine_pitch.c
+      - firmware/src/fmt_osc_pulse.h
+      - firmware/src/fmt_osc_pulse.c
+      - tests/test_wp4_2_pulse.c
+      - tests/run_wp4_2_pulse_tests.sh
+      - tests/run_wp4_2_closeout_ci.sh
+      - .github/workflows/wp4_2_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-2-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run D038 isolated PULSE closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_2_closeout_ci.sh | tee build/wp4_2_closeout.log
+          grep -F 'WP4_2_ISOLATED_PRODUCTION_DELTA_OK=1' build/wp4_2_closeout.log
+          grep -F 'WP4_2_TARGET_OBJECTS_OK=1' build/wp4_2_closeout.log
+          grep -F 'WP4_2_DEVICE_BASELINE' build/wp4_2_closeout.log
+          grep -F 'WP4_2_CLOSEOUT_OK=1' build/wp4_2_closeout.log
+
+      - name: Upload WP4.2 closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-2-pulse-closeout-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp4_2_*.log
+            build/wp4_2_*.txt
+            build/wp4_2_target/
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
