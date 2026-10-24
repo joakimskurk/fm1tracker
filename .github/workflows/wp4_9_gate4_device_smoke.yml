@@ -1,0 +1,94 @@
+name: WP4.9 D045 Gate 4 target resource smoke
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_8bit_engine.c
+      - firmware/src/fmt_8bit_linked_params.c
+      - .github/workflows/wp4_9_gate4_device_smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  target-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install build dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+      - name: Fetch pinned AC79 SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/ac79-sdk"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$RUNNER_TEMP/ac79-sdk"
+          git -C "$RUNNER_TEMP/ac79-sdk" rev-parse HEAD | tee build_sdk_commit.txt
+      - name: Build migrated FM-1 firmware and enforce D037 ceilings
+        shell: bash
+        env:
+          JIELI_TOOLCHAIN: ${{ runner.temp }}/jieli/toolchain
+          AC79_SDK: ${{ runner.temp }}/ac79-sdk
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          ./build.sh --release 0.1 | tee build/wp4_9_gate4_device.log
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+          "$JIELI_TOOLCHAIN/common/bin/objdump" -t build/fm1tracker.elf > build/wp4_9_gate4_symbols.txt
+          python3 - <<'PY' | tee build/wp4_9_gate4_metrics.txt
+          import hashlib, re
+          from pathlib import Path
+          log = Path('build/wp4_9_gate4_device.log').read_text()
+          m = re.search(r'image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064', log)
+          assert m, log[-3000:]
+          image, slot, ram, pool = map(int, m.groups())
+          assert image <= 132496, image
+          assert ram <= 21488, ram
+          assert pool <= 129384, pool
+          assert pool == 113000, pool
+          def sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          print('WP4_9_GATE4_TARGET_METRICS')
+          print(f'image_bytes={image}')
+          print(f'normal_ram_bytes={ram}')
+          print(f'pool_ram_bytes={pool}')
+          print(f'image_delta_vs_wp4_8={image-66960}')
+          print(f'normal_ram_delta_vs_wp4_8={ram-13296}')
+          print(f'pool_delta_vs_wp4_8={pool-113000}')
+          print(f'image_remaining_to_d037={132496-image}')
+          print(f'normal_ram_remaining_to_d037={21488-ram}')
+          print(f'pool_remaining_to_d037={129384-pool}')
+          print(f'fm1tracker_bin_sha256={sha("build/fm1tracker.bin")}')
+          print(f'fm1tracker_fwsc_sha256={sha("build/fm1tracker-0.1.fwsc")}')
+          PY
+          grep -F 'FM1Tracker package' build/wp4_9_gate4_device.log
+          grep -F 'identity FM-1_987' build/wp4_9_gate4_device.log
+          printf '%s\n' 'WP4_9_GATE4_TARGET_SMOKE_OK=1 d037_ceiling=pass pool_delta=0' | tee build/wp4_9_gate4_target_summary.txt
+      - name: Upload target smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate4-target-smoke
+          if-no-files-found: warn
+          path: |
+            build_sdk_commit.txt
+            build/wp4_9_gate4_device.log
+            build/wp4_9_gate4_metrics.txt
+            build/wp4_9_gate4_symbols.txt
+            build/wp4_9_gate4_target_summary.txt
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
