@@ -129,8 +129,8 @@ Current verified baseline after WP3.6:
 
 ## Next package
 
-- **WP3.7 — retrig / note delay / note cut** — READY TO START — issue #26.
-  Freeze D033 before source: exact command encoding, sub-row timing, NOTE/TIE/OFF/EMPTY interaction, retrigger/delay/cut semantics, precedence with D031/D032 and fixed real-time bounds. Do not pull the general WP3.8 queue forward unless D033 explicitly proves a minimal prerequisite is unavoidable.
+- **WP3.7 — retrig / note delay / note cut** — IN PROGRESS — issue #26.
+  D033 is frozen before source in `WP3_7_EVENT_CONTRACT.md`: commands `0x06..0x08`, exact D032 six-tick scheduling, fixed pending-note state, no general queue, and explicit D031/D032 interaction. Implement only this contract; WP3.8 remains separate.
 
 Remaining Phase 3 order:
 

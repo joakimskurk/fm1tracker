@@ -661,3 +661,30 @@ The normative detailed WP3.6 contract is `docs/WP3_6_EFFECT_CONTRACT.md`. It fre
 **Reason:** six ticks divide the existing D020 integer row phase exactly, preserving tracker-style timing without pulling WP3.8 queue architecture forward. Keeping commands in the existing two step bytes preserves the data model and D027 separation between tracker effects and p-lock parameters. A fixed proof-lane cache provides bounded main-to-audio publication analogous to D031.
 
 **Consequence:** WP3.6 may add only the small effect registry/cache/state and proof-lane audio integration required by `WP3_6_EFFECT_CONTRACT.md`. Retrig/note-delay/note-cut, general queue work, effect-entry UI, new synth engines, persistence, and live capture remain out of scope.
+
+## D033 — WP3.7 uses fixed-state six-tick retrig / note-delay / note-cut scheduling without the WP3.8 queue
+
+Date: 2026-10-24
+Status: accepted for the WP3.7 one-lane proof
+
+**Decision:** WP3.7 extends the existing `FmtStep.effect/effect_value` command domain with `0x06 RETRIG`, `0x07 NOTE_DELAY` and `0x08 NOTE_CUT`. The detailed normative semantics are frozen in `docs/WP3_7_EVENT_CONTRACT.md`.
+
+The three commands reuse D032's exact six positions per row: tick 0 at row dispatch and ticks 1..5 at transport phases `110250`, `220500`, `330750`, `441000`, `551250`. The next row at `661500` wins over any sub-row action; no tick 6 exists.
+
+`RETRIG` values `1..5` are tick intervals and fire at internal ticks divisible by the interval; value `0` performs no repeats and values above `5` are safe no-ops. The proof adapter resets oscillator phase only, preserving persistent pitch, row level target and amplitude state; future engines may map the same semantic action to their envelope retrigger primitive.
+
+`NOTE_DELAY` values `1..5` withhold only an ordinary NOTE until that tick; value `0` is immediate and values above `5` do not suppress the NOTE. TIE, EMPTY/NONE and OFF are never delayed. While a NOTE waits, a previous active note may continue and receives the current row's D031 row-local parameter snapshot. The delayed NOTE then uses that same row snapshot and follows ordinary non-portamento persistent-pitch semantics.
+
+`NOTE_CUT` values `0..5` synthesize full D025 OFF semantics at that tick without rewriting the stored row; values above `5` are safe no-ops. CUT can stop a new same-row note or an earlier sustained note and cannot be resurrected by later TIE/EMPTY/retrig ticks.
+
+Because one row still owns only one `effect/effect_value` command, D032 pitch effects and D033 event commands cannot be simultaneous on the same row. D031 p-locks remain orthogonal and may coexist. RETRIG does not mutate persistent pitch/porta state; delayed NOTE sets persistent pitch when it lands and clears a pending porta target; CUT clears active pitch/porta/transient state through OFF semantics.
+
+WP3.7 explicitly does **not** introduce the general WP3.8 queue. One command/value, one pending note byte and one pending-valid byte are sufficient fixed state, with a target of at most 4 bytes. RETRIG repetitions are derived mathematically from the current D032 tick and never enqueued. The existing D032 64-row effect cache is reused; no third row cache is required.
+
+Reserved command bytes `0x09..0xFF` continue to resolve to NONE. Valid D033 commands with value above `5` never wrap modulo six and never schedule work into another row. Playback never mutates `FmtStep`, p-lock records or stored effect bytes.
+
+`FmtStep` remains exactly 8 B, `FmtPlaybackEvent` remains exactly 4 B, D020/D021 ordering is unchanged, and all D031/D032 audio regressions remain mandatory.
+
+**Reason:** the existing one-command-per-row model plus D032's exact six-tick clock gives a complete bounded implementation for retrig, delay and cut. A queue would add overflow and ordering machinery without solving a WP3.7 requirement and is therefore correctly deferred to WP3.8.
+
+**Consequence:** WP3.7 source may extend D032 command validation/cache and add one tiny fixed event scheduler plus the minimal proof-voice adapter hooks. Tests must cover values `0..5` and `>5`, exact frame/tick timing, NOTE/TIE/EMPTY/OFF interaction, delayed-note D031 row values, CUT non-resurrection, RETRIG after OFF no-op, D032 persistent pitch/porta continuation, invalid-command NONE fallback, stored-data immutability and all inherited regressions. No WP3.8 queue/overflow implementation may be added under WP3.7.

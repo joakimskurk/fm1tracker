@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 3 - p-locks and tracker effects**
 
-State: **IN PROGRESS - WP3.6 complete; WP3.7 ready to start - 2026-10-24**
+State: **IN PROGRESS - WP3.7 active; D033 frozen before source - 2026-10-24**
 
 Parent issue: #20  
 Current branch: `phase3/plocks-effects`
@@ -151,11 +151,13 @@ Final artifacts:
 
 **WP3.7 - retrig / note delay / note cut**
 
-State: **READY TO START - no WP3.7 implementation has begun**
+State: **IN PROGRESS - D033 frozen; production source is the next step**
 
 GitHub issue: #26
 
-Before source, freeze D033 covering:
+WP3.7 start head: `e2f354018b4cbad636b51ac8ae98c9b226e7ef18`
+
+D033 is frozen in `docs/DECISIONS.md` and `docs/WP3_7_EVENT_CONTRACT.md`. It defines:
 
 - exact command IDs and encoding for retrig, note delay and note cut;
 - exact sub-row timing and interaction with D020/D021/D032;
@@ -191,7 +193,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Start WP3.7 / issue #26 as its own package. Verify actual branch HEAD, mark WP3.7 IN PROGRESS, freeze D033 before source, and do not begin WP3.8.
+Implement WP3.7 / #26 from the frozen D033 contract. Keep the fixed six-tick scheduler and do not begin WP3.8 queue work.
 
 ## Last relevant checkpoints
 
@@ -206,4 +208,4 @@ Start WP3.7 / issue #26 as its own package. Verify actual branch HEAD, mark WP3.
 
 ## Last updated
 
-2026-10-24 - WP3.6 verified complete. WP3.7 / #26 is READY TO START; no WP3.7 source exists.
+2026-10-24 - WP3.7 active. D033 frozen before source; no WP3.7 production source has been committed yet.
