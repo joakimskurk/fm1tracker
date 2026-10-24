@@ -33,6 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_wp4_1_closeout_ci.sh | tee build/wp4_1_closeout.log
           grep -F 'WP4_1_PRODUCTION_IDENTICAL_OK=1' build/wp4_1_closeout.log
           grep -F 'WP4_1_D037_REPOSITORY_FREEZE_OK=1' build/wp4_1_closeout.log
