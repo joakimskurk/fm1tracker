@@ -688,3 +688,31 @@ Reserved command bytes `0x09..0xFF` continue to resolve to NONE. Valid D033 comm
 **Reason:** the existing one-command-per-row model plus D032's exact six-tick clock gives a complete bounded implementation for retrig, delay and cut. A queue would add overflow and ordering machinery without solving a WP3.7 requirement and is therefore correctly deferred to WP3.8.
 
 **Consequence:** WP3.7 source may extend D032 command validation/cache and add one tiny fixed event scheduler plus the minimal proof-voice adapter hooks. Tests must cover values `0..5` and `>5`, exact frame/tick timing, NOTE/TIE/EMPTY/OFF interaction, delayed-note D031 row values, CUT non-resurrection, RETRIG after OFF no-op, D032 persistent pitch/porta continuation, invalid-command NONE fallback, stored-data immutability and all inherited regressions. No WP3.8 queue/overflow implementation may be added under WP3.7.
+
+
+## D034 — WP3.8 uses a 32-entry SPSC main-to-audio runtime event queue with reject-newest overflow
+
+Date: 2026-10-24
+Status: accepted before WP3.8 production source
+
+**Decision:** WP3.8 freezes the general runtime-event ingress anticipated by the Phase-0 architecture/data model as a single-producer/single-consumer main-loop -> audio-ISR queue. The normative detailed contract is `docs/WP3_8_QUEUE_CONTRACT.md`.
+
+D034 does **not** move D033 RETRIG / NOTE DELAY / NOTE CUT into a queue. Those remain the verified four-byte fixed-state scheduler on D032's exact six-tick clock. D024's PLAY desired-state mailbox likewise remains a mailbox because desired run state is idempotent state rather than an ordered discrete event.
+
+`FmtRtEvent` is frozen at exactly 8 bytes: one-byte `type`, one-byte logical `track`, 16-bit `value_a`, 32-bit `value_b`. WP3.8 assigns only NOTE_ON (`0x01`) and NOTE_OFF (`0x02`); `value_b` remains zero/reserved and is not silently defined as a timestamp. Queue slots publish the event as two aligned 32-bit words.
+
+Capacity is exactly 32 events. The 256-byte slot array plus producer-owned `write_seq`, consumer-owned `read_seq` and producer-owned `overflow_seq` gives a target `FmtRtQueue` size of exactly 268 bytes ordinary RAM. Capacity 32 covers all 27 physical FM-1 note-key edges from one main-loop poll while retaining deterministic behavior for larger USB-MIDI bursts.
+
+Publication is SPSC: main writes both slot words, executes a compiler memory barrier, then advances `write_seq`; audio observes `write_seq`, executes the matching barrier, reads both words, then advances only `read_seq`. No interrupt masking, lock, allocator, spin or retry is allowed. Unsigned monotonic sequence counters and a power-of-two mask define wrap-safe bounded occupancy.
+
+Overflow is **reject-newest**. When the queue already contains 32 unread events, the producer leaves every unread slot and `write_seq` untouched, increments `overflow_seq` once and returns FULL. Drop-oldest is explicitly rejected because it would require producer mutation of consumer ownership or overwrite unread state.
+
+The first production integration is the existing manual/audition NOTE ON/OFF path. Main no longer chooses/mutates Dinghy manual voice internals directly; it enqueues note intent, and audio consumes up to 32 events once at callback start before rendering. This is not live recording. Current hardware/USB-MIDI audition simply proves the real main->audio boundary already required by the architecture.
+
+Because reject-newest could otherwise lose NOTE_OFF, the audition adapter observes `overflow_seq`. On any change it releases all four manual voice gates click-safely and consumer-discards the pending batch in O(1) by advancing `read_seq` to the published `write_seq`. Overflow therefore fails toward silence, never toward an indefinitely stuck note.
+
+WP3.8 queue timing is callback-boundary immediate ingress, not a new sample-accurate scheduler. Successfully queued events are FIFO-consumed at the beginning of the next audio callback. D033 remains responsible for its already verified sample-exact sub-row timing. Future live capture/sample-offset semantics require a later explicit decision and may assign event-specific meaning to the reserved `value_b` without changing the queue envelope.
+
+**Reason:** The current proof firmware still has one architectural shortcut where main-context `play()` / `stop()` directly mutate manual audio voice state. A small SPSC queue removes that cross-context mutation, matches the original architecture, gives future live-performance work a measured ingress primitive, and provides a real overflow problem to solve without dragging live recording or multi-track engine work into Phase 3. A 32-entry/8-byte design is large enough for one full 27-key hardware edge set but cheap enough to measure now.
+
+**Consequence:** WP3.8 may add only the 8-byte runtime event envelope, exact 268-byte queue, NOTE ON/OFF audition adapter and the tests/diagnostics required by `WP3_8_QUEUE_CONTRACT.md`. Tests must prove exact layout, FIFO, full/reject-newest semantics, sequence wrap, O(1) discard, forced-overflow no-stuck-note recovery, real key/MIDI audition, queue-only MIDI neutrality, target alignment/resource cost and all inherited Phase 2 + WP3.1-WP3.7 deterministic audio regressions. Live REC/capture, timestamped automation, D033-through-queue, multi-track runtime dispatch, new engines and visual feedback remain out of scope.

@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 3 - p-locks and tracker effects**
 
-State: **IN PROGRESS - WP3.1-WP3.7 complete; WP3.8 ready for D034 architecture freeze - 2026-10-24**
+State: **IN PROGRESS - WP3.1-WP3.7 complete; WP3.8 active, D034 frozen before source - 2026-10-24**
 
 Parent issue: #20  
 Current branch: `phase3/plocks-effects`
@@ -163,21 +163,13 @@ All frozen WP3.6 D032 audio fixtures also remain byte-identical through WP3.7.
 
 **WP3.8 - bounded event queue and overflow policy**
 
-State: **READY TO START - D034 architecture freeze required before production source**
+State: **IN PROGRESS - D034 frozen; production queue implementation next**
 
 GitHub issue: #27
 
-WP3.8 must first prove the actual producer/consumer need for a queue beyond D033's fixed row-local state, then freeze:
+D034 is frozen in `docs/WP3_8_QUEUE_CONTRACT.md`: exactly 8-byte `FmtRtEvent`, 32-entry / 268-byte SPSC main->audio queue, producer-owned `write_seq`/`overflow_seq`, consumer-owned `read_seq`, aligned two-word publication, reject-newest overflow, callback-boundary immediate timing, and fail-to-silence audition recovery. D033 and the D024 transport mailbox remain outside the queue.
 
-- event record and exact byte size;
-- queue capacity and RAM budget;
-- producer/consumer ownership and head/tail rules;
-- deterministic overflow behavior;
-- event timestamp domain and ordering against D020/D021/D031/D032/D033;
-- reset/STOP/seek semantics;
-- bounded worst-case audio work and malformed-event fallback.
-
-Do not begin WP3.8 production source before D034 is frozen. Do not retrofit queue assumptions into the verified D033 path unless D034 explicitly supersedes a D033 rule.
+Production source may now implement **only** this contract, beginning with the queue module/unit tests and then routing existing manual key/USB-MIDI NOTE ON/OFF through it. Live capture/timestamp semantics and multi-track sequencer migration remain later work.
 
 ## Important decisions / do not regress
 
@@ -203,7 +195,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Start WP3.8 / #27 with D034 architecture analysis and freeze. Do **not** write queue production source until D034 is accepted.
+Implement the frozen D034 queue module and focused unit tests first, then integrate existing manual key/USB-MIDI audition NOTE ON/OFF through the queue. Do not expand into live capture or D033 queueing.
 
 ## Last relevant checkpoints
 
@@ -219,4 +211,4 @@ Start WP3.8 / #27 with D034 architecture analysis and freeze. Do **not** write q
 
 ## Last updated
 
-2026-10-24 - WP3.7 complete and issue #26 closed. WP3.8 / #27 is ready for D034 architecture freeze; no WP3.8 production source has begun.
+2026-10-24 - WP3.7 complete and #26 closed. WP3.8 / #27 active; D034 frozen in `WP3_8_QUEUE_CONTRACT.md` before source. No WP3.8 production source has begun yet.

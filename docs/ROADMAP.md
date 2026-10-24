@@ -127,13 +127,13 @@ Progress:
 5. ✅ **WP3.5 — basic pitch/volume p-lock playback**. D031. Final run `40069110111`.
 6. ✅ **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects**. D032 freezes commands in `FmtStep.effect/effect_value`, exact six-tick D020 timing, Q7 persistent/transient pitch composition and bounded fixed caches/state. Final run `40073680548`; evidence `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
 7. ✅ **WP3.7 — retrig / note delay / note cut**. D033 adds commands `0x06..0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state without a general queue. Final run `40077809743`; evidence `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
-8. ⬜ **WP3.8 — bounded event queue and overflow policy**, issue #27, READY FOR D034 ARCHITECTURE FREEZE.
+8. 🟨 **WP3.8 — bounded event queue and overflow policy**, issue #27, IN PROGRESS. D034 frozen in `WP3_8_QUEUE_CONTRACT.md` before source.
 9. ⬜ WP3.9 — lock/effect visual feedback.
 10. ⬜ WP3.10 — Phase 3 worst-case tests.
 
 Current verified Phase 3 footprint after WP3.7: 65,940 B image, 13,008 B normal RAM and 113,000 B pool. The historical default WAV, D031 locked WAV and frozen WP3.6 D032 audio fixtures remain byte-identical.
 
-Immediate next package: **WP3.8 / #27**. Freeze D034 before source. D034 must prove the producer/consumer need, exact event record/capacity/RAM budget, ownership, timestamp domain, overflow policy and bounded audio work before any queue implementation begins.
+Immediate next package: **WP3.8 / #27**. D034 is frozen: implement the 32-entry SPSC main->audio queue and existing audition NOTE ON/OFF adapter, then prove forced overflow and all inherited regressions before closeout.
 
 Exit criteria remain:
 

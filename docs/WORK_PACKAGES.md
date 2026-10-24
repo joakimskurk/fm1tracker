@@ -133,8 +133,8 @@ Current verified baseline after WP3.7:
 
 ## Next package
 
-- **WP3.8 — bounded event queue and overflow policy** — READY TO START — issue #27.
-  Freeze D034 before production source. D034 must establish the real producer/consumer need for a queue, exact event record/capacity/RAM budget, ownership and memory visibility, timestamp domain, deterministic overflow policy, reset/STOP behavior, ordering against D020/D021/D031/D032/D033 and bounded worst-case audio work. The verified D033 path remains fixed-state unless D034 explicitly supersedes it.
+- **WP3.8 — bounded event queue and overflow policy** — IN PROGRESS — issue #27.
+  D034 is frozen before source in `WP3_8_QUEUE_CONTRACT.md`: 8-byte runtime events, exact 32-entry / 268-byte SPSC main->audio queue, aligned two-word publication, reject-newest overflow and click-safe fail-to-silence audition recovery. Implement only this contract; D033 remains fixed-state and live capture remains later work.
 
 Remaining Phase 3 order:
 

@@ -204,7 +204,7 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | D033 preserves frozen D032 audio hashes and historical default/D031 WAVs | required | required | n/a | ✅ run `40077809743` |
 | WP3.7 final resource delta measured/frozen | n/a | required | n/a | ✅ +412 B image / +4 B RAM / +0 B pool |
 | WP3.7 preserves all Phase 2 + WP3.1-WP3.6 regressions | required | required | later | ✅ run `40077809743` |
-| Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 / #27 |
+| Queue overflow policy deterministic | required | required | stress test | 🟨 D034 frozen: reject-newest; implementation pending |
 
 Phase 3 evidence so far:
 
