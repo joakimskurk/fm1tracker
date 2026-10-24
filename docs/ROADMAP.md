@@ -114,7 +114,7 @@ Phase 2 exit criteria are satisfied at the host/device-build level. Physical FM-
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
 
-Status: **IN PROGRESS — WP3.1/WP3.2 complete; WP3.3 next**
+Status: **IN PROGRESS — WP3.1/WP3.2/WP3.3 complete; WP3.4 next**
 
 Parent issue: #20
 
@@ -122,8 +122,8 @@ Progress:
 
 1. ✅ **WP3.1 — stable parameter ID registry**. D027 freezes a one-byte semantic ID domain, NONE/INVALID, non-overlapping namespaces and exactly four initial assigned IDs. All 256 byte values are exhaustively tested and the registry compiles with the real JieLi target compiler. Final run `40025790828`; evidence `WP3_1_VERIFICATION.md`.
 2. ✅ **WP3.2 — sparse four-lock-per-step storage**. D028 freezes a global 2,048-record sparse pool, exact 8-byte owner-checked records, four-lock-per-step enforcement, strict ascending parameter-ID lists and deterministic replacement/removal/clear/exhaustion/corruption behavior. Final resources are 59,388 B image, 12,468 B normal RAM and 113,000 B pool. Final run `40038453521`; evidence `WP3_2_VERIFICATION.md`.
-3. ⬜ **WP3.3 — hold/select step + encoder p-lock editing**, issue #22, READY TO START. Freeze the exact editing gesture, context gating, encoder-to-D027 mapping, value scaling and gesture ownership before source.
-4. ⬜ WP3.4 — lock replace/delete UX.
+3. ✅ **WP3.3 — hold-step + encoder p-lock editing**. D029 freezes a held-white-step target latch in ordinary SEQ, relative KNOB1..4 edits of the four D027 IDs, normalized 0..255 editor values and stale/begin/release-delta discard. Unit tests cover all 64 steps × 8 tracks; the real full-app fixture verifies focus suppression, zero accidental MIDI and reviewed/frozen lock footer frames. Final resources are 61,716 B image, 12,476 B normal RAM and unchanged 113,000 B pool. Final run `40054322180`; evidence `WP3_3_VERIFICATION.md`.
+4. ⬜ **WP3.4 — p-lock replace/delete UX**, issue #23, READY TO START. D030 must freeze browse/selection, one-lock delete, optional clear-all, destructive safeguards and D029 interaction before source.
 5. ⬜ WP3.5 — basic pitch/volume effects.
 6. ⬜ WP3.6 — arpeggio/slide/porta/vibrato.
 7. ⬜ WP3.7 — retrig/note delay/note cut.
@@ -133,9 +133,11 @@ Progress:
 
 D027 current assigned IDs remain deliberately small: VOICE LEVEL, FINE PITCH, TRACK LEVEL and TRACK PAN. Engine/effect/GLOBAL namespaces remain mostly unassigned until real semantics exist. Namespace membership alone never means lockable.
 
-D028 makes the whole-song capacity explicitly sparse. Any single step may hold up to four locks, but all 8,192 resident steps share 2,048 records. The editable `FmtSong` core plus frozen lock records totals 82,280 B, 16,024 B below the 96 KiB editable-song target.
+D028 makes whole-song capacity explicitly sparse. Any single step may hold up to four locks, but all 8,192 resident steps share 2,048 records. The editable `FmtSong` core plus lock records totals 82,280 B, 16,024 B below the 96 KiB editable-song target.
 
-Immediate next package: **WP3.3**. It is the first package allowed to write D028 locks through the hardware/editor path. It must not pull WP3.4 delete UX or WP3.5 playback/audio application forward.
+D029 proves the first real hardware-editor path to lock storage while deliberately remaining storage-only. P-locks still do not affect playback or base instrument/track state.
+
+Immediate next package: **WP3.4 / #23**. It may expose safe delete/clear UX through D028, but it must not pull WP3.5 playback/audio application forward.
 
 Exit criteria:
 
