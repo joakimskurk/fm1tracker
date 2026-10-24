@@ -10,8 +10,10 @@ on:
       - firmware/src/fmt_lock_editor.h
       - firmware/src/fmt_lock_editor.c
       - tests/test_fmt_tracker_screen.c
+      - tests/test_fmt_lock_editor.c
       - tests/test_wp3_9_visual.c
       - tests/run_tracker_screen_tests.sh
+      - tests/run_lock_editor_tests.sh
       - .github/workflows/wp3_9_visual_verify.yml
   workflow_dispatch:
 
@@ -30,3 +32,9 @@ jobs:
         run: |
           set -euo pipefail
           sh tests/run_tracker_screen_tests.sh
+
+      - name: Run D029 + D030 + D035 lock editor tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_lock_editor_tests.sh
