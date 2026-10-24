@@ -1,0 +1,59 @@
+name: WP5.0 D048 inherited regressions
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - firmware/src/**
+      - tests/run_wp4_9_inherited_regressions.sh
+      - tests/run_wp5_0_inherited_regressions.sh
+      - tests/run_model_tests.sh
+      - tests/run_store_tests.sh
+      - tests/run_transport_tests.sh
+      - tests/run_playback_tests.sh
+      - tests/run_pattern_input_tests.sh
+      - tests/run_step_record_tests.sh
+      - tests/run_tracker_screen_tests.sh
+      - tests/run_param_registry_tests.sh
+      - tests/run_lock_store_tests.sh
+      - tests/run_lock_editor_tests.sh
+      - tests/run_playback_params_tests.sh
+      - tests/run_tracker_effect_tests.sh
+      - tests/run_tracker_event_tests.sh
+      - tests/run_rt_queue_tests.sh
+      - tests/run_pattern_context_host.sh
+      - tests/run_track_selection_context_host.sh
+      - tests/run_step_rec_context_host.sh
+      - tests/run_wp4_9_ui_regressions_host.sh
+      - tests/run_wp3_10_worst_case.sh
+      - tests/run_wp3_10_timing_matrix.sh
+      - .github/workflows/wp5_0_inherited_regressions.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inherited:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install UI regression dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+      - name: Run all applicable inherited regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_0_inherited_regressions.sh | tee "$RUNNER_TEMP/wp5_0_inherited.log"
+          grep -F 'WP5_0_INHERITED_REGRESSIONS_OK=1 phase1_4=applicable contracts=pass obsolete_proof_sine=excluded' "$RUNNER_TEMP/wp5_0_inherited.log"
+      - name: Upload inherited regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-inherited-regressions
+          if-no-files-found: warn
+          path: |
+            build/wp5_0_inherited/**
+            build/wp4_9_gate6_*.log
