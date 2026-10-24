@@ -91,50 +91,49 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1–WP3.5 complete; WP3.6 next**
+Status: **IN PROGRESS — WP3.1–WP3.6 complete; WP3.7 next**
 
 Parent issue: #20
 
 ## Completed packages
 
-- **WP3.1 — stable parameter ID registry** — COMPLETE — issue #19  
-  D027 freezes one-byte semantic parameter identity, exact namespace ranges, NONE/INVALID handling and four initial assigned IDs. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
+- **WP3.1 — stable parameter ID registry** — COMPLETE — issue #19
+  D027 freezes one-byte semantic parameter identity. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
 
-- **WP3.2 — sparse four-lock-per-step storage** — COMPLETE — issue #21  
-  D028 freezes one global 2,048-record sparse pool with exact 8-byte owner-checked records, strict ascending parameter-ID lists, deterministic replacement/removal/clear and max four locks per step. Final run `40038453521`. Evidence: `WP3_2_VERIFICATION.md`.
+- **WP3.2 — sparse four-lock-per-step storage** — COMPLETE — issue #21
+  D028 freezes the owner-checked 2,048-record global sparse pool. Final run `40038453521`. Evidence: `WP3_2_VERIFICATION.md`.
 
-- **WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22  
-  D029 freezes ordinary-SEQ held-white-step target ownership, stale/begin/release delta discard, KNOB1..4 mapping and normalized 0..255 storage editing. Final run `40054322180`. Evidence: `WP3_3_VERIFICATION.md`.
+- **WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22
+  D029 freezes held-step target ownership and KNOB1..4 normalized editing. Final run `40054322180`. Evidence: `WP3_3_VERIFICATION.md`.
 
-- **WP3.4 — p-lock browse / single-lock delete UX** — COMPLETE — issue #23  
-  D030 freezes SELECT browsing in D028 sorted order plus deliberate EDIT arm -> later SEL one-lock confirmation, same-poll rejection, cancellation safety and no clear-all panel gesture. Final run `40064122343`. Evidence: `WP3_4_VERIFICATION.md`.
+- **WP3.4 — p-lock browse / single-lock delete UX** — COMPLETE — issue #23
+  D030 freezes sorted SELECT browse plus deliberate one-lock delete confirmation. Final run `40064122343`. Evidence: `WP3_4_VERIFICATION.md`.
 
 - **WP3.5 — basic pitch/volume p-lock playback** — COMPLETE — issue #24
-  D031 applies VOICE LEVEL, FINE PITCH and TRACK LEVEL as row-local overrides on the existing pattern-0/track-0 proof lane; TRACK PAN remains storage-only. Main/editor resolves at most four D028 records into an aligned 64×32-bit / 256-byte row cache, so audio never traverses mutable lock lists. `FmtPlaybackEvent` remains 4 B and D021 timing is unchanged. The historical no-lock WAV remains byte-identical, while a separate locked-audio fixture proves combined attenuation, fine-pitch change, EMPTY-row mute and unlocked-row restore. Final run `40069110111`. Final resource delta vs WP3.4: +496 B image / +256 B normal RAM / +0 B pool. Evidence: `WP3_5_VERIFICATION.md`.
+  D031 applies VOICE LEVEL, FINE PITCH and TRACK LEVEL through a fixed 256 B proof-lane row cache; TRACK PAN remains storage-only. Final run `40069110111`. Evidence: `WP3_5_VERIFICATION.md`.
 
-Current verified baseline after WP3.5:
+- **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects** — COMPLETE — issue #25
+  D032 assigns `NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO` in `FmtStep.effect/effect_value`, freezes an exact six-tick D020-derived row clock, persistent Q7 slide/porta pitch, transient ARP/vibrato, D031 FINE precedence, a 256 B effect-row cache and 12 B bounded runtime state. Final run `40073680548`. Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool. Evidence: `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
 
-- app image: 64,724 B / 581,564 B
-- normal RAM: 12,736 B / 98,304 B
+Current verified baseline after WP3.6:
+
+- app image: 65,528 B / 581,564 B
+- normal RAM: 13,004 B / 98,304 B
 - pool RAM: 113,000 B / 344,064 B
-- `FmtParamId`: 1 B
-- `FmtLock`: 8 B
-- global lock pool: 2,048 records / 16,384 B
-- allocator runtime: 4 B
-- `FmtLockEditor`: 10 B
-- D031 playback row snapshot cache: 256 B ordinary RAM
+- D031 playback row cache: 256 B ordinary RAM
+- D032 effect row cache: 256 B ordinary RAM
+- D032 effect runtime: 12 B
 - default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
-- locked D031 WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
+- D031 locked WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
 - package identity: `FM-1_987`
 
 ## Next package
 
-- **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects** — READY TO START — issue #25.
-  Freeze the next decision before source: exact tracker effect IDs/encoding, row continuation/reset and effect-memory semantics, D020/D021 timing, integer pitch/modulation rules, NOTE/TIE/OFF/EMPTY interaction, precedence with D031 FINE PITCH and hard real-time bounds. Do not pull WP3.7 retrig/note-delay/note-cut or WP3.8 general queue work forward.
+- **WP3.7 — retrig / note delay / note cut** — READY TO START — issue #26.
+  Freeze D033 before source: exact command encoding, sub-row timing, NOTE/TIE/OFF/EMPTY interaction, retrigger/delay/cut semantics, precedence with D031/D032 and fixed real-time bounds. Do not pull the general WP3.8 queue forward unless D033 explicitly proves a minimal prerequisite is unavoidable.
 
 Remaining Phase 3 order:
 
-- WP3.6 arpeggio/slide/porta/vibrato
 - WP3.7 retrig/note delay/note cut
 - WP3.8 bounded event queue and overflow policy
 - WP3.9 lock/effect visual feedback

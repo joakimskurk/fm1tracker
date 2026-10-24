@@ -114,26 +114,26 @@ Phase 2 exit criteria are satisfied at the host/device-build level. Physical FM-
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
 
-Status: **IN PROGRESS — WP3.1–WP3.5 complete; WP3.6 next**
+Status: **IN PROGRESS — WP3.1–WP3.6 complete; WP3.7 next**
 
 Parent issue: #20
 
 Progress:
 
-1. ✅ **WP3.1 — stable parameter ID registry**. D027 freezes the one-byte semantic ID domain and four initial assigned IDs. Final run `40025790828`; evidence `WP3_1_VERIFICATION.md`.
-2. ✅ **WP3.2 — sparse four-lock-per-step storage**. D028 freezes the owner-checked 2,048-record global sparse pool and bounded mutation semantics. Final run `40038453521`; evidence `WP3_2_VERIFICATION.md`.
-3. ✅ **WP3.3 — hold-step + encoder p-lock editing**. D029 freezes held-step target ownership, relative KNOB1..4 editing and stale-delta protection. Final run `40054322180`; evidence `WP3_3_VERIFICATION.md`.
-4. ✅ **WP3.4 — p-lock browse / single-lock delete UX**, issue #23. D030 freezes sorted SELECT browse plus armed EDIT -> later SEL one-lock confirmation and cancellation safety. Final run `40064122343`; evidence `WP3_4_VERIFICATION.md`.
-5. ✅ **WP3.5 — basic pitch/volume p-lock playback**, issue #24. D031 makes VOICE LEVEL, FINE PITCH and TRACK LEVEL audible as row-local proof-lane overrides through a fixed aligned 256-byte row snapshot cache; TRACK PAN remains storage-only. Audio never traverses mutable D028 lists, `FmtPlaybackEvent` remains 4 B and D021 timing is unchanged. The historical no-lock WAV remains byte-identical and a separate locked fixture proves deterministic pitch/level/mute/restore behavior. Final resources: 64,724 B image, 12,736 B normal RAM, 113,000 B pool. Final run `40069110111`; evidence `WP3_5_VERIFICATION.md`.
-6. ⬜ **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects**, issue #25, READY TO START.
-7. ⬜ WP3.7 — retrig/note delay/note cut.
+1. ✅ **WP3.1 — stable parameter ID registry**. D027. Final run `40025790828`.
+2. ✅ **WP3.2 — sparse four-lock-per-step storage**. D028. Final run `40038453521`.
+3. ✅ **WP3.3 — hold-step + encoder p-lock editing**. D029. Final run `40054322180`.
+4. ✅ **WP3.4 — p-lock browse / single-lock delete UX**. D030. Final run `40064122343`.
+5. ✅ **WP3.5 — basic pitch/volume p-lock playback**. D031. Final run `40069110111`.
+6. ✅ **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects**. D032 freezes commands in `FmtStep.effect/effect_value`, exact six-tick D020 timing, Q7 persistent/transient pitch composition and bounded fixed caches/state. Final run `40073680548`; evidence `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
+7. ⬜ **WP3.7 — retrig / note delay / note cut**, issue #26, READY TO START.
 8. ⬜ WP3.8 — bounded event queue and overflow policy.
 9. ⬜ WP3.9 — lock/effect visual feedback.
 10. ⬜ WP3.10 — Phase 3 worst-case tests.
 
-D027–D030 establish stable lock identity, sparse storage and deterministic hardware-native create/replace/browse/delete UX. D031 proves the first bounded p-lock-to-audio handoff without ISR traversal of mutable lock lists and without changing the 4-byte playback event or D021 row timing.
+Current verified Phase 3 footprint after WP3.6: 65,528 B image, 13,004 B normal RAM and 113,000 B pool. The historical no-effect WAV and D031 locked WAV remain byte-identical.
 
-Immediate next package: **WP3.6 / #25**. Before code, freeze exact tracker-effect command identity/encoding, row continuation/reset and memory behavior, integer modulation timing, NOTE/TIE/OFF/EMPTY interaction, precedence with D031 FINE PITCH and hard real-time bounds. WP3.7 and WP3.8 remain separate.
+Immediate next package: **WP3.7 / #26**. D033 must be frozen before source. WP3.8 remains a separate queue/overflow package and must not be pulled forward by convenience.
 
 Exit criteria remain:
 

@@ -290,3 +290,16 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 - Final resources: 64,724 B image (+496 B), 12,736 B normal RAM (+256 B), 113,000 B pool (+0 B) versus WP3.4.
 - Final artifacts: `fm1tracker.bin` `d0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae`; `fm1tracker-0.1.fwsc` `5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372`.
 - Final verification: run `40069110111`, job `120798506694`; evidence `docs/WP3_5_VERIFICATION.md`.
+
+
+## 2026-10-24 - WP3.6 tracker effects
+
+- Froze D032 before production source and added `WP3_6_EFFECT_CONTRACT.md`.
+- Added NONE/ARPEGGIO/SLIDE_UP/SLIDE_DOWN/PORTAMENTO/VIBRATO in the existing `FmtStep.effect/effect_value` domain.
+- Added exact six-tick D020-derived effect timing, persistent Q7 slide/porta pitch and transient ARP/vibrato composition with D031 FINE.
+- Added one aligned 256 B proof-lane effect cache and 12 B bounded runtime state; `FmtStep` remains 8 B and `FmtPlaybackEvent` remains 4 B.
+- Added deterministic unit/tick/audio proof for ARP, both slides, portamento, vibrato, D031 FINE composition and invalid-command NONE fallback.
+- Preserved historical default WAV and D031 locked WAV byte-for-byte.
+- Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool; delta vs WP3.5 +804 / +268 / +0 B.
+- Final verification: run `40073680548`, job `120812368036`; evidence `docs/WP3_6_VERIFICATION.md`.
+- Next: WP3.7 / #26 retrig, note delay and note cut. D033 must freeze semantics before source.

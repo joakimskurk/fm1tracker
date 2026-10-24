@@ -180,6 +180,20 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | Locked audio proof deterministic/frozen | required | compile | observable | ✅ `8d2e478e...`, 52,736 frames |
 | WP3.5 final resource delta measured/frozen | n/a | required | n/a | ✅ +496 B image / +256 B RAM / +0 B pool |
 | WP3.5 preserves all Phase 2 + WP3.1–WP3.4 regressions | required | required | later | ✅ run `40069110111` |
+| D032 effect command domain exactly NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO | required | compile | observable | ✅ WP3.6 |
+| D032 exact six-tick D020 grid and row-boundary precedence | required | compile | required | ✅ 919/1838/2757/3675/4594 -> row 5513 at 120 BPM |
+| D032 effect cache exactly 64×32-bit / 256 B aligned | required | required | n/a | ✅ `.bss` `0x01C0B074` |
+| `FmtTrackerEffectState` exact 12 B at verified checkpoint | required | required | n/a | ✅ WP3.6 |
+| ARP 0,X,Y,0,X,Y deterministic | required | compile | observable | ✅ frozen audio proof |
+| Slide up/down persistent Q7 motion and saturation deterministic | required | compile | observable | ✅ frozen audio proof |
+| Portamento target/resume/reach semantics deterministic | required | compile | observable | ✅ WP3.6 unit/audio proof |
+| Vibrato speed/depth/phase continuation deterministic | required | compile | observable | ✅ frozen audio proof |
+| D031 FINE composes additively without mutating D032 persistent pitch | required | compile | observable | ✅ ARP+FINE fixture |
+| Invalid tracker effect command falls back to NONE byte-identically | required | compile | observable | ✅ control == invalid WAV |
+| D032 playback does not mutate stored song/effect data | required | required | n/a | ✅ WP3.6 |
+| Default and D031 locked WAVs remain byte-identical through WP3.6 | required | required | n/a | ✅ `453dc6b7...` / `8d2e478e...` |
+| WP3.6 final resource delta measured/frozen | n/a | required | n/a | ✅ +804 B image / +268 B RAM / +0 B pool |
+| WP3.6 preserves all Phase 2 + WP3.1–WP3.5 regressions | required | required | later | ✅ run `40073680548` |
 | Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
 | Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
 | Retrig timing/count bounded | required | required | required | ⬜ WP3.7 |
@@ -191,6 +205,7 @@ Phase 3 evidence so far:
 - `WP3_3_VERIFICATION.md`
 - `WP3_4_VERIFICATION.md`
 - `WP3_5_VERIFICATION.md`
+- `WP3_6_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 
