@@ -19,7 +19,11 @@ jobs:
           fetch-depth: 0
 
       - name: Integrate D034 audition queue ownership
-        run: python3 .github/tmp/wp3_8_audio_integrate.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/fmt_pattern_input_runtime\.track/fmt_pattern_input_runtime.selected_track/g' .github/tmp/wp3_8_audio_integrate.py
+          python3 .github/tmp/wp3_8_audio_integrate.py
 
       - name: Run D034 isolated queue tests
         run: sh tests/run_rt_queue_tests.sh
@@ -45,6 +49,7 @@ jobs:
           grep -F 'audition_consume_queue();' firmware/src/dinghy.c
           grep -F 'fmt_rt_queue_enqueue_note_on' firmware/src/dinghy.c
           grep -F 'fmt_rt_queue_enqueue_note_off' firmware/src/dinghy.c
+          grep -F 'fmt_pattern_input_runtime.selected_track' firmware/src/dinghy.c
           test "$(grep -c 'voice\[pick\]\.gate =' firmware/src/dinghy.c)" -eq 1
           test "$(grep -c 'voice\[v\]\.gate = 0' firmware/src/dinghy.c)" -eq 2
 
