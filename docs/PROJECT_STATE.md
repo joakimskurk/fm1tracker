@@ -133,6 +133,8 @@ Final evidence artifact:
 
 State: **READY TO START — no WP3.4 implementation has begun**
 
+GitHub issue: #23
+
 Before source, WP3.4 must freeze a new decision covering lock selection/browse, delete-one versus clear-all, destructive-action safeguards, interaction with D029 hold, context/target ownership and minimal feedback. Full row lock visualization remains WP3.9.
 
 WP3.4 may use the verified D028 remove/clear primitives but must not apply locks to playback/audio. Playback application remains WP3.5+.
@@ -160,7 +162,7 @@ No physical FM-1 is currently available. Host/device-build verification does not
 
 ## Exact next action
 
-Create/start WP3.4 as its own package. Verify actual branch HEAD, mark WP3.4 IN PROGRESS with that start head, freeze the delete/clear/browse UX decision before source, and do not begin WP3.5.
+Start WP3.4 / issue #23 as its own package. Verify actual branch HEAD, mark WP3.4 IN PROGRESS with that start head, freeze D030 for delete/clear/browse UX before source, and do not begin WP3.5.
 
 ## Last relevant checkpoints
 
@@ -173,4 +175,4 @@ Create/start WP3.4 as its own package. Verify actual branch HEAD, mark WP3.4 IN 
 
 ## Last updated
 
-2026-10-24 — WP3.3 verified complete. WP3.4 is READY TO START; no WP3.4 source exists.
+2026-10-24 — WP3.3 verified complete. WP3.4 / #23 is READY TO START; no WP3.4 source exists.
