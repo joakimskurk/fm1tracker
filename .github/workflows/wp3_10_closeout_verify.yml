@@ -34,6 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_wp3_10_closeout_ci.sh > build/wp3_10_closeout.log
           cat build/wp3_10_closeout.log
           grep -F 'WP3_10_PRODUCTION_IDENTICAL_OK=1' build/wp3_10_closeout.log
