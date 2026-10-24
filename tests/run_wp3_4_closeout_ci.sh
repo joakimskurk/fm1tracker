@@ -160,8 +160,9 @@ m = re.search(r"image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool
 assert m, 'resource line not found'
 image, image_limit, ram, pool = map(int, m.groups())
 
-# D030 allocates no new pool storage. First target link measures exact image/RAM;
-# the final closeout run freezes those measured totals and artifact hashes.
+# Final measured WP3.4 footprint is frozen by this exact closeout run.
+assert image == 64228, image
+assert ram == 12480, ram
 assert pool == 113000, pool
 
 symbols = Path('build/wp3_4_symbols.txt').read_text().splitlines()
@@ -174,14 +175,20 @@ editor = one('fmt_lock_editor_runtime')
 lock_store = one('fmt_lock_store_storage')
 lock_runtime = one('fmt_lock_store_runtime')
 song_store = one('fmt_store_storage')
+assert int(editor[0], 16) == 0x01C0B078, editor
 assert int(editor[-2], 16) == 10 and '.bss' in editor, editor
+assert int(lock_store[0], 16) == 0x01C30168, lock_store
 assert int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store
+assert int(lock_runtime[0], 16) == 0x01C0B08C, lock_runtime
 assert int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime
+assert int(song_store[0], 16) == 0x01C20000, song_store
 assert int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store
 
 bin_sha = hashlib.sha256(Path('build/fm1tracker.bin').read_bytes()).hexdigest()
 fwsc_sha = hashlib.sha256(Path('build/fm1tracker-0.1.fwsc').read_bytes()).hexdigest()
 wav_sha = hashlib.sha256(Path('build/host/fm1tracker.wav').read_bytes()).hexdigest()
+assert bin_sha == '0f828e989888158b09cdb137f7e429f97c42f4c3e30d8d814abd349d9971ed42', bin_sha
+assert fwsc_sha == 'de23d8ff997d60178b3b7b9e1490c90696b5c22f3660d187edaa40cf08598a57', fwsc_sha
 assert wav_sha == '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440', wav_sha
 
 base_image, base_ram, base_pool = 61716, 12476, 113000
@@ -200,6 +207,8 @@ print(f'fm1tracker_fwsc_sha256={fwsc_sha}')
 print(f'host_wav_sha256={wav_sha}')
 PY
 
+grep -F 'image_delta_vs_wp3_3=2512' build/wp3_4_metrics.txt
+grep -F 'normal_ram_delta_vs_wp3_3=4' build/wp3_4_metrics.txt
 grep -F 'pool_delta_vs_wp3_3=0' build/wp3_4_metrics.txt
 
-echo "WP3_4_MEASURED_CLOSEOUT_GATE_OK=1"
+echo "WP3_4_CLOSEOUT_GATE_OK=1"
