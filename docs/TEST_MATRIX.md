@@ -251,15 +251,26 @@ Phase 3 evidence so far:
 
 ## Phase 4 8-BIT engine
 
-| Check | Host | Firmware/hardware |
-|---|---:|---:|
-| Pitch sanity across intended range | required | required |
-| No float/double symbols | inspect/build | required |
-| No runtime 64-bit divide | inspect/build | required |
-| PULSE/NOISE/TRIANGLE/WAVETABLE bounds deterministic | required | required |
-| Voice stealing deterministic | required | required |
-| Representative eight-track timing | benchmark | required |
-| P-lock modulation stable | required | required |
+| Check | Automated host | Firmware/device build | Hardware | Status |
+|---|---:|---:|---:|---|
+| D037 engine/voice/realtime contract frozen before oscillator source | inspect/gate | n/a | n/a | ✅ WP4.1 / #31 |
+| WP4.1 production tree byte-identical to clean Phase 4 branch start | git compare | required | n/a | ✅ `d14955f2...`, delta 0 |
+| No PULSE/NOISE/TRIANGLE/WAVETABLE-8 production source in WP4.1 | inspect/gate | required | n/a | ✅ WP4.1 |
+| Complete inherited Phase 3 exit/stress/realtime gate reruns green | required | required | later | ✅ run `40087703654` |
+| Pinned JieLi/AC79 build remains exact Phase 3 artifact identity | n/a | required | n/a | ✅ 66,960 B image / 13,296 B RAM / 113,000 B pool |
+| WP4.1 firmware BIN/FWSC hashes unchanged | n/a | required | n/a | ✅ `b2fc3af1...` / `7870d11b...` |
+| D037 Phase 4 resource ceilings frozen | inspect/gate | n/a | n/a | ✅ image 132,496 / RAM 21,488 / pool 129,384 maximum |
+| No float/double symbols in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
+| No runtime 64-bit divide in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
+| D038 PULSE primitive/test contract frozen | required | compile | n/a | ⬜ WP4.2 active |
+| PULSE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.2 next |
+| NOISE/TRIANGLE/WAVETABLE bounds deterministic | required | required | optional later | ⬜ WP4.3-WP4.5 |
+| Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
+| P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |
+| Representative eight-track timing | benchmark | required | required later | ⬜ WP4.10 |
+| Physical FM-1 install/audio/execution margin | n/a | n/a | required later | ⬜ no physical FM-1 available |
+
+WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.
 
 ## Phase 5 FM4
 

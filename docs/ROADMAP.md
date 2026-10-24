@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Immediate next package: **Phase 4 / WP4.1 / #31**. Freeze D037 engine/voice/realtime architecture before any 8-BIT engine production source.
+Phase 4 is active. **WP4.1 / #31 is COMPLETE** with D037 frozen before source and zero production delta; **WP4.2 / #32 PULSE is now active**, with D038 required before oscillator source.
 
 ---
 
@@ -143,10 +143,10 @@ Immediate next package: **Phase 4 / WP4.1 / #31**. Freeze D037 engine/voice/real
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1 D037 FROZEN; verification/closeout next; no production engine DSP**
+Status: **IN PROGRESS — WP4.1/D037 COMPLETE; WP4.2 / #32 PULSE active; D038 before source**
 
 Parent issue: #30
-Active package: WP4.1 / #31 — D037 is frozen in `WP4_1_ENGINE_CONTRACT.md`; verify zero production delta and close WP4.1 before WP4.2. Branch: `phase4/8bit-engine`.
+Active package: WP4.2 / #32 — freeze D038 PULSE primitive/test contract before production oscillator source. WP4.1 / #31 is complete with evidence in `WP4_1_VERIFICATION.md`. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 

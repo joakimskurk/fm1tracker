@@ -310,17 +310,20 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**WP4.1 - 8-BIT engine interface contract**
+**WP4.2 - PULSE oscillator**
 
-State: **IN PROGRESS - D037 FROZEN; WP4.1 verification/closeout next; no production engine DSP begun**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; D038 PULSE contract/test plan next; no PULSE production source begun**
 
 Phase 4 parent issue: #30
-WP4.1 issue: #31
+WP4.1 issue: #31 — COMPLETE
+WP4.2 issue: #32 — IN PROGRESS
 Branch: `phase4/8bit-engine`
 
-D037 must freeze engine/voice ownership, fixed-point pitch, note/tie/off/retrigger adapter semantics, per-track/per-voice state, sample/mix format, p-lock/effect integration boundary, realtime work bounds and the complete Phase 4 resource budget before PULSE/NOISE/TRIANGLE/WAVETABLE-8 production DSP is written.
+WP4.1 closed on run `40087703654`, job `120853898352`, with zero production delta from the Phase 4 branch start and the full inherited Phase 3 target gate green. Evidence: `docs/WP4_1_VERIFICATION.md`.
 
-The Phase 3 proof sine remains the current firmware audio implementation until a later Phase 4 package deliberately replaces/integrates it. Do not pull WP4.2+ implementation into WP4.1.
+D038 must freeze the isolated PULSE primitive before source: exact state/reset, shared Q7 pitch-to-phase-increment boundary, phase/sample ordering, pulse-width representation/clamp, nominal-Q15 output, wrap/extreme behavior, deterministic vectors, target-compile/resource obligations and the explicit proof-sine migration boundary.
+
+The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.2 primitive work. Do not pull NOISE/TRIANGLE/WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
 
 ## Important decisions / do not regress
 
@@ -336,6 +339,7 @@ The Phase 3 proof sine remains the current firmware audio implementation until a
 - D034: runtime ingress is an exact 32-entry / 268-byte SPSC main->audio queue with 8-byte events, reject-newest overflow and fail-to-silence audition recovery; D024/D033 remain outside it.
 - D035: tracker presentation remains ten regions / max two redraws, `FmtTrackerScreen` 62 B, with bounded lock-count and stored-effect feedback only.
 - D036: the complete D027-D035 stack passed worst-case combined verification with zero production delta; Phase 3 is complete at host/device-build level.
+- D037: Phase 4 engine ownership, eight-voice cap, Q7 pitch domain, event/effect adapter boundary, Q15/32-bit mix rules, realtime bounds and complete Phase 4 resource ceilings are frozen before oscillator source.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -349,7 +353,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Verify and close WP4.1 / #31 with D037 frozen in `docs/WP4_1_ENGINE_CONTRACT.md`: prove zero production firmware/DSP delta from the Phase 4 branch start, preserve the Phase 2/3 migration baseline, record verification evidence, then make WP4.2 / PULSE the only active package.
+Freeze D038 and the focused WP4.2 PULSE test contract in the repository before creating PULSE production source. Keep the Phase 3 proof sine as full-app production audio while the isolated primitive is implemented and verified.
 
 ## Last relevant checkpoints
 
@@ -365,7 +369,9 @@ Verify and close WP4.1 / #31 with D037 frozen in `docs/WP4_1_ENGINE_CONTRACT.md`
 - WP3.8 verified: `5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`
 - WP3.9 verified production: `354bf7d356774ad828f1f660bd456dbab7f0490d`
 - WP3.10 / Phase 3 closeout workflow: `e90d0232c179ea92e2295171403697ceaf5e3ecf`
+- WP4.1 D037 contract: `a740da66a0587b4e257629d7aba12781fad73f73`
+- WP4.1 closeout workflow: `01138c5f8a420efcc8e438ff3c2eb4090c086586`
 
 ## Last updated
 
-2026-10-24 - Phase 4 branch `phase4/8bit-engine` created from clean Phase 3 handoff `d14955f2...`. #30 and WP4.1 / #31 are IN PROGRESS. D037 is frozen; exact next action is WP4.1 verification/closeout with zero production DSP delta. No Phase 4 production engine DSP has begun.
+2026-10-24 - WP4.1 / #31 COMPLETE. D037 frozen before source; closeout run `40087703654` SUCCESS with zero production delta and inherited Phase 3 device-build gate green. WP4.2 / #32 is now IN PROGRESS; exact next action is D038 PULSE contract/test-plan freeze before PULSE source.
