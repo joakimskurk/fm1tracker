@@ -6,10 +6,14 @@ on:
       - phase3/plocks-effects
     paths:
       - .github/workflows/wp3_4_lock_delete_verify.yml
+      - firmware/src/dinghy.c
       - firmware/src/fmt_lock_editor.h
       - firmware/src/fmt_lock_editor.c
+      - tests/host.c
       - tests/test_fmt_lock_editor.c
       - tests/run_lock_editor_tests.sh
+      - tests/wp3_4_lock_delete_context.script
+      - tests/run_lock_delete_context_host.sh
       - docs/PROJECT_STATE.md
       - docs/DECISIONS.md
       - docs/CONTROL_MAP_V0.1.md
@@ -27,6 +31,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
       - name: Verify focused WP3.4 scope
         shell: bash
         run: |
@@ -39,10 +46,14 @@ jobs:
               'docs/PROJECT_STATE.md',
               'docs/DECISIONS.md',
               'docs/CONTROL_MAP_V0.1.md',
+              'firmware/src/dinghy.c',
               'firmware/src/fmt_lock_editor.h',
               'firmware/src/fmt_lock_editor.c',
+              'tests/host.c',
               'tests/test_fmt_lock_editor.c',
               'tests/run_lock_editor_tests.sh',
+              'tests/wp3_4_lock_delete_context.script',
+              'tests/run_lock_delete_context_host.sh',
           }
           changed = set(subprocess.check_output(
               ['git', 'diff', '--name-only', base, 'HEAD'], text=True
@@ -69,4 +80,20 @@ jobs:
           sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
           sh tests/run_lock_store_tests.sh | grep -F 'FMT_LOCK_STORE_TESTS_OK=1'
           sh tests/run_pattern_input_tests.sh | grep -F 'FMT_PATTERN_INPUT_TESTS_OK=1'
+          sh tests/run_lock_editor_context_host.sh | grep -F 'WP3_3_LOCK_EDITOR_CONTEXT_HOST_OK=1 midi_events=0'
           echo 'WP3_4_FOUNDATION_REGRESSIONS_OK=1'
+
+      - name: Run real full-app D030 fixture
+        shell: bash
+        run: sh tests/run_lock_delete_context_host.sh
+
+      - name: Upload focused WP3.4 screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-4-lock-delete-focused
+          path: |
+            build/host/fm1tracker_wp3_4_lock_delete-1000.ppm
+            build/host/fm1tracker_wp3_4_lock_delete-3000.ppm
+            build/host/fm1tracker_wp3_4_lock_delete-1000.png
+            build/host/fm1tracker_wp3_4_lock_delete-3000.png
+            build/wp3_4_lock_delete_context_host.log
