@@ -14,6 +14,13 @@
 #define FMT_LOCKS_PER_STEP       4u
 #define FMT_LOCK_POOL_MAX     2048u
 
+/* D045 project mode identities. Zero is intentionally 8-BIT so the existing
+ * zero-reset metadata/header state remains a safe deterministic mode default. */
+enum {
+    FMT_MODE_8BIT = 0u,
+    FMT_MODE_16BIT = 1u
+};
+
 /* Editable-song pool target. The lock bytes are a conservative budget only;
  * WP2.1 deliberately does not freeze a lock-record ABI or allocator. */
 #define FMT_EDITABLE_SONG_POOL_BUDGET       (96u * 1024u)
@@ -106,6 +113,8 @@ FMT_STATIC_ASSERT(song_core_size_is_65896, sizeof(FmtSong) == 65896u);
 FMT_STATIC_ASSERT(song_core_plus_lock_budget_fits_96k,
                   sizeof(FmtSong) + FMT_LOCK_STORAGE_BUDGET <= FMT_EDITABLE_SONG_POOL_BUDGET);
 FMT_STATIC_ASSERT(lock_head_is_16_bit, sizeof(((FmtStep *)0)->lock_head) == 2u);
+FMT_STATIC_ASSERT(mode_8bit_is_zero, FMT_MODE_8BIT == 0u);
+FMT_STATIC_ASSERT(mode_16bit_is_one, FMT_MODE_16BIT == 1u);
 
 static inline void fmt_step_init(FmtStep *step)
 {
