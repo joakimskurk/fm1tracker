@@ -1,4 +1,5 @@
 name: WP4.9 D045 Gate 2 verification
+# Canonical rerun after host test compile-warning cleanup.
 
 on:
   push:
