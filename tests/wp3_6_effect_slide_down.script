@@ -1,0 +1,3 @@
+# Step 0 C4, SLIDE_DOWN by 64 Q7 units = -0.5 semitone per nonzero tick.
+1 effect 0 3 64
+900 end
