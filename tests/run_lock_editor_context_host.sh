@@ -25,21 +25,32 @@ test -s build/host/fm1tracker_wp3_3_lock_editor-3000.ppm
 sha_1000="$(sha256sum build/host/fm1tracker_wp3_3_lock_editor-1000.ppm | awk '{print $1}')"
 sha_3000="$(sha256sum build/host/fm1tracker_wp3_3_lock_editor-3000.ppm | awk '{print $1}')"
 
+test "$sha_1000" = "224c0c05bdc29360e8829fd6f69ea21b68d38dc3a369e33d1373e461ea678fd0"
+test "$sha_3000" = "95bbee218132222d18d4593d9e5427cc25c0efcd340ec768a3c9df2ec9751212"
+
 echo "WP3_3_LOCK_EDITOR_1000_SHA256=$sha_1000"
 echo "WP3_3_LOCK_EDITOR_3000_SHA256=$sha_3000"
+echo "WP3_3_REVIEWED_LOCK_EDITOR_SCREENS_OK=1"
 echo "WP3_3_LOCK_EDITOR_CONTEXT_HOST_OK=1 midi_events=0 stale_begin_release_deltas=fixture focus_suppression=fixture"
 
 # CI installs Pillow so reviewed images can be uploaded. Keep local execution
-# useful even when Pillow is absent.
+# useful even when Pillow is absent; raw PPM hashes above are the frozen proof.
 python3 - <<'PY' || true
+import hashlib
 from pathlib import Path
 try:
     from PIL import Image
 except Exception:
     raise SystemExit(0)
+expected = {
+    '1000': '60a246db09b29ec25fe384eac41805f7fc6529b30e1709ef756434594b05fee5',
+    '3000': '8116347e0330ca16d0e1d160f4490e6a0a14f82524dcd40192e6b385e18e508e',
+}
 for stem in ('1000', '3000'):
     src = Path(f'build/host/fm1tracker_wp3_3_lock_editor-{stem}.ppm')
     dst = src.with_suffix('.png')
     Image.open(src).save(dst)
-    print(f'{dst}_sha256=')
+    digest = hashlib.sha256(dst.read_bytes()).hexdigest()
+    assert digest == expected[stem], (stem, digest)
+    print(f'WP3_3_LOCK_EDITOR_{stem}_PNG_SHA256={digest}')
 PY
