@@ -69,3 +69,5 @@ assert s.count(old) == 1
 p.write_text(s.replace(old, new))
 
 print('WP4_1_D037_DOC_FREEZE_OK=1')
+
+# Touch marker: workflow exists before this push, so this edit is the deliberate trigger.
