@@ -1,0 +1,45 @@
+name: WP3.7 audio integration once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_7_audio_integrate_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Integrate D033 into proof audio lane
+        run: python3 .github/tmp/wp3_7_audio_integrate.py
+
+      - name: Run D033 scheduler unit tests
+        run: sh tests/run_tracker_event_tests.sh
+
+      - name: Run inherited D032 effect tests
+        run: sh tests/run_tracker_effect_tests.sh
+
+      - name: Run inherited D032 full-app audio regression
+        run: sh tests/run_wp3_6_effect_audio_host.sh
+
+      - name: Run D033 full-app audio behavior proof
+        run: sh tests/run_wp3_7_event_audio_host.sh
+
+      - name: Commit verified audio-lane integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firmware/src/dinghy.c
+          git commit -m 'feat: integrate D033 events into proof audio lane'
+          git push origin HEAD:phase3/plocks-effects
