@@ -8,10 +8,10 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.5/D041 COMPLETE; WP4.6/envelope active; D042 FROZEN; isolated implementation/tests next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.6/D042 COMPLETE; WP4.7/allocator active; D043 contract freeze next - 2026-10-24**
 
 Parent issue: #30
-Current work package: WP4.6 / #36
+Current work package: WP4.7 / #37
 Current branch: `phase4/8bit-engine`
 
 Phase 4 branch start / final Phase 3 handoff:
@@ -310,9 +310,9 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**WP4.6 - common envelope primitive**
+**WP4.7 - deterministic voice allocation and stealing**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.5/D041 COMPLETE; WP4.6 / #36 active; D042 FROZEN; isolated common-envelope implementation/tests next**
+State: **IN PROGRESS - WP4.1/D037 through WP4.6/D042 COMPLETE; WP4.7 / #37 active; D043 ownership/allocation/steal/tie-break contract required before allocator source**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -320,16 +320,17 @@ WP4.2 issue: #32 — COMPLETE
 WP4.3 issue: #33 — COMPLETE
 WP4.4 issue: #34 — COMPLETE
 WP4.5 issue: #35 — COMPLETE
-WP4.6 issue: #36 — IN PROGRESS
+WP4.6 issue: #36 — COMPLETE
+WP4.7 issue: #37 — IN PROGRESS
 Branch: `phase4/8bit-engine`
 
-WP4.5 closed on run `40095198147`, job `120875856198`. D041 WAVETABLE-8 passed all-256-sample/table-SHA/eight-hash deterministic verification, real PI32v2 compilation and a full-app closeout with zero linked delta. Evidence: `docs/WP4_5_VERIFICATION.md`.
+WP4.6 closed on run `40102339789`, job `120896886645`. D042 common envelope passed all-rate/sustain/event/stage/zero-time/hash deterministic verification, real PI32v2 compilation and a full-app closeout with zero linked delta. Evidence: `docs/WP4_6_VERIFICATION.md`.
 
-The complete starting oscillator palette — D038 PULSE, D039 NOISE, D040 TRIANGLE and D041 WAVETABLE-8 — remains isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.5.
+The complete starting oscillator palette plus D042 envelope remain isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.6.
 
-D042 is frozen in `docs/WP4_6_ENVELOPE_CONTRACT.md`: 20-byte linear ADSR state, 4-byte parameter snapshot, division-free 16-entry rate mapping, hard NOTE/RETRIG envelope articulation, TIE/EMPTY no-op, OFF/CUT release from current level, advance-before-return ordering, bounded single-transition render work and zero full-app delta while isolated.
+WP4.7 must freeze D043 before production allocator source. D043 must define exact eight-slot ownership state, one-primary-voice-per-track reuse, free/IDLE/release selection, deterministic steal priority and tie-breaks, age/wrap semantics, reset/preserve behavior on allocation or steal, D037/D042 NOTE/TIE/OFF/RETRIG interaction, NO_VOICE behavior, bounded work and focused deterministic evidence.
 
-The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.6 primitive work. Do not pull final allocator, parameter pages or full engine integration forward.
+The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.7 allocator work. Do not pull engine parameter pages or full engine integration forward.
 
 ## Important decisions / do not regress
 
@@ -364,7 +365,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Implement and verify isolated `fmt_envelope.*` exactly under D042 with full rate/sustain/event/stage/zero-time/default-timing/hash host tests, static realtime audit and pinned PI32v2 target compilation. Keep all four oscillator primitives isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical; do not begin WP4.7 or full engine integration.
+Freeze D043 and the focused WP4.7 deterministic allocator/steal test contract in the repository before creating allocator production source. Keep all four oscillator primitives and D042 envelope isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical.
 
 ## Last relevant checkpoints
 
@@ -392,7 +393,8 @@ Implement and verify isolated `fmt_envelope.*` exactly under D042 with full rate
 - WP4.5 D041 contract: `c543c99df84ee304a1db4fb631c30d01dc8607d3`
 - WP4.5 D041 verification/closeout: `bb56d16c31330e3515ba36241726c09a2a30729b` — run `40095198147`, job `120875856198`
 - WP4.6 D042 contract: `983757fc3fc48d884ade9b9fdb59df0a1d070f9c`
+- WP4.6 D042 verification/closeout: `14a9f06ab3d808cf9579d53e881ef75a2fa30486` — run `40102339789`, job `120896886645`
 
 ## Last updated
 
-2026-10-24 - WP4.6 / #36 active. D042 is frozen in `WP4_6_ENVELOPE_CONTRACT.md` before envelope source. Exact next action: implement/test isolated `fmt_envelope.*` with all-rate/sustain/event/stage/zero-time/default-timing/hash proof and real PI32v2 compile while the full app remains byte-identical.
+2026-10-24 - WP4.6 / #36 COMPLETE. D042 common envelope passed deterministic all-rate/sustain/event/stage/zero-time/hash verification, independent PI32v2 compilation and full-app closeout with zero linked delta; run `40102339789`, job `120896886645`. WP4.7 / #37 is now active. Exact next action: freeze D043 deterministic allocator ownership/free/release/steal/tie-break/age-wrap/test contract before production source.

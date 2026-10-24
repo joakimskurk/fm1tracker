@@ -275,8 +275,10 @@ Phase 3 evidence so far:
 | WAVETABLE-8 deterministic tables/vectors + JieLi target compile | required | required | optional later | ✅ run `40095129004` / closeout `40095198147` |
 | WP4.5 full app remains exact WP4.4 baseline while WAVETABLE-8 is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
 | D042 common envelope primitive/test contract frozen before source | required | compile | n/a | ✅ `WP4_6_ENVELOPE_CONTRACT.md` / `983757fc...` |
-| Envelope stage/time/gate/retrigger/release vectors + JieLi target compile | required | required | optional later | ⬜ WP4.6 next |
-| Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
+| Envelope stage/time/gate/retrigger/release vectors + JieLi target compile | required | required | optional later | ✅ run `40102268841` / closeout `40102339789` |
+| WP4.6 full app remains exact WP4.5 baseline while envelope is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
+| D043 deterministic allocator/steal contract frozen before source | required | compile | n/a | ⬜ WP4.7 active |
+| Voice allocation/stealing deterministic | required | required | required later | ⬜ WP4.7 next |
 | P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |
 | Representative eight-track timing | benchmark | required | required later | ⬜ WP4.10 |
 | Physical FM-1 install/audio/execution margin | n/a | n/a | required later | ⬜ no physical FM-1 available |
@@ -286,6 +288,7 @@ WP4.2 detailed evidence: `WP4_2_PULSE_CONTRACT.md`, `WP4_2_VERIFICATION.md`.
 WP4.3 detailed evidence: `WP4_3_NOISE_CONTRACT.md`, `WP4_3_VERIFICATION.md`.
 WP4.4 detailed evidence: `WP4_4_TRIANGLE_CONTRACT.md`, `WP4_4_VERIFICATION.md`.
 WP4.5 detailed evidence: `WP4_5_WAVETABLE8_CONTRACT.md`, `WP4_5_VERIFICATION.md`.
+WP4.6 detailed evidence: `WP4_6_ENVELOPE_CONTRACT.md`, `WP4_6_VERIFICATION.md`.
 
 ## Phase 5 FM4
 
