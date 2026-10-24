@@ -1,0 +1,104 @@
+name: WP4.4 TRIANGLE verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_osc_triangle.h
+      - firmware/src/fmt_osc_triangle.c
+      - tests/test_wp4_4_triangle.c
+      - tests/run_wp4_4_triangle_tests.sh
+      - docs/WP4_4_TRIANGLE_CONTRACT.md
+      - .github/workflows/wp4_4_triangle_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  triangle-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove isolated source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=c592af611b28b0ae10ce9c277b9276f3efa350c5
+          actual="$(git diff --name-only "$BASE" -- firmware/src | sort)"
+          expected="$(printf '%s\n' \
+            firmware/src/fmt_osc_triangle.c \
+            firmware/src/fmt_osc_triangle.h | sort)"
+          test "$actual" = "$expected"
+          git diff --exit-code "$BASE" -- firmware/src/dinghy.c
+          git diff --exit-code "$BASE" -- \
+            firmware/src/fmt_engine_pitch.c firmware/src/fmt_engine_pitch.h \
+            firmware/src/fmt_osc_pulse.c firmware/src/fmt_osc_pulse.h \
+            firmware/src/fmt_osc_noise.c firmware/src/fmt_osc_noise.h
+          echo 'WP4_4_ISOLATED_SOURCE_BOUNDARY_OK=1 new_modules=2 dinghy_delta=0 prior_engine_delta=0'
+
+      - name: Run focused deterministic TRIANGLE tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_4_triangle_tests.sh
+
+      - name: Static realtime/source audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          files='firmware/src/fmt_osc_triangle.h firmware/src/fmt_osc_triangle.c'
+          ! grep -nE '\b(float|double|malloc|calloc|realloc|free)\b' $files
+          ! grep -nE '\b(uint64_t|int64_t|long[[:space:]]+long)\b' $files
+          ! grep -nE '\b(for|while|do)[[:space:]]*\(' firmware/src/fmt_osc_triangle.c
+          ! grep -nE 'Fmt(Song|Step|Lock|Tracker|RtQueue)|fmt_lock_|fmt_store_' firmware/src/fmt_osc_triangle.c
+          grep -F 'uint32_t phase;' firmware/src/fmt_osc_triangle.h
+          grep -F 'uint32_t quadrant = phase >> 30;' firmware/src/fmt_osc_triangle.c
+          grep -F 'int32_t offset = (int32_t)((phase >> 15) & 0x7FFFu);' firmware/src/fmt_osc_triangle.c
+          grep -F 'osc->phase += phase_increment;' firmware/src/fmt_osc_triangle.c
+          echo 'WP4_4_STATIC_AUDIT_OK=1 triangle_loops=0 alloc=0 float=0 int64=0 store_traversal=0'
+
+  triangle-target-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Compile D040 module for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_4_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_engine_pitch.c \
+            -o build/wp4_4_target/fmt_engine_pitch.o
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_osc_triangle.c \
+            -o build/wp4_4_target/fmt_osc_triangle.o
+          test -s build/wp4_4_target/fmt_engine_pitch.o
+          test -s build/wp4_4_target/fmt_osc_triangle.o
+          PITCH_SHA="$(sha256sum build/wp4_4_target/fmt_engine_pitch.o | awk '{print $1}')"
+          test "$PITCH_SHA" = '6203ee8b5ab68a1000066c25a52b674dbed9a61ff30eb7579bf29a07abe69f20'
+          sha256sum build/wp4_4_target/fmt_engine_pitch.o build/wp4_4_target/fmt_osc_triangle.o \
+            | tee build/wp4_4_target/object_sha256.txt
+          echo 'WP4_4_PI32V2_COMPILE_OK=1 modules=2 pitch_object_unchanged=1' | tee build/wp4_4_target/summary.txt
+
+      - name: Upload target object evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-4-triangle-target-objects
+          path: build/wp4_4_target/
