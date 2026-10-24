@@ -15,7 +15,7 @@
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 #include "fmt_param_registry.c"                /* WP3.1: stable one-byte semantic parameter IDs */
 #include "fmt_lock_store.c"                    /* WP3.2: bounded global sparse p-lock storage */
-#include "fmt_lock_editor.c"                   /* WP3.3: held-step relative encoder p-lock editor */
+#include "fmt_lock_editor.c"                   /* WP3.3/3.4: held-step p-lock edit/browse/delete */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
@@ -383,16 +383,29 @@ static void app_main(void)
     for (;;) {
         uint32_t keys, down, up, rel, b, lit = 0, base, write_key;
         uint8_t st, d1, d2, lowest_key;
-        int32_t lock_delta[FMT_LOCK_EDITOR_KNOBS];
+        int32_t lock_select_delta, lock_delta[FMT_LOCK_EDITOR_KNOBS];
         int pattern_mode, step_rec_mode, lock_began = 0, lock_ended = 0;
+        int delete_was_armed, delete_activity = 0;
         platform_poll();
 
-        /* D029: always drain the four relative knob streams. Deltas are used
-         * only by a stable already-active hold later in this same poll. */
+        /* D029/D030: always drain every encoder stream owned by the held-step
+         * editor. Only a stable eligible poll may consume these deltas later. */
+        lock_select_delta = fm1_enc_take(ENC_SELECT);
         for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++)
             lock_delta[k] = fm1_enc_take(ENC_KNOB1 + k);
 
         b = fm1_input_edges(&rel);
+        delete_was_armed = fmt_lock_editor_runtime.delete_armed != 0u;
+
+        /* D030: PLAY is allowed during a hold, but any pending destructive arm
+         * is cancelled before the transport edge is handled. The poll started
+         * armed, so all already-drained editor deltas remain discarded. */
+        if (delete_was_armed && (b & (1u << BTN_PLAY))) {
+            if (fmt_lock_editor_cancel_delete(&fmt_lock_editor_runtime)) {
+                delete_activity = 1;
+                tracker_footer_dirty();
+            }
+        }
 
         if (b & (1u << BTN_HOME)) {
             if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
@@ -440,7 +453,7 @@ static void app_main(void)
         prev = keys;
 
         /* D029 release/context precedence. Ending a gesture discards this poll's
-         * already-drained encoder deltas and never retargets a held second key. */
+         * already-drained SELECT + KNOB deltas and all D030 destructive state. */
         if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
             (!pattern_mode || step_rec_mode ||
              !fmt_lock_editor_key_held(&fmt_lock_editor_runtime, keys))) {
@@ -466,6 +479,48 @@ static void app_main(void)
                         tracker_footer_dirty();
                     }
                     break;
+                }
+            }
+        }
+
+        /* D030 cancellation precedence for a pending delete arm. EDIT release,
+         * OCT intent or any additional note-key down cancels before SEL can
+         * confirm. D029 still suppresses those focus/navigation actions. */
+        if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            fmt_lock_editor_runtime.delete_armed) {
+            uint32_t owner_mask = fmt_lock_editor_runtime.held_key < FMT_PATTERN_INPUT_KEY_COUNT
+                                ? 1u << fmt_lock_editor_runtime.held_key : 0u;
+            int cancel_delete = 0;
+
+            if (rel & (1u << BTN_EDIT))
+                cancel_delete = 1;
+            if (b & ((1u << BTN_OCT_DOWN) | (1u << BTN_OCT_UP)))
+                cancel_delete = 1;
+            if (down & ~owner_mask)
+                cancel_delete = 1;
+
+            if (cancel_delete && fmt_lock_editor_cancel_delete(&fmt_lock_editor_runtime)) {
+                delete_activity = 1;
+                tracker_footer_dirty();
+            }
+        }
+
+        /* D030 destructive grammar. A confirm is accepted only when the poll
+         * began armed and cancellation above did not invalidate that arm.
+         * Therefore EDIT+SEL in the same poll can arm but can never delete. */
+        if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            !lock_began && !lock_ended) {
+            if (delete_was_armed && fmt_lock_editor_runtime.delete_armed &&
+                (b & (1u << BTN_SEL))) {
+                if (fmt_lock_editor_confirm_delete(&fmt_lock_editor_runtime)) {
+                    delete_activity = 1;
+                    tracker_footer_dirty();
+                }
+            } else if (!delete_was_armed &&
+                       (b & (1u << BTN_EDIT))) {
+                if (fmt_lock_editor_arm_delete(&fmt_lock_editor_runtime)) {
+                    delete_activity = 1;
+                    tracker_footer_dirty();
                 }
             }
         }
@@ -524,10 +579,18 @@ static void app_main(void)
             }
         }
 
-        /* Only a hold that was already stable before this poll may consume the
-         * deltas drained at poll start. Begin/release/cancel polls discard them. */
+        /* D029/D030 encoder ordering. Begin/release/cancel polls discard every
+         * editor delta. A poll that began armed also discards every delta even
+         * when SEL confirms or EDIT release cancels during that poll. New arm
+         * activity likewise consumes no browse/write movement. Otherwise SELECT
+         * browse runs before the existing fixed K1 -> K4 writes. */
         if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
-            !lock_began && !lock_ended) {
+            !lock_began && !lock_ended && !delete_was_armed && !delete_activity) {
+            if (lock_select_delta != 0 &&
+                fmt_lock_editor_browse(&fmt_lock_editor_runtime,
+                                       lock_select_delta))
+                tracker_footer_dirty();
+
             for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++) {
                 if (lock_delta[k] != 0 &&
                     fmt_lock_editor_apply_delta(&fmt_lock_editor_runtime,
@@ -562,6 +625,7 @@ static void app_main(void)
         fm1_led_key(BTN_PLAY, tracker_play_requested != 0u);
         fm1_led_key(BTN_REC, step_rec_mode);
         fm1_led_key(BTN_FX, step_rec_mode && fmt_step_record_runtime.fx_pending);
+        fm1_led_key(BTN_EDIT, pattern_mode && !step_rec_mode && fmt_lock_editor_runtime.delete_armed);
         fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
         fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
 
