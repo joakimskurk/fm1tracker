@@ -91,7 +91,7 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1–WP3.6 complete; WP3.7 next**
+Status: **IN PROGRESS — WP3.1–WP3.7 complete; WP3.8 next**
 
 Parent issue: #20
 
@@ -115,26 +115,29 @@ Parent issue: #20
 - **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects** — COMPLETE — issue #25
   D032 assigns `NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO` in `FmtStep.effect/effect_value`, freezes an exact six-tick D020-derived row clock, persistent Q7 slide/porta pitch, transient ARP/vibrato, D031 FINE precedence, a 256 B effect-row cache and 12 B bounded runtime state. Final run `40073680548`. Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool. Evidence: `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
 
-Current verified baseline after WP3.6:
+- **WP3.7 — retrig / note delay / note cut** — COMPLETE — issue #26
+  D033 extends the same command domain with RETRIG `0x06`, NOTE DELAY `0x07`, NOTE CUT `0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state. No general queue was pulled forward. Final clean-tree run `40077809743`, job `120824870575`. Final resources: 65,940 B image / 13,008 B normal RAM / 113,000 B pool. Evidence: `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
 
-- app image: 65,528 B / 581,564 B
-- normal RAM: 13,004 B / 98,304 B
+Current verified baseline after WP3.7:
+
+- app image: 65,940 B / 581,564 B
+- normal RAM: 13,008 B / 98,304 B
 - pool RAM: 113,000 B / 344,064 B
 - D031 playback row cache: 256 B ordinary RAM
 - D032 effect row cache: 256 B ordinary RAM
 - D032 effect runtime: 12 B
+- D033 row-event runtime: 4 B
 - default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 - D031 locked WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
 - package identity: `FM-1_987`
 
 ## Next package
 
-- **WP3.7 — retrig / note delay / note cut** — IN PROGRESS — issue #26.
-  D033 is frozen before source in `WP3_7_EVENT_CONTRACT.md`: commands `0x06..0x08`, exact D032 six-tick scheduling, fixed pending-note state, no general queue, and explicit D031/D032 interaction. Implement only this contract; WP3.8 remains separate.
+- **WP3.8 — bounded event queue and overflow policy** — READY TO START — issue #27.
+  Freeze D034 before production source. D034 must establish the real producer/consumer need for a queue, exact event record/capacity/RAM budget, ownership and memory visibility, timestamp domain, deterministic overflow policy, reset/STOP behavior, ordering against D020/D021/D031/D032/D033 and bounded worst-case audio work. The verified D033 path remains fixed-state unless D034 explicitly supersedes it.
 
 Remaining Phase 3 order:
 
-- WP3.7 retrig/note delay/note cut
 - WP3.8 bounded event queue and overflow policy
 - WP3.9 lock/effect visual feedback
 - WP3.10 Phase 3 worst-case tests
