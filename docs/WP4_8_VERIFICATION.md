@@ -113,16 +113,18 @@ Permanent workflow:
 - `.github/workflows/wp4_8_closeout_verify.yml`
 - `tests/run_wp4_8_closeout_ci.sh`
 
-Final run:
+Canonical final run:
 
-- run `40104723586`
-- job `120903925381` — **SUCCESS**
+- run `40104773397`
+- job `120904075249` — **SUCCESS**
 
-Closeout artifact:
+Canonical closeout artifact:
 
-- artifact ID `12564182519`
+- artifact ID `12564411814`
 - size `1,120,160 B`
-- artifact ZIP SHA-256 `459112896606faa80b0d6a32acaafe3d2daec5deb231a57232ea2d3fe345a42b`
+- artifact ZIP SHA-256 `a7fe658af8f5f857159c128e9e5d9832af240be3209498ef6bce972e990ede76`
+
+An earlier closeout run `40104723586` / job `120903925381` also passed with the same D044 object hash, application hashes and resource counts. The canonical rerun above is the final reference.
 
 The final gate reported:
 
@@ -175,6 +177,23 @@ pool RAM    0 B
 ## Hardware limitation
 
 No physical FM-1 is currently available. This checkpoint proves deterministic host behavior, real PI32v2 compilation and a pinned AC79/JieLi firmware build. It does not claim physical install/boot/audio behavior, hardware sound quality or measured on-device execution margin.
+
+## Exit status
+
+WP4.8 exit criteria are satisfied:
+
+- D044 frozen before source — PASS;
+- exact IDs/layouts/defaults — PASS;
+- exhaustive WIDTH/TABLE mappings — PASS;
+- bounded p-lock precedence/fallback — PASS;
+- replay/guards/input immutability — PASS;
+- static boundedness/isolation audit — PASS;
+- real pinned PI32v2 compile — PASS;
+- complete pinned AC79 target build — PASS;
+- registry activation still deferred — PASS;
+- no global cache allocation — PASS;
+- full-app byte identity — PASS;
+- physical FM-1 verification — PENDING LATER HARDWARE GATE.
 
 ## Next package
 
