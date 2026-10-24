@@ -1,0 +1,39 @@
+name: WP3.6 fix closeout marker once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_fix_closeout_marker_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Accept expanded D032 audio marker and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/wp3_6_closeout_verify.yml')
+          s = p.read_text()
+          old = "          grep -F 'WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1 arp_ticks=1 slide_up=1 porta_glide=1 vibrato=1 midi_events=0' build/wp3_6_effect_audio_gate.log\n"
+          new = "          grep -F 'WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1' build/wp3_6_effect_audio_gate.log\n"
+          assert s.count(old) == 1, s.count(old)
+          p.write_text(s.replace(old, new, 1))
+          PY
+          git rm .github/workflows/_wp3_6_fix_closeout_marker_once.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/wp3_6_closeout_verify.yml
+          git commit -m 'WP3.6: accept expanded effect audio proof marker'
+          git push origin HEAD:phase3/plocks-effects
