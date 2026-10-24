@@ -3,9 +3,25 @@
 
 volatile uint32_t fmt_tracker_effect_cache[FMT_TRACKER_EFFECT_ROWS]
     __attribute__((aligned(4)));
+volatile uint32_t
+    fmt_tracker_effect_cache_extra[FMT_TRACKER_EFFECT_EXTRA_TRACKS]
+                                  [FMT_TRACKER_EFFECT_ROWS]
+    __attribute__((aligned(4)));
 
 FMT_STATIC_ASSERT(tracker_effect_cache_is_256,
                   sizeof(fmt_tracker_effect_cache) == 256u);
+FMT_STATIC_ASSERT(tracker_effect_extra_cache_is_1792,
+                  sizeof(fmt_tracker_effect_cache_extra) == 1792u);
+
+static volatile uint32_t *fmt_tracker_effect_cache_slot(uint32_t track,
+                                                        uint32_t step)
+{
+    if (track >= FMT_TRACKS || step >= FMT_TRACKER_EFFECT_ROWS)
+        return (volatile uint32_t *)0;
+    if (track == FMT_PLAYBACK_TRACK)
+        return &fmt_tracker_effect_cache[step];
+    return &fmt_tracker_effect_cache_extra[track - 1u][step];
+}
 
 static int32_t clamp_pitch_q7(int32_t pitch)
 {
@@ -53,26 +69,30 @@ uint32_t fmt_tracker_effect_default_word(void)
 
 void fmt_tracker_effect_cache_reset(void)
 {
-    uint32_t step;
+    uint32_t track, step;
     uint32_t word = fmt_tracker_effect_default_word();
 
-    for (step = 0u; step < FMT_TRACKER_EFFECT_ROWS; step++)
-        fmt_tracker_effect_cache[step] = word;
+    for (track = 0u; track < FMT_TRACKS; track++) {
+        for (step = 0u; step < FMT_TRACKER_EFFECT_ROWS; step++) {
+            volatile uint32_t *slot = fmt_tracker_effect_cache_slot(track, step);
+            *slot = word;
+        }
+    }
 }
 
-int fmt_tracker_effect_cache_refresh_step(uint32_t step)
+int fmt_tracker_effect_cache_refresh_track_step(uint32_t track, uint32_t step)
 {
+    volatile uint32_t *slot;
     const FmtStep *row;
     uint8_t command, value, flags = FMT_TRACKER_EFFECT_FLAG_NONE;
 
-    if (step >= FMT_TRACKER_EFFECT_ROWS)
+    slot = fmt_tracker_effect_cache_slot(track, step);
+    if (!slot)
         return 0;
 
-    row = fmt_store_step_const(FMT_PLAYBACK_PATTERN,
-                               FMT_PLAYBACK_TRACK,
-                               step);
+    row = fmt_store_step_const(FMT_PLAYBACK_PATTERN, track, step);
     if (!row) {
-        fmt_tracker_effect_cache[step] = fmt_tracker_effect_default_word();
+        *slot = fmt_tracker_effect_default_word();
         return 1;
     }
 
@@ -84,23 +104,45 @@ int fmt_tracker_effect_cache_refresh_step(uint32_t step)
         flags = FMT_TRACKER_EFFECT_FLAG_INVALID_COMMAND;
     }
 
-    fmt_tracker_effect_cache[step] = fmt_tracker_effect_pack(command, value, flags);
+    *slot = fmt_tracker_effect_pack(command, value, flags);
     return 1;
+}
+
+int fmt_tracker_effect_cache_refresh_step(uint32_t step)
+{
+    return fmt_tracker_effect_cache_refresh_track_step(FMT_PLAYBACK_TRACK, step);
+}
+
+void fmt_tracker_effect_cache_rebuild_track(uint32_t track)
+{
+    uint32_t step;
+
+    if (track >= FMT_TRACKS)
+        return;
+    for (step = 0u; step < FMT_TRACKER_EFFECT_ROWS; step++)
+        (void)fmt_tracker_effect_cache_refresh_track_step(track, step);
 }
 
 void fmt_tracker_effect_cache_rebuild(void)
 {
-    uint32_t step;
+    uint32_t track;
 
-    for (step = 0u; step < FMT_TRACKER_EFFECT_ROWS; step++)
-        (void)fmt_tracker_effect_cache_refresh_step(step);
+    for (track = 0u; track < FMT_TRACKS; track++)
+        fmt_tracker_effect_cache_rebuild_track(track);
+}
+
+uint32_t fmt_tracker_effect_cache_read_track(uint32_t track, uint32_t step)
+{
+    volatile uint32_t *slot = fmt_tracker_effect_cache_slot(track, step);
+
+    if (!slot)
+        return fmt_tracker_effect_default_word();
+    return *slot;
 }
 
 uint32_t fmt_tracker_effect_cache_read(uint32_t step)
 {
-    if (step >= FMT_TRACKER_EFFECT_ROWS)
-        return fmt_tracker_effect_default_word();
-    return fmt_tracker_effect_cache[step];
+    return fmt_tracker_effect_cache_read_track(FMT_PLAYBACK_TRACK, step);
 }
 
 void fmt_tracker_effect_state_reset(FmtTrackerEffectState *state)
