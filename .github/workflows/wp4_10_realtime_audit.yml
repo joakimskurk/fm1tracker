@@ -1,0 +1,45 @@
+name: WP4.10 D046 realtime structural audit
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/**
+      - firmware/hal/**
+      - firmware/loader/**
+      - firmware/app.ld
+      - build.sh
+      - tools/**
+      - tests/run_wp4_10_realtime_audit.sh
+      - .github/workflows/wp4_10_realtime_audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  realtime-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run D046 bounded realtime ownership audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_10_realtime_audit.sh | tee build/wp4_10_realtime_audit_gate.log
+          grep -F 'WP4_10_PRODUCTION_FREEZE_OK=1' build/wp4_10_realtime_audit_gate.log
+          grep -F 'WP4_10_QUEUE_BOUND_OK=1 capacity=32 callback_cap=32 overflow_discard_o1=1 spin_retry=0 irq_masking=0' build/wp4_10_realtime_audit_gate.log
+          grep -F 'WP4_10_ENGINE_BOUND_OK=1 render_slots=8 mutable_store_reads=0 lock_list_reads=0' build/wp4_10_realtime_audit_gate.log
+          grep -F 'WP4_10_REALTIME_AUDIT_OK=1' build/wp4_10_realtime_audit_gate.log
+      - name: Upload D046 realtime audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-10-d046-realtime-audit
+          if-no-files-found: warn
+          path: |
+            build/wp4_10_realtime_audit_gate.log
+            build/wp4_10/realtime_audit.log
