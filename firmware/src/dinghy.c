@@ -20,6 +20,7 @@
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_playback_params.c"               /* WP3.5: D031 fixed row-local p-lock snapshots */
 #include "fmt_tracker_effect.c"                /* WP3.6: D032 bounded tracker-effect snapshots/state */
+#include "fmt_tracker_event.c"                 /* WP3.7: D033 fixed-state retrig/delay/cut scheduler */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
 #include "fmt_step_record.c"                   /* WP2.7/2.8: stopped STEP REC note/special entry */
 #include "fmt_tracker_screen.c"                /* WP2.9: bounded read-only tracker presentation */
@@ -33,6 +34,7 @@ FmtStepRecord fmt_step_record_runtime;
 FmtTrackerScreen fmt_tracker_screen_runtime;
 FmtLockEditor fmt_lock_editor_runtime;
 FmtTrackerEffectState fmt_tracker_effect_runtime;
+FmtTrackerRowEventState fmt_tracker_row_event_runtime;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -64,7 +66,9 @@ static struct {
     int32_t gate;
 } tracker_voice;
 static FmtPlaybackParamVoice tracker_param_voice;
-static uint8_t tracker_effect_row_fine = FMT_PLAYBACK_PARAM_FINE_DEFAULT;
+/* D033 keeps the exact D031 row snapshot consumed at dispatch so a delayed
+ * NOTE cannot observe a main-thread cache refresh later in the same row. */
+static uint32_t tracker_effect_row_word;
 
 static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
     815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
@@ -98,47 +102,99 @@ static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32
 static void tracker_apply_effect_pitch(void)
 {
     uint16_t pitch_q7;
+    uint8_t fine;
 
     if (!tracker_param_voice.active || !fmt_tracker_effect_runtime.pitch_valid)
         return;
-    pitch_q7 = fmt_tracker_effect_final_pitch_q7(&fmt_tracker_effect_runtime,
-                                                  tracker_effect_row_fine);
+    fine = fmt_playback_params_fine(tracker_effect_row_word);
+    pitch_q7 = fmt_tracker_effect_final_pitch_q7(&fmt_tracker_effect_runtime, fine);
     tracker_voice.inc = tracker_pitch_inc_q7(pitch_q7);
+}
+
+static void tracker_apply_synthetic_off(void)
+{
+    fmt_playback_param_voice_apply(&tracker_param_voice,
+                                   FMT_PLAYBACK_EVENT_OFF,
+                                   FMT_NOTE_OFF,
+                                   tracker_effect_row_word,
+                                   TRACKER_TARGET_AMP);
+    fmt_tracker_effect_apply_cut(&fmt_tracker_effect_runtime);
+    tracker_voice.gate = 0;
+}
+
+static void tracker_apply_row_action(uint8_t action, uint8_t note)
+{
+    switch (action) {
+    case FMT_TRACKER_ROW_ACTION_DELAYED_NOTE:
+        fmt_tracker_effect_apply_delayed_note(&fmt_tracker_effect_runtime, note);
+        fmt_playback_param_voice_apply(&tracker_param_voice,
+                                       FMT_PLAYBACK_EVENT_NOTE,
+                                       note,
+                                       tracker_effect_row_word,
+                                       TRACKER_TARGET_AMP);
+        tracker_apply_effect_pitch();
+        tracker_voice.gate = tracker_param_voice.level_target;
+        break;
+
+    case FMT_TRACKER_ROW_ACTION_CUT:
+        tracker_apply_synthetic_off();
+        break;
+
+    case FMT_TRACKER_ROW_ACTION_RETRIG:
+        if (tracker_param_voice.active)
+            tracker_voice.ph = 0u;
+        break;
+
+    default:
+        break;
+    }
 }
 
 static void tracker_apply_event(const FmtPlaybackEvent *event)
 {
     uint32_t row_word, effect_word;
+    uint8_t immediate_kind, immediate_note, action_note, action;
 
     if (!event)
         return;
 
-    /* D031/D032 ownership: one aligned 32-bit parameter word and one aligned
-     * 32-bit effect word are consumed only at row dispatch. The ISR never
-     * traverses editor-owned storage. */
+    /* D031/D032/D033 ownership: both aligned publication words are sampled
+     * exactly once at row dispatch. D033 then keeps only fixed ordinary-RAM
+     * state; the ISR never traverses editor-owned storage or a general queue. */
     row_word = fmt_playback_params_read(event->step);
     effect_word = fmt_tracker_effect_cache_read(event->step);
-    tracker_effect_row_fine = fmt_playback_params_fine(row_word);
+    tracker_effect_row_word = row_word;
 
+    fmt_tracker_row_event_begin(&fmt_tracker_row_event_runtime,
+                                event->kind,
+                                event->note,
+                                effect_word,
+                                &immediate_kind,
+                                &immediate_note);
     fmt_tracker_effect_begin_row(&fmt_tracker_effect_runtime,
-                                 event->kind,
-                                 event->note,
+                                 immediate_kind,
+                                 immediate_note,
                                  effect_word);
     fmt_playback_param_voice_apply(&tracker_param_voice,
-                                   event->kind,
-                                   event->note,
+                                   immediate_kind,
+                                   immediate_note,
                                    row_word,
                                    TRACKER_TARGET_AMP);
 
-    if (event->kind == FMT_PLAYBACK_EVENT_OFF) {
+    if (immediate_kind == FMT_PLAYBACK_EVENT_OFF) {
         tracker_voice.gate = 0;
-        return;
-    }
-
-    if (tracker_param_voice.active) {
+    } else if (tracker_param_voice.active) {
         tracker_apply_effect_pitch();
         tracker_voice.gate = tracker_param_voice.level_target;
     }
+
+    /* Tick 0 belongs to row dispatch. Only NOTE CUT can produce an action here;
+     * NOTE DELAY 0 and RETRIG never synthesize an extra trigger. */
+    action = fmt_tracker_row_event_action(&fmt_tracker_row_event_runtime,
+                                          0u,
+                                          tracker_param_voice.active,
+                                          &action_note);
+    tracker_apply_row_action(action, action_note);
 }
 
 static void tracker_render_frame(int32_t *out)
@@ -210,7 +266,15 @@ static void app_audio(int32_t *out, uint32_t n)
             } else if (fmt_transport_runtime.running &&
                        fmt_tracker_effect_tick_due(&fmt_tracker_effect_runtime,
                                                    fmt_transport_runtime.phase)) {
+                uint8_t action_note;
+                uint8_t action;
+
                 (void)fmt_tracker_effect_advance_tick(&fmt_tracker_effect_runtime);
+                action = fmt_tracker_row_event_action(&fmt_tracker_row_event_runtime,
+                                                      fmt_tracker_effect_runtime.tick,
+                                                      tracker_param_voice.active,
+                                                      &action_note);
+                tracker_apply_row_action(action, action_note);
                 tracker_apply_effect_pitch();
             }
         }
@@ -418,7 +482,8 @@ static void app_main(void)
     fmt_playback_param_voice_reset(&tracker_param_voice);
     fmt_tracker_effect_cache_reset();
     fmt_tracker_effect_state_reset(&fmt_tracker_effect_runtime);
-    tracker_effect_row_fine = FMT_PLAYBACK_PARAM_FINE_DEFAULT;
+    fmt_tracker_row_event_reset(&fmt_tracker_row_event_runtime);
+    tracker_effect_row_word = fmt_playback_params_default_word();
     fmt_playback_seed_proof_pattern();
     fmt_playback_params_rebuild();
     fmt_tracker_effect_cache_rebuild();
