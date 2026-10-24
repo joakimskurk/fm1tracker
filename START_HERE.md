@@ -21,53 +21,54 @@ Read in this order:
 
 ## Current handoff
 
-WP5.0 / D048, WP5.1 / D049 and WP5.2 / D050 are COMPLETE.
+WP5.0/D048, WP5.1/D049 and WP5.2/D050 are complete.
 
-WP5.3 / D051 is ACTIVE on issue #46 and branch `phase5/fm4-ratios`.
+WP5.3/D051 is active on issue #46, branch `phase5/fm4-ratios`.
 
-The D051 contract is frozen and its source-absent reference gate is GREEN:
+The D051 source-absent gate is green:
 
 - contract head `e3b1272a442091dd9cc140f3d6d357f6215438b5`
-- run `40138575267`
-- job `121005262360`
-- artifact `wp5-3-d051-contract-freeze`
+- pre-implementation evidence checkpoint `35f583b8717e167376e1c6418f426d1e1f95ff5c`
+- run/job `40138575267` / `121005262360`
 - artifact ID `12577928512`
 - artifact SHA `f6ff75f9dd2128f3d79cffd467ee1b88b1422a5daa788516387b7e9c50e19014`
-- production ratio source was absent
-- D038/D049/D050/`dinghy.c` were unchanged
-- all 16 ratio identities and clamp thresholds matched
-- exhaustive 262,144-output SHA matched `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`
-- inherited D050/D049/WP5.0 host regression remained exact
 
-## Frozen D051 core
+## D051 core
 
-- ratios: `0.5, 1, 1.25, 1.4140625, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 12, 16`;
-- unsigned Q8 exact representation;
-- UNITY ID 1 is invalid-ID fallback;
-- canonical base maximum `1293741834`;
+Stable ratio IDs represent:
+
+`0.5, 1.0, 1.25, 1.4140625, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 12.0, 16.0`
+
+- Q8 integer representation;
+- base max `1293741834`;
 - output ceiling `0x7fffffff`;
-- precomputed per-ratio clamp boundaries;
-- 32-bit split-Q8 round-half-up transform;
-- no runtime division/modulo, 64-bit integers or float;
-- ratio mapping is stateless;
-- future PI32v2 ratio-object ceiling 1,024 B;
-- D051 ceiling is not an anti-aliasing claim.
+- invalid ID -> UNITY;
+- no runtime division/modulo/int64/float;
+- exhaustive reference SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
+- PI32v2 object ceiling 1,024 B.
+
+## Current implementation checkpoint state
+
+Isolated production implementation plus verification assets are prepared for commit:
+
+- `firmware/src/fmt_fm_ratio.h`
+- `firmware/src/fmt_fm_ratio.c`
+- `tests/test_wp5_3_fm_ratio.c`
+- `tests/run_wp5_3_fm_ratio_tests.sh`
+- `.github/workflows/wp5_3_fm_ratio_verify.yml`
+
+No `dinghy.c`, D038, D049 or D050 change is allowed.
 
 ## Exact next action
 
-The isolated implementation is now authorized.
+1. commit the isolated D051 implementation over `35f583b...`;
+2. verify production diff is exactly the two ratio files;
+3. run WP5.3 host + pinned target CI;
+4. require exhaustive C output SHA exact;
+5. require ratio object <= 1,024 B;
+6. require full target exact WP5.0;
+7. if green, write `WP5_3_VERIFICATION.md` and close #46 before WP5.4.
 
-Proceed in this order:
-
-1. preserve the green D051 pre-implementation evidence as a docs-only checkpoint;
-2. add only `firmware/src/fmt_fm_ratio.h/.c` under production firmware;
-3. add focused C verification that reproduces the frozen D051 anchors and exhaustive hash;
-4. add a pinned PI32v2/full-target verification workflow;
-5. keep `dinghy.c` unchanged;
-6. require ratio-object text+rodata <= 1,024 B;
-7. require D038/D049/D050 and WP5.0 regressions exact;
-8. write `docs/WP5_3_VERIFICATION.md` and close #46 before WP5.4 begins.
-
-Do not include final level/mod-index UX, feedback, envelopes, FM voice allocation, p-lock pages, oversampling policy or audible mixed FM playback in WP5.3.
+Do not include final level/mod-index mapping, feedback, envelopes, voice allocation, p-lock pages, oversampling policy or audible mixed FM playback in WP5.3.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
