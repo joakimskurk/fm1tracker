@@ -22,71 +22,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! grep -q '^## D033 — ' docs/DECISIONS.md; then
-            cat >> docs/DECISIONS.md <<'EOF'
-
-## D033 — WP3.7 uses fixed-state six-tick retrig / note-delay / note-cut scheduling without the WP3.8 queue
-
-Date: 2026-10-24  
-Status: accepted for the WP3.7 one-lane proof
-
-**Decision:** WP3.7 extends the existing `FmtStep.effect/effect_value` command domain with `0x06 RETRIG`, `0x07 NOTE_DELAY` and `0x08 NOTE_CUT`. The detailed normative semantics are frozen in `docs/WP3_7_EVENT_CONTRACT.md`.
-
-The three commands reuse D032's exact six positions per row: tick 0 at row dispatch and ticks 1..5 at transport phases `110250`, `220500`, `330750`, `441000`, `551250`. The next row at `661500` wins over any sub-row action; no tick 6 exists.
-
-`RETRIG` values `1..5` are tick intervals and fire at internal ticks divisible by the interval; value `0` performs no repeats and values above `5` are safe no-ops. The proof adapter resets oscillator phase only, preserving persistent pitch, row level target and amplitude state; future engines may map the same semantic action to their envelope retrigger primitive.
-
-`NOTE_DELAY` values `1..5` withhold only an ordinary NOTE until that tick; value `0` is immediate and values above `5` do not suppress the NOTE. TIE, EMPTY/NONE and OFF are never delayed. While a NOTE waits, a previous active note may continue and receives the current row's D031 row-local parameter snapshot. The delayed NOTE then uses that same row snapshot and follows ordinary non-portamento persistent-pitch semantics.
-
-`NOTE_CUT` values `0..5` synthesize full D025 OFF semantics at that tick without rewriting the stored row; values above `5` are safe no-ops. CUT can stop a new same-row note or an earlier sustained note and cannot be resurrected by later TIE/EMPTY/retrig ticks.
-
-Because one row still owns only one `effect/effect_value` command, D032 pitch effects and D033 event commands cannot be simultaneous on the same row. D031 p-locks remain orthogonal and may coexist. RETRIG does not mutate persistent pitch/porta state; delayed NOTE sets persistent pitch when it lands and clears a pending porta target; CUT clears active pitch/porta/transient state through OFF semantics.
-
-WP3.7 explicitly does **not** introduce the general WP3.8 queue. One command/value, one pending note byte and one pending-valid byte are sufficient fixed state, with a target of at most 4 bytes. RETRIG repetitions are derived mathematically from the current D032 tick and never enqueued. The existing D032 64-row effect cache is reused; no third row cache is required.
-
-Reserved command bytes `0x09..0xFF` continue to resolve to NONE. Valid D033 commands with value above `5` never wrap modulo six and never schedule work into another row. Playback never mutates `FmtStep`, p-lock records or stored effect bytes.
-
-`FmtStep` remains exactly 8 B, `FmtPlaybackEvent` remains exactly 4 B, D020/D021 ordering is unchanged, and all D031/D032 audio regressions remain mandatory.
-
-**Reason:** the existing one-command-per-row model plus D032's exact six-tick clock gives a complete bounded implementation for retrig, delay and cut. A queue would add overflow and ordering machinery without solving a WP3.7 requirement and is therefore correctly deferred to WP3.8.
-
-**Consequence:** WP3.7 source may extend D032 command validation/cache and add one tiny fixed event scheduler plus the minimal proof-voice adapter hooks. Tests must cover values `0..5` and `>5`, exact frame/tick timing, NOTE/TIE/EMPTY/OFF interaction, delayed-note D031 row values, CUT non-resurrection, RETRIG after OFF no-op, D032 persistent pitch/porta continuation, invalid-command NONE fallback, stored-data immutability and all inherited regressions. No WP3.8 queue/overflow implementation may be added under WP3.7.
-EOF
-          fi
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path('docs/PROJECT_STATE.md')
-          s = p.read_text()
-          old = 'State: **IN PROGRESS - WP3.6 complete; WP3.7 ready to start - 2026-10-24**'
-          new = 'State: **IN PROGRESS - WP3.7 active; D033 frozen before source - 2026-10-24**'
-          assert s.count(old) == 1, s.count(old)
-          s = s.replace(old, new, 1)
-          old = 'State: **READY TO START - no WP3.7 implementation has begun**'
-          new = 'State: **IN PROGRESS - D033 frozen; production source is the next step**'
-          assert s.count(old) == 1, s.count(old)
-          s = s.replace(old, new, 1)
-          old = 'GitHub issue: #26\n\nBefore source, freeze D033 covering:'
-          new = 'GitHub issue: #26\n\nWP3.7 start head: `e2f354018b4cbad636b51ac8ae98c9b226e7ef18`\n\nD033 is frozen in `docs/DECISIONS.md` and `docs/WP3_7_EVENT_CONTRACT.md`. It defines:'
-          assert s.count(old) == 1, s.count(old)
-          s = s.replace(old, new, 1)
-          old = 'Start WP3.7 / issue #26 as its own package. Verify actual branch HEAD, mark WP3.7 IN PROGRESS, freeze D033 before source, and do not begin WP3.8.'
-          new = 'Implement WP3.7 / #26 from the frozen D033 contract. Keep the fixed six-tick scheduler and do not begin WP3.8 queue work.'
-          assert s.count(old) == 1, s.count(old)
-          s = s.replace(old, new, 1)
-          old = '2026-10-24 - WP3.6 verified complete. WP3.7 / #26 is READY TO START; no WP3.7 source exists.'
-          new = '2026-10-24 - WP3.7 active. D033 frozen before source; no WP3.7 production source has been committed yet.'
-          assert s.count(old) == 1, s.count(old)
-          p.write_text(s.replace(old, new, 1))
-
-          p = Path('docs/WORK_PACKAGES.md')
-          s = p.read_text()
-          old = '- **WP3.7 — retrig / note delay / note cut** — READY TO START — issue #26.\n  Freeze D033 before source: exact command encoding, sub-row timing, NOTE/TIE/OFF/EMPTY interaction, retrigger/delay/cut semantics, precedence with D031/D032 and fixed real-time bounds. Do not pull the general WP3.8 queue forward unless D033 explicitly proves a minimal prerequisite is unavoidable.'
-          new = '- **WP3.7 — retrig / note delay / note cut** — IN PROGRESS — issue #26.\n  D033 is frozen before source in `WP3_7_EVENT_CONTRACT.md`: commands `0x06..0x08`, exact D032 six-tick scheduling, fixed pending-note state, no general queue, and explicit D031/D032 interaction. Implement only this contract; WP3.8 remains separate.'
-          assert s.count(old) == 1, s.count(old)
-          p.write_text(s.replace(old, new, 1))
-          PY
+          echo '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' | base64 -d | gzip -d > /tmp/wp3_7_d033.py
+          python3 /tmp/wp3_7_d033.py
           git diff --check
 
       - name: Commit D033 architecture gate
