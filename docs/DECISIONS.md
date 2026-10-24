@@ -643,3 +643,21 @@ Playback never writes row fields or lock records. Stored `FmtStep` and D028 data
 **Reason:** Three parameters are enough to prove the p-lock-to-audio architecture against the current sine proof without inventing pan law or future engine semantics. A 64 × 32-bit cache costs only 256 bytes of ordinary RAM and removes mutable linked-list traversal from the real-time path. Row-local restore is simple, tracker-like and testable. Keeping the 4-byte playback event and D021 timing limits architectural churn before the real engines and WP3.8 queue work.
 
 **Consequence:** WP3.5 must add a bounded playback-parameter resolver/cache, exact integer pitch/level helpers, proof-voice logical-active state and one-row cache refresh after relevant editor mutations. Unit tests must cover all 64 rows, accepted/ignored IDs, defaults, domain fallback, structural corruption fallback, snapshot publication, level composition, fine-pitch endpoints/center, NOTE/TIE/OFF/EMPTY semantics and no stored-data mutation. Full-app/default audio must keep the frozen WAV byte-identical, while a separate locked fixture proves audible deterministic changes and row-local restoration. All Phase 2 and WP3.1-WP3.4 regressions remain required. WP3.6+ modulation/effect commands, WP3.8 general event queue and TRACK PAN playback remain out of scope.
+## D032 — WP3.6 tracker effects use exact six-tick D020 timing and bounded persistent pitch state
+
+Date: 2026-10-24
+Status: accepted before WP3.6 production source
+
+**Decision:** WP3.6 uses the existing `FmtStep.effect/effect_value` bytes as a tracker-effect command domain that remains separate from D027 p-lock parameter IDs. Assigned commands are `NONE=0x00`, `ARPEGGIO=0x01`, `SLIDE_UP=0x02`, `SLIDE_DOWN=0x03`, `PORTAMENTO=0x04`, and `VIBRATO=0x05`; all other command bytes resolve safely to NONE. `FmtStep` remains exactly 8 bytes.
+
+Effect timing is derived directly from D020: `661500 / 6 = 110250` phase units gives exactly six effect ticks per row. Tick 0 starts at D021 row dispatch; internal tick boundaries occur at transport phases `110250`, `220500`, `330750`, `441000`, and `551250`. The real D020 phase/residual remains authoritative, so WP3.6 introduces no second free-running clock or cumulative rounding.
+
+Persistent proof pitch is Q7. SLIDE_UP/DOWN and PORTAMENTO may move persistent pitch; D031 FINE remains row-local and never mutates that state. ARPEGGIO and VIBRATO are transient only. Final pitch precedence is `persistent_pitch_q7 + (D031_FINE - 128) + transient_effect_mod_q7`, clamped to `0..16383`. NOTE/TIE/EMPTY/OFF, portamento-target memory, vibrato phase continuity, exact command arguments, and saturation/reset rules are frozen in the detailed contract below.
+
+Main/startup publishes one aligned 32-bit effect snapshot for each of the 64 proof-lane rows, exactly 256 bytes ordinary RAM. Audio reads one effect word at row dispatch; `FmtPlaybackEvent` remains exactly 4 bytes. Effect runtime state is fixed at no more than 16 bytes. Per-frame work is bounded to at most one effect-threshold comparison plus fixed integer work at an actual effect tick. No allocator, D028 traversal, variable event loop, screen/flash work, float, or runtime 64-bit division enters the audio path.
+
+The normative detailed WP3.6 contract is `docs/WP3_6_EFFECT_CONTRACT.md`. It freezes ARPEGGIO `XY` sequence `0,X,Y,0,X,Y`; Q7 SLIDE_UP/DOWN; Q7 PORTAMENTO with remembered target; 64-phase triangle VIBRATO; NOTE/TIE/EMPTY/OFF behavior; D031 FINE precedence; invalid-command fallback; cache ownership; real-time bounds; and required deterministic regressions.
+
+**Reason:** six ticks divide the existing D020 integer row phase exactly, preserving tracker-style timing without pulling WP3.8 queue architecture forward. Keeping commands in the existing two step bytes preserves the data model and D027 separation between tracker effects and p-lock parameters. A fixed proof-lane cache provides bounded main-to-audio publication analogous to D031.
+
+**Consequence:** WP3.6 may add only the small effect registry/cache/state and proof-lane audio integration required by `WP3_6_EFFECT_CONTRACT.md`. Retrig/note-delay/note-cut, general queue work, effect-entry UI, new synth engines, persistence, and live capture remain out of scope.
