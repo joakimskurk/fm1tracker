@@ -204,7 +204,19 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | D033 preserves frozen D032 audio hashes and historical default/D031 WAVs | required | required | n/a | ✅ run `40077809743` |
 | WP3.7 final resource delta measured/frozen | n/a | required | n/a | ✅ +412 B image / +4 B RAM / +0 B pool |
 | WP3.7 preserves all Phase 2 + WP3.1-WP3.6 regressions | required | required | later | ✅ run `40077809743` |
-| Queue overflow policy deterministic | required | required | stress test | 🟨 D034 frozen: reject-newest; implementation pending |
+| `FmtRtEvent` exact 8 B layout / no pointers | required | target compile | n/a | ✅ WP3.8 / D034 |
+| `FmtRtQueue` exact 32-entry / 268 B ordinary-RAM layout | required | required | n/a | ✅ WP3.8 |
+| SPSC ownership / aligned two-word publication bounded | required | required | n/a | ✅ main producer / audio consumer |
+| Sequence counters remain FIFO/depth-correct through `UINT32_MAX` wrap | required | compile | n/a | ✅ WP3.8 wrap test |
+| Queue overflow policy deterministic | required | required | stress test | ✅ reject-newest; 33rd rejected without unread mutation |
+| Audition overflow cannot leave a stuck manual gate | required | required | later | ✅ forced >32 NOTE ON fixture fails to silence |
+| Queue recovery returns to usable NOTE ON/OFF operation | required | required | later | ✅ post-overflow recovery fixture |
+| Physical-key + USB-MIDI audition enter audio only through D034 queue | required | compile | required later | ✅ WP3.8 full-app proof |
+| Queue consumption itself emits no MIDI output | required | compile | later | ✅ queue_midi_neutral=1 |
+| Compiler publication barrier stays behind HAL boundary | inspect/test | required | n/a | ✅ only new HAL file `fm1_barrier.h` |
+| D034 preserves D024 mailbox and D033 fixed-state scheduler boundaries | inspect/test | required | n/a | ✅ WP3.8 |
+| WP3.8 final resource delta measured/frozen | n/a | required | n/a | ✅ +368 B image / +272 B RAM / +0 B pool |
+| WP3.8 preserves all Phase 2 + WP3.1-WP3.7 regressions | required | required | later | ✅ run `40079824265` |
 
 Phase 3 evidence so far:
 
@@ -215,6 +227,7 @@ Phase 3 evidence so far:
 - `WP3_5_VERIFICATION.md`
 - `WP3_6_VERIFICATION.md`
 - `WP3_7_VERIFICATION.md`
+- `WP3_8_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 

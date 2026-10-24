@@ -12,7 +12,9 @@ Read in this order:
 6. [`docs/ROADMAP.md`](docs/ROADMAP.md) — long-term phase direction.
 7. [`THIRD_PARTY.md`](THIRD_PARTY.md) — external code/assets, licenses and provenance.
 
-For the current Phase 1 platform import, also read:
+For the current active package, also read the most recently completed verification and the active package contract named by `docs/PROJECT_STATE.md`. As of the 2026-10-24 handoff, WP3.8 is verified and WP3.9 / #28 is next with D035 required before production UI source.
+
+Platform provenance remains available in:
 
 - [`docs/UPSTREAM_DINGHY.md`](docs/UPSTREAM_DINGHY.md)
 - [`docs/DINGHY_IMPORT_MANIFEST.md`](docs/DINGHY_IMPORT_MANIFEST.md)

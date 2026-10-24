@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 3 - p-locks and tracker effects**
 
-State: **IN PROGRESS - WP3.1-WP3.7 complete; WP3.8 active, D034 frozen before source - 2026-10-24**
+State: **IN PROGRESS - WP3.1-WP3.8 complete; WP3.9 ready for D035 visual/update freeze - 2026-10-24**
 
 Parent issue: #20  
 Current branch: `phase3/plocks-effects`
@@ -159,17 +159,69 @@ D031 locked WAV remains byte-identical:
 
 All frozen WP3.6 D032 audio fixtures also remain byte-identical through WP3.7.
 
+### WP3.8 - bounded runtime event queue and overflow policy - COMPLETE - #27
+
+Production audition-queue integration:
+
+`223fec91746a95cc003eabe7cd1540af75e5ed26`
+
+Final clean-tree verified source/workflow checkpoint:
+
+`5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`
+
+Final GitHub Actions:
+
+- run `40079824265`
+- job `120830854974` (`runtime-queue-closeout`)
+- result **SUCCESS**
+
+Evidence: `docs/WP3_8_VERIFICATION.md`
+Normative contract: `docs/WP3_8_QUEUE_CONTRACT.md`
+
+Evidence artifact:
+
+- ID `12554234479`
+- ZIP SHA-256 `2bd3b62cbfe5eec8867066acbdcecc5221dc515afa525f3914dab04b3f8b219f`
+
+D034 freezes an exact 8-byte `FmtRtEvent` and a 32-entry / 268-byte SPSC main-loop -> audio-ISR queue. Physical-key and USB-MIDI audition NOTE ON/OFF now enter audio through the queue; main no longer selects or mutates manual audio voices directly.
+
+Overflow is reject-newest. Audio detects `overflow_seq`, releases all manual gates click-safely and consumer-discards the compromised batch in O(1), so overflow fails toward silence rather than a stuck note. Sequence wrap is verified across `UINT32_MAX`.
+
+The compiler publication barrier is isolated behind `firmware/hal/fm1_barrier.h`, which is the only HAL-file difference from the WP3.7 verified checkpoint. D024 transport state and D033 sub-row scheduling remain outside the queue.
+
+Focused proof:
+
+`FMT_RT_QUEUE_TESTS_OK=1`
+
+`WP3_8_QUEUE_AUDIO_BEHAVIOR_OK=1 fifo=1 hardware=1 midi=1 overflow_silence=1 recovery=1 queue_midi_neutral=1`
+
+Final WP3.8 resources:
+
+| Resource | Used | Limit | Free | Delta vs WP3.7 |
+|---|---:|---:|---:|---:|
+| app image | 66,308 B | 581,564 B | 515,256 B | +368 B |
+| normal RAM | 13,280 B | 98,304 B | 85,024 B | +272 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
+
+Final firmware artifacts:
+
+- `fm1tracker.bin` SHA-256 `a1d422b0c533af7f713deca37191a45e438640e2fc1be7c2734c1e4539822251`
+- `fm1tracker-0.1.fwsc` SHA-256 `b93d5dd57d4e23214ac4ef500e47d91b3e4528b620b646f8804312654df98b8a`
+- package identity `FM-1_987`.
+
+Historical default WAV, D031 locked WAV and all frozen WP3.6/WP3.7 audio fixtures remain byte-identical through WP3.8.
+
 ## Next milestone
 
-**WP3.8 - bounded event queue and overflow policy**
+**WP3.9 - lock/effect visual feedback**
 
-State: **IN PROGRESS - D034 frozen; production queue implementation next**
+State: **READY TO START - D035 visual/update contract required before production UI source**
 
-GitHub issue: #27
+GitHub issue: #28
 
-D034 is frozen in `docs/WP3_8_QUEUE_CONTRACT.md`: exactly 8-byte `FmtRtEvent`, 32-entry / 268-byte SPSC main->audio queue, producer-owned `write_seq`/`overflow_seq`, consumer-owned `read_seq`, aligned two-word publication, reject-newest overflow, callback-boundary immediate timing, and fail-to-silence audition recovery. D033 and the D024 transport mailbox remain outside the queue.
+D035 must freeze exactly what p-lock/effect state is shown, compact notation, cursor/playhead/edit-state priority, screen/update ownership, dirty-region bounds, stale-feedback cancellation and deterministic framebuffer evidence. No audio ISR may draw or mutate display state.
 
-Production source may now implement **only** this contract, beginning with the queue module/unit tests and then routing existing manual key/USB-MIDI NOTE ON/OFF through it. Live capture/timestamp semantics and multi-track sequencer migration remain later work.
+Do not write WP3.9 production visual-feedback source before D035 is frozen. WP3.10 remains the Phase 3 final worst-case closeout and must not be pulled forward.
 
 ## Important decisions / do not regress
 
@@ -182,6 +234,7 @@ Production source may now implement **only** this contract, beginning with the q
 - D031: three row-local p-lock playback parameters through a 256 B 32-bit cache; TRACK PAN storage-only.
 - D032: six-tick tracker effects, persistent Q7 slide/porta pitch and transient ARP/vibrato through a second 256 B row cache.
 - D033: retrig/delay/cut remain fixed-state, exact-six-tick and queue-free; event runtime exactly 4 B at the verified checkpoint.
+- D034: runtime ingress is an exact 32-entry / 268-byte SPSC main->audio queue with 8-byte events, reject-newest overflow and fail-to-silence audition recovery; D024/D033 remain outside it.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -195,7 +248,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Implement the frozen D034 queue module and focused unit tests first, then integrate existing manual key/USB-MIDI audition NOTE ON/OFF through the queue. Do not expand into live capture or D033 queueing.
+Start WP3.9 / #28 by freezing D035 visual/update ownership and notation before production UI source. Preserve D026 bounded screen work and all D031-D034 audio/runtime behavior.
 
 ## Last relevant checkpoints
 
@@ -208,7 +261,8 @@ Implement the frozen D034 queue module and focused unit tests first, then integr
 - WP3.5 verified: `17316f203dba7a93c9d03a52df6f45b12a7a2580`
 - WP3.6 verified: `d1910cb86b84240051cedfabb7701140259d8274`
 - WP3.7 verified: `d2a97798149816957745de818e4568c518a9a7e7`
+- WP3.8 verified: `5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`
 
 ## Last updated
 
-2026-10-24 - WP3.7 complete and #26 closed. WP3.8 / #27 active; D034 frozen in `WP3_8_QUEUE_CONTRACT.md` before source. No WP3.8 production source has begun yet.
+2026-10-24 - WP3.8 complete and #27 closed at clean checkpoint `5c282892...`. WP3.9 / #28 is next; freeze D035 before production visual-feedback source.

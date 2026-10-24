@@ -318,3 +318,19 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 - Final artifacts: `fm1tracker.bin` `f71bc5770ce2b56bcbc3fb4034b882f1a80f0b1997cdd4534cc7b8dd45100e2b`; `fm1tracker-0.1.fwsc` `cd4b3138ecb6e4e853b67cbe4b8a049e43290798dad26accf606279dc69e383d`.
 - Final clean-tree verification: checkpoint `d2a97798149816957745de818e4568c518a9a7e7`, run `40077809743`, job `120824870575`; evidence `docs/WP3_7_VERIFICATION.md`.
 - Next: WP3.8 / #27 bounded event queue and overflow policy. D034 architecture freeze is required before source.
+
+
+## 2026-10-24 - WP3.8 bounded runtime event queue
+
+- Froze D034 before production source in `docs/WP3_8_QUEUE_CONTRACT.md`.
+- Added exact 8-byte `FmtRtEvent` and 32-entry / 268-byte SPSC main-loop -> audio-ISR queue with wrap-safe 32-bit sequence counters.
+- Chose deterministic reject-newest overflow; unread events are never overwritten and producer never mutates consumer ownership.
+- Added fail-to-silence audition recovery: on overflow audio releases manual gates click-safely and consumer-discards the compromised batch in O(1), then accepts later events normally.
+- Routed existing physical-key and USB-MIDI audition NOTE ON/OFF through D034; main no longer allocates or mutates manual audio voices directly.
+- Kept D024 transport desired-state mailbox and D033 exact-six-tick scheduler outside the queue.
+- Moved the compiler publication barrier behind `firmware/hal/fm1_barrier.h`; this is the only HAL-file difference from the verified WP3.7 checkpoint.
+- Frozen full-app audio hashes prove FIFO, physical audition, MIDI audition, forced-overflow silence, post-overflow recovery and queue MIDI neutrality.
+- Final resources: 66,308 B image / 13,280 B normal RAM / 113,000 B pool; delta vs WP3.7 +368 / +272 / +0 B.
+- Final artifacts: `fm1tracker.bin` `a1d422b0c533af7f713deca37191a45e438640e2fc1be7c2734c1e4539822251`; `fm1tracker-0.1.fwsc` `b93d5dd57d4e23214ac4ef500e47d91b3e4528b620b646f8804312654df98b8a`.
+- Final clean-tree verification: checkpoint `5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`, run `40079824265`, job `120830854974`; evidence `docs/WP3_8_VERIFICATION.md`.
+- Next: WP3.9 / #28 lock/effect visual feedback. D035 visual/update contract must be frozen before production UI source.
