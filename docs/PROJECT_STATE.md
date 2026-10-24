@@ -340,6 +340,7 @@ The Phase 3 proof sine remains the full-app production audio implementation duri
 - D035: tracker presentation remains ten regions / max two redraws, `FmtTrackerScreen` 62 B, with bounded lock-count and stored-effect feedback only.
 - D036: the complete D027-D035 stack passed worst-case combined verification with zero production delta; Phase 3 is complete at host/device-build level.
 - D037: Phase 4 engine ownership, eight-voice cap, Q7 pitch domain, event/effect adapter boundary, Q15/32-bit mix rules, realtime bounds and complete Phase 4 resource ceilings are frozen before oscillator source.
+- D038: WP4.2 PULSE is a 4-byte phase-only hard-edge oscillator with exact existing Q7 pitch integers, pulse width 32..224, sample-before-advance ordering and zero full-app delta while isolated.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -353,7 +354,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze D038 and the focused WP4.2 PULSE test contract in the repository before creating PULSE production source. Keep the Phase 3 proof sine as full-app production audio while the isolated primitive is implemented and verified.
+Implement and verify the isolated D038 primitives `fmt_engine_pitch.*` and `fmt_osc_pulse.*` with focused deterministic host tests, static realtime audit and pinned PI32v2 target compilation. Keep the Phase 3 proof sine and full-app artifacts byte-identical; do not begin WP4.3 or full engine integration.
 
 ## Last relevant checkpoints
 
@@ -371,6 +372,8 @@ Freeze D038 and the focused WP4.2 PULSE test contract in the repository before c
 - WP3.10 / Phase 3 closeout workflow: `e90d0232c179ea92e2295171403697ceaf5e3ecf`
 - WP4.1 D037 contract: `a740da66a0587b4e257629d7aba12781fad73f73`
 - WP4.1 closeout workflow: `01138c5f8a420efcc8e438ff3c2eb4090c086586`
+- WP4.2 D038 contract: `247ff3c03cdf3cd8e0878fe37d79693b26afc398`
+- WP4.2 D038 decision/status freeze: `6bf5324ec09266064fbb75828bffb5e773d7ad14`
 
 ## Last updated
 
