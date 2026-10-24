@@ -23,7 +23,7 @@ jobs:
       - name: Install host screenshot dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Run D032 core and full-app audio proof
+      - name: Run D032 core, exact tick grid and full-app audio proof
         shell: bash
         run: |
           set -euo pipefail
@@ -31,8 +31,12 @@ jobs:
           sh tests/run_tracker_effect_tests.sh | tee build/wp3_6_effect_tests.log
           grep -F 'FMT_TRACKER_EFFECT_TESTS_OK=1' build/wp3_6_effect_tests.log
           grep -F 'state_bytes=12 pitch_q7=1 fine_precedence=1 porta_memory=1 invalid_fallback=1 no_store_mutation=1' build/wp3_6_effect_tests.log
+          sh tests/run_wp3_6_tick_grid_tests.sh | tee build/wp3_6_tick_grid.log
+          grep -F 'WP3_6_TICK_GRID_TESTS_OK=1' build/wp3_6_tick_grid.log
+          grep -F 'bpm=120 tick_frames=919,1838,2757,3675,4594 next_row_frame=5513 row_boundary_wins=1 max_one_tick_per_frame=1' build/wp3_6_tick_grid.log
           sh tests/run_wp3_6_effect_audio_host.sh | tee build/wp3_6_effect_audio_gate.log
-          grep -F 'WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1 arp_ticks=1 slide_up=1 porta_glide=1 vibrato=1 midi_events=0' build/wp3_6_effect_audio_gate.log
+          grep -F 'WP3_6_INVALID_COMMAND_AUDIO_IDENTICAL=1' build/wp3_6_effect_audio_gate.log
+          grep -F 'WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1 arp_ticks=1 slide_up=1 slide_down=1 porta_glide=1 vibrato=1 fine_composition=1 invalid_none=1 midi_events=0' build/wp3_6_effect_audio_gate.log
 
       - name: Run complete inherited regressions and measured device build
         shell: bash
@@ -146,7 +150,7 @@ jobs:
           print(f'fm1tracker_fwsc_sha256={sha("build/fm1tracker-0.1.fwsc")}')
           print(f'default_wav_sha256={sha("build/host/fm1tracker.wav")}')
           print(f'd031_locked_wav_sha256={sha("build/host/fm1tracker_wp3_5_locked.wav")}')
-          for name in ('control','arp','slide','porta','vibrato'):
+          for name in ('control','arp','slide','slide_down','porta','vibrato','arp_fine','invalid'):
               print(f'wp3_6_{name}_wav_sha256={sha(f"build/host/fm1tracker_wp3_6_{name}.wav")}')
           PY
           grep -F 'pool_delta_vs_wp3_5=0' build/wp3_6_measured_metrics.txt
