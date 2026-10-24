@@ -1,5 +1,4 @@
 name: WP4.9 D045 Gate 2 verification
-# Canonical rerun after host test compile-warning cleanup.
 
 on:
   push:
@@ -35,11 +34,11 @@ jobs:
           mkdir -p build
           sh tests/run_wp4_9_gate2.sh | tee build/wp4_9_gate2_ci.log
           grep -F 'WP4_9_GATE2_SOURCE_BOUNDARY_OK=1' build/wp4_9_gate2_ci.log
-          grep -F 'WP4_9_GATE2_FOCUSED_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_FOCUSED_OK=1 replay_frozen=1' build/wp4_9_gate2_ci.log
           grep -F 'WP4_9_GATE2_STATIC_AUDIT_OK=1' build/wp4_9_gate2_ci.log
           grep -F 'WP4_9_GATE2_PRIMITIVE_REGRESSIONS_OK=1' build/wp4_9_gate2_ci.log
           grep -F 'WP4_9_GATE2_PROOF_AUDIO_UNCHANGED_OK=1' build/wp4_9_gate2_ci.log
-          grep -F 'WP4_9_GATE2_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_OK=1 replay_fnv1a32=c2a8d4df' build/wp4_9_gate2_ci.log
 
       - name: Upload D045 Gate 2 host evidence
         uses: actions/upload-artifact@v4
@@ -70,13 +69,16 @@ jobs:
           set -euo pipefail
           mkdir -p build/wp4_9_gate2_target
           CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          EXPECTED_OBJ='967fba0d5672a5d572ac71e58772ca4e2c959fb2642b95a3c9f39072431b59a9'
           "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
             -Ifirmware/src -c firmware/src/fmt_8bit_engine.c \
             -o build/wp4_9_gate2_target/fmt_8bit_engine.o
           test -s build/wp4_9_gate2_target/fmt_8bit_engine.o
+          OBJ_SHA="$(sha256sum build/wp4_9_gate2_target/fmt_8bit_engine.o | awk '{print $1}')"
+          test "$OBJ_SHA" = "$EXPECTED_OBJ"
           sha256sum build/wp4_9_gate2_target/fmt_8bit_engine.o \
             | tee build/wp4_9_gate2_target/object_sha256.txt
-          printf '%s\n' 'WP4_9_GATE2_PI32V2_OK=1 modules=1 engine_bytes=404 dinghy_migration=0 gate3_activation=0' \
+          printf '%s\n' "WP4_9_GATE2_PI32V2_OK=1 modules=1 engine_bytes=404 object_sha256=$OBJ_SHA dinghy_migration=0 gate3_activation=0" \
             | tee build/wp4_9_gate2_target/summary.txt
 
       - name: Upload D045 Gate 2 target evidence
