@@ -31,6 +31,10 @@ from hashlib import sha256
 from pathlib import Path
 import wave
 
+CONTROL_SHA = '5545ea2322ff2f01b77bce0c94ed8ae379386eec1baea0f712b6daf000baf3fd'
+LOCKED_SHA = '8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8'
+FROZEN_FRAMES = 52736
+
 
 def read_left(path):
     with wave.open(str(path), 'rb') as f:
@@ -60,7 +64,7 @@ control_path = Path('build/host/fm1tracker_wp3_5_control.wav')
 locked_path = Path('build/host/fm1tracker_wp3_5_locked.wav')
 cn, control = read_left(control_path)
 ln, locked = read_left(locked_path)
-assert cn == ln and cn > 38000, (cn, ln)
+assert cn == ln == FROZEN_FRAMES, (cn, ln)
 
 # The first changed row is zero-based step 4, boundary frame 22050 at 120 BPM.
 assert control[:22050] == locked[:22050]
@@ -88,6 +92,8 @@ assert max(abs(x) for x in locked[lo6:hi6]) > 100
 
 locked_sha = sha256(locked_path.read_bytes()).hexdigest()
 control_sha = sha256(control_path.read_bytes()).hexdigest()
+assert control_sha == CONTROL_SHA, control_sha
+assert locked_sha == LOCKED_SHA, locked_sha
 print(f'WP3_5_LOCKED_AUDIO_CONTROL_SHA256={control_sha}')
 print(f'WP3_5_LOCKED_AUDIO_SHA256={locked_sha}')
 print(f'WP3_5_LOCKED_AUDIO_FRAMES={ln}')
