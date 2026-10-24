@@ -1,5 +1,6 @@
 name: WP3.7 effect core patch once
 
+# Retry after updating the inherited D032 command-domain expectation for D033.
 on:
   push:
     branches:
@@ -34,6 +35,6 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add firmware/src/fmt_tracker_effect.c
+          git add firmware/src/fmt_tracker_effect.c tests/test_fmt_tracker_effect.c
           git commit -m 'feat: extend D032 effect core for D033 events'
           git push origin HEAD:phase3/plocks-effects
