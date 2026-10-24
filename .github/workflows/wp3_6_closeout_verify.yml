@@ -1,5 +1,5 @@
 name: WP3.6 full closeout verification
-# Final measured gate trigger after green focused run 40073502834.
+# Final measured gate with repository-relative inherited runner.
 
 on:
   push:
@@ -43,10 +43,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp tests/run_wp3_5_closeout_ci.sh /tmp/wp3_6_measure.sh
+          cp tests/run_wp3_5_closeout_ci.sh tests/.wp3_6_measure.sh
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('/tmp/wp3_6_measure.sh')
+          p = Path('tests/.wp3_6_measure.sh')
           s = p.read_text()
 
           def once(old, new):
@@ -90,8 +90,9 @@ jobs:
               lines.append(line)
           p.write_text('\n'.join(lines) + '\n')
           PY
-          sh /tmp/wp3_6_measure.sh | tee build/wp3_6_inherited_measure.log
+          sh tests/.wp3_6_measure.sh | tee build/wp3_6_inherited_measure.log
           grep -F 'WP3_6_INHERITED_AND_MEASURED_GATE_OK=1' build/wp3_6_inherited_measure.log
+          rm -f tests/.wp3_6_measure.sh
 
       - name: Verify D032 target objects and linked symbols
         shell: bash
