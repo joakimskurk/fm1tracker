@@ -19,7 +19,11 @@ jobs:
           fetch-depth: 0
 
       - name: Synchronize WP3.8 closeout and WP3.9 handoff
-        run: python3 .github/tmp/wp3_8_docs_finalize.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tmp/wp3_8_docs_finalize.py
+          sed -i 's#Evidence: `docs/WP3_8_VERIFICATION.md`  $#Evidence: `docs/WP3_8_VERIFICATION.md`#' docs/PROJECT_STATE.md
 
       - name: Commit synchronized handoff
         shell: bash
