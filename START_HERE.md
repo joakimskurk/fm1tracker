@@ -23,16 +23,16 @@ Read in this order:
 
 WP5.0 / D048 and WP5.1 / D049 are COMPLETE.
 
-WP5.2 / D050 is ACTIVE. The source-absent contract gate is now GREEN, so isolated production algorithm-routing implementation is allowed.
+WP5.2 / D050 is ACTIVE. The source-absent contract gate is green and the isolated production routing primitive has now been committed for verification.
 
-D050 canonical pre-implementation evidence:
+D050 pre-implementation evidence:
 
 - contract checkpoint `f2d328f516bb66517d1e06d98aab1f3c09dcc68b`
+- green evidence checkpoint `6ecdb64653dee06411eecd4e73571cf21b11c3d9`
 - run `40135979431`
 - job `120997461479`
 - artifact ID `12577609841`
 - artifact SHA `d3465c39b17416d58c56d98c196a18ae1c4dbd6e07d2ab7cc4ca2b3992cab85`
-- evidence `docs/WP5_2_PREIMPLEMENTATION_EVIDENCE.md`
 
 Stable algorithms:
 
@@ -43,25 +43,21 @@ Stable algorithms:
 3 PARALLEL4: OP1 + OP2 + OP3 + OP4, four carriers
 ```
 
-Every algorithm evaluates OP4 -> OP3 -> OP2 -> OP1 and advances all four D049 operators exactly once per sample.
-
 ## Exact next action
 
-Implement `firmware/src/fmt_fm_algorithm.h/.c` exactly to D050, still isolated from `dinghy.c`.
+Do not design WP5.3 yet.
 
-Required implementation verification:
+Follow the WP5.2 implementation CI for the current branch head. It must prove:
 
-1. exact 16 B state and reset/retrigger/null behavior;
-2. algorithm fallback and mod-depth clamp;
-3. exact edge modulation and modulo phase accumulation;
-4. exact sign-safe one/two/four carrier normalization;
-5. exact first-12 vectors and four 4,096-render hashes;
-6. 65,536 renders per algorithm stress;
-7. algorithm-switch phase continuity;
-8. no loop/heap/float/int64/divide/modulo/store/router access in render;
-9. pinned PI32v2 router object <= 2,048 B text+rodata;
-10. D049, WP5.0 host and full target identity remain exact.
+1. only `fmt_fm_algorithm.h/.c` were added under firmware/tools/gen after the green preimplementation checkpoint;
+2. D049 operator and D048/router/app sources are unchanged;
+3. exact D050 first-12 vectors and four long hashes pass;
+4. 65,536 renders per algorithm and algorithm-switch phase continuity pass;
+5. source audit proves no loops/graph traversal/heap/float/int64/divide/modulo/store/router access in render;
+6. isolated PI32v2 router object stays <= 2,048 B text+rodata;
+7. full target remains exact WP5.0 in resources, BIN and FWSC;
+8. only after green host+target evidence write `WP5_2_VERIFICATION.md` and close WP5.2.
 
-Do not include ratios, final level/mod-index UX, feedback, FM envelopes, voice allocation, p-lock pages or audible mixed FM playback in WP5.2.
+No ratios, final level/mod-index UX, feedback, envelopes, FM voice allocation, p-lock pages or audible mixed FM belong in WP5.2.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
