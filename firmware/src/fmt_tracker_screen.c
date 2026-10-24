@@ -140,11 +140,11 @@ uint8_t fmt_tracker_screen_window_start(const FmtPatternInput *input)
     return start;
 }
 
-int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
-                            const FmtPatternInput *input,
-                            const FmtStepRecord *record,
-                            const FmtTransport *transport,
-                            const FmtLockEditor *lock_editor)
+int fmt_tracker_screen_sync_feedback(FmtTrackerScreen *screen,
+                                     const FmtPatternInput *input,
+                                     const FmtStepRecord *record,
+                                     const FmtTransport *transport,
+                                     const FmtLockEditor *lock_editor)
 {
     uint8_t track, page, window_start, selected_step, play_step, playing, step_rec;
     uint8_t lock_target_active, lock_target_step;
@@ -273,6 +273,15 @@ int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
     screen->lock_target_step = lock_target_step;
     screen->dirty = dirty;
     return 1;
+}
+
+int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
+                            const FmtPatternInput *input,
+                            const FmtStepRecord *record,
+                            const FmtTransport *transport)
+{
+    return fmt_tracker_screen_sync_feedback(screen, input, record, transport,
+                                            (const FmtLockEditor *)0);
 }
 
 uint16_t fmt_tracker_screen_dirty(const FmtTrackerScreen *screen)
@@ -445,9 +454,20 @@ void fmt_tracker_screen_lock_text(const FmtTrackerScreen *screen,
     }
 }
 
-void fmt_tracker_screen_effect_text(uint32_t effect,
-                                    uint32_t effect_value,
-                                    char out[5])
+void fmt_tracker_screen_effect_text(uint32_t effect, char out[4])
+{
+    if (!out)
+        return;
+    if (effect == FMT_EFFECT_NONE) {
+        out[0] = '-'; out[1] = '-'; out[2] = '-'; out[3] = 0;
+    } else {
+        out[0] = '?'; out[1] = '?'; out[2] = '?'; out[3] = 0;
+    }
+}
+
+void fmt_tracker_screen_effect_value_text(uint32_t effect,
+                                          uint32_t effect_value,
+                                          char out[5])
 {
     char a = '?', b = '?';
 
@@ -497,9 +517,9 @@ void fmt_tracker_screen_row_text(const FmtTrackerScreen *screen,
     fmt_tracker_screen_instrument_text(screen->row_instrument[visible_row], instrument);
     fmt_tracker_screen_volume_text(screen->row_volume[visible_row], volume);
     fmt_tracker_screen_lock_text(screen, visible_row, lock);
-    fmt_tracker_screen_effect_text(screen->row_effect[visible_row],
-                                   screen->row_effect_value[visible_row],
-                                   effect);
+    fmt_tracker_screen_effect_value_text(screen->row_effect[visible_row],
+                                         screen->row_effect_value[visible_row],
+                                         effect);
 
     p = out;
     fmt_tracker_screen_two_digits(&p, (uint32_t)screen->window_start + visible_row + 1u);
