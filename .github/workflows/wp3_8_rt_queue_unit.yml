@@ -24,6 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_rt_queue_tests.sh | tee build/wp3_8_rt_queue_unit.log
           grep -F 'FMT_RT_QUEUE_TESTS_OK=1' build/wp3_8_rt_queue_unit.log
           grep -F 'event_bytes=8 queue_bytes=268 capacity=32 usable=32 overflow=reject_newest wrap=1 discard_o1=1 malformed_reject=1' build/wp3_8_rt_queue_unit.log
