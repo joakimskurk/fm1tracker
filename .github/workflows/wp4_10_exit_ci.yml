@@ -32,7 +32,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sh tests/run_wp4_10_exit_ci.sh | tee build/wp4_10_exit_ci.log
+          sh tests/run_wp4_10_exit_ci.sh | tee "$RUNNER_TEMP/wp4_10_exit_ci.log"
+          cp "$RUNNER_TEMP/wp4_10_exit_ci.log" build/wp4_10_exit_ci.log
           grep -F 'WP4_10_EXIT_PRODUCTION_FREEZE_OK=1' build/wp4_10_exit_ci.log
           grep -F 'WP4_10_FULL_POOL_LINKED_OK=1 tracks=8 rows=64 owners=512 locks=2048 engines=4' build/wp4_10_exit_ci.log
           grep -F 'WP4_10_REALTIME_AUDIT_OK=1' build/wp4_10_exit_ci.log
