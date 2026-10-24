@@ -1,0 +1,72 @@
+name: WP3.4 p-lock browse/delete verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/wp3_4_lock_delete_verify.yml
+      - firmware/src/fmt_lock_editor.h
+      - firmware/src/fmt_lock_editor.c
+      - tests/test_fmt_lock_editor.c
+      - tests/run_lock_editor_tests.sh
+      - docs/PROJECT_STATE.md
+      - docs/DECISIONS.md
+      - docs/CONTROL_MAP_V0.1.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock-delete-focused:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify focused WP3.4 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          base = '8ffa2a3de00f89946aca37fa7015fd3940851c93'
+          allowed = {
+              '.github/workflows/wp3_4_lock_delete_verify.yml',
+              'docs/PROJECT_STATE.md',
+              'docs/DECISIONS.md',
+              'docs/CONTROL_MAP_V0.1.md',
+              'firmware/src/fmt_lock_editor.h',
+              'firmware/src/fmt_lock_editor.c',
+              'tests/test_fmt_lock_editor.c',
+              'tests/run_lock_editor_tests.sh',
+          }
+          changed = set(subprocess.check_output(
+              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
+          ).splitlines())
+          unexpected = sorted(changed - allowed)
+          assert not unexpected, unexpected
+          print('WP3_4_FOCUSED_SCOPE_OK=1')
+          PY
+
+      - name: Run D030 editor tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_lock_editor_tests.sh | tee build/wp3_4_lock_editor_tests.log
+          grep -F 'FMT_LOCK_EDITOR_TESTS_OK=1' build/wp3_4_lock_editor_tests.log
+          grep -F 'state_bytes=10 pattern=0 knobs=4 browse=select_sorted_clamped delete=edit_arm_then_sel_confirm clear_all=0' build/wp3_4_lock_editor_tests.log
+          grep -F 'delete_first_middle_last_only=1 free_recovery=1 neighbor_isolation=1 range_delete=1' build/wp3_4_lock_editor_tests.log
+
+      - name: Run inherited p-lock foundations
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
+          sh tests/run_lock_store_tests.sh | grep -F 'FMT_LOCK_STORE_TESTS_OK=1'
+          sh tests/run_pattern_input_tests.sh | grep -F 'FMT_PATTERN_INPUT_TESTS_OK=1'
+          echo 'WP3_4_FOUNDATION_REGRESSIONS_OK=1'
