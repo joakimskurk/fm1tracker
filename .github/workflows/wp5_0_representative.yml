@@ -1,0 +1,47 @@
+name: WP5.0 D048 representative workload
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_engine_router.c
+      - firmware/src/fmt_engine_router.h
+      - firmware/src/fmt_8bit_engine.c
+      - firmware/src/fmt_8bit_linked_params.c
+      - tests/host.c
+      - tests/wp4_10_instrument.h
+      - tests/run_wp4_10_representative_host.sh
+      - tests/run_wp5_0_representative_host.sh
+      - .github/workflows/wp5_0_representative.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  representative:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run D046 representative workload on D048 production
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_0_representative_host.sh | tee "$RUNNER_TEMP/wp5_0_representative.log"
+          grep -F 'WP5_0_REPRESENTATIVE_WAV_IDENTITY_OK=1 sha256=33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9' "$RUNNER_TEMP/wp5_0_representative.log"
+          grep -F 'WP5_0_REPRESENTATIVE_OK=1 tracks=8 rows=64 locks=2048 long_rows=4096 repeats=identical active_cross_track_steals=0 d046_wav=byte_identical' "$RUNNER_TEMP/wp5_0_representative.log"
+      - name: Upload D048 representative evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-representative
+          if-no-files-found: warn
+          path: |
+            build/wp5_0_representative/**
+            build/wp4_10/*.log
+            build/host/wp4_10_representative.wav
