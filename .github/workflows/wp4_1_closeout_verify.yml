@@ -1,0 +1,56 @@
+name: WP4.1 D037 closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - docs/DECISIONS.md
+      - docs/PROJECT_STATE.md
+      - docs/WORK_PACKAGES.md
+      - docs/ROADMAP.md
+      - docs/WP4_1_ENGINE_CONTRACT.md
+      - tests/run_wp4_1_closeout_ci.sh
+      - .github/workflows/wp4_1_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-1-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D037 architecture and inherited Phase 3 exit gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_1_closeout_ci.sh | tee build/wp4_1_closeout.log
+          grep -F 'WP4_1_PRODUCTION_IDENTICAL_OK=1' build/wp4_1_closeout.log
+          grep -F 'WP4_1_D037_REPOSITORY_FREEZE_OK=1' build/wp4_1_closeout.log
+          grep -F 'WP4_1_NO_ENGINE_SOURCE_OK=1' build/wp4_1_closeout.log
+          grep -F 'WP4_1_CLOSEOUT_OK=1' build/wp4_1_closeout.log
+
+      - name: Upload WP4.1 closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-1-closeout-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp4_1_*.log
+            build/wp4_1_*.txt
+            build/wp3_10_*.log
+            build/wp3_10_*.txt
+            build/wp3_9_*.log
+            build/wp3_9_*.txt
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
