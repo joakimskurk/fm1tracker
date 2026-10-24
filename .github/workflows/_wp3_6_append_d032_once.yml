@@ -1,0 +1,51 @@
+name: WP3.6 append D032 once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_append_d032_once.yml
+      - docs/_D032_APPEND.tmp.md
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Append and verify D032
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object docs/DECISIONS.md)" = "75f5f385dc7173811335485663dbe95cce7148de"
+          cp docs/DECISIONS.md /tmp/d031.md
+          cat docs/_D032_APPEND.tmp.md >> docs/DECISIONS.md
+          python3 - <<'PY'
+          from pathlib import Path
+          old = Path('/tmp/d031.md').read_bytes()
+          new = Path('docs/DECISIONS.md').read_bytes()
+          assert new.startswith(old)
+          suffix = new[len(old):]
+          assert suffix.startswith(b'\n## D032 ')
+          assert suffix.count(b'## D032 ') == 1
+          print('D032_APPEND_ONLY_OK=1')
+          PY
+          git diff --check
+
+      - name: Commit decision and remove helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/DECISIONS.md
+          git rm docs/_D032_APPEND.tmp.md .github/workflows/_wp3_6_append_d032_once.yml
+          git commit -m 'WP3.6: freeze D032 tracker effect semantics'
+          git push origin HEAD:phase3/plocks-effects
