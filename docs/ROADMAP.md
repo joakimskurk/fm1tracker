@@ -2,7 +2,7 @@
 
 This roadmap is ordered to reduce risk on FM-1 hardware. A phase is complete only when its exit criteria pass; later features do not bypass a failing earlier layer.
 
-## Product north star — tracker depth, immediate capture
+## Product north star - tracker depth, immediate capture, free engine choice
 
 FM1Tracker should combine deep tracker structure with the immediacy of a performance instrument.
 
@@ -19,13 +19,15 @@ The target experience is **play first, capture when inspiration happens**:
 
 Eight logical tracker tracks remain the baseline. A practical reference setup should accommodate at least drums, bass, one polyphonic synth and one lead synth while retaining four flexible tracks. These are roles, not fixed channel types.
 
-Target 3–6 voices for at least one polyphonic instrument/track if measured CPU/RAM budgets permit it. Do not silently reduce the eight logical tracks to obtain polyphony.
+**D047 changes the sound architecture:** FM1Tracker is one engine-agnostic tracker. A project is no longer globally 8-BIT or 16-BIT. Each instrument owns an engine family + engine identity, and tracks/rows may reference instruments from different families in the same project. The first proven family is the current 8-BIT/chip family; FM4 is the next family to integrate. Later measured engines may include modern VA/supersaw/wavetable/digital/drum synthesis without another sequencer redesign.
 
-Detailed direction: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
+Target 3-6 voices for at least one polyphonic instrument/track if measured CPU/RAM budgets permit it. Do not silently reduce the eight logical tracks to obtain polyphony, and do not silently substitute engines or lower quality when a configuration exceeds a measured resource budget.
+
+Detailed direction: `D047_MIXED_ENGINE_ARCHITECTURE.md` and `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
 ---
 
-## Phase 0 — foundation
+## Phase 0 - foundation
 
 Status: **COMPLETE**
 
@@ -38,11 +40,13 @@ Frozen:
 - p-locks as first-class data;
 - full Furnace port explicitly out of scope.
 
+D004's original project-wide 8-BIT/16-BIT restriction is now superseded by D047 for future work. The historical Phase 0/Phase 4 contracts remain valid evidence for what they actually implemented.
+
 ---
 
-## Phase 1 — clean Dinghy baseline
+## Phase 1 - clean Dinghy baseline
 
-Status: **COMPLETE — 2026-10-23**
+Status: **COMPLETE - 2026-10-23**
 
 Verified:
 
@@ -60,24 +64,24 @@ Evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.
 
 ---
 
-## Phase 2 — tracker core without synth ambition
+## Phase 2 - tracker core without synth ambition
 
 Goal: prove deterministic editing, visible tracker state and transport using the simplest tone source.
 
-Status: **COMPLETE — 2026-10-23**
+Status: **COMPLETE - 2026-10-23**
 
 Completed:
 
-1. ✅ WP2.1 — compile-time V0.1 data model.
-2. ✅ WP2.2 — one pool-backed runtime `FmtSong`.
-3. ✅ WP2.3 — exact integer transport/no-drift clock.
-4. ✅ WP2.4 — one-track audible frame-exact playback.
-5. ✅ WP2.5 — D022 four-page white-key step addressing.
-6. ✅ WP2.6 — D023 direct eight-track black-key selector prototype.
-7. ✅ WP2.7 — D024 stopped STEP REC ordinary-note entry.
-8. ✅ WP2.8 — D025 REST/TIE/OFF editor + playback semantics.
-9. ✅ WP2.9 — D026 compact tracker screen.
-10. ✅ WP2.10 — complete Phase 2 integration test and closeout.
+1. ✅ WP2.1 - compile-time V0.1 data model.
+2. ✅ WP2.2 - one pool-backed runtime `FmtSong`.
+3. ✅ WP2.3 - exact integer transport/no-drift clock.
+4. ✅ WP2.4 - one-track audible frame-exact playback.
+5. ✅ WP2.5 - D022 four-page white-key step addressing.
+6. ✅ WP2.6 - D023 direct eight-track black-key selector prototype.
+7. ✅ WP2.7 - D024 stopped STEP REC ordinary-note entry.
+8. ✅ WP2.8 - D025 REST/TIE/OFF editor + playback semantics.
+9. ✅ WP2.9 - D026 compact tracker screen.
+10. ✅ WP2.10 - complete Phase 2 integration test and closeout.
 
 Final verified Phase 2 state:
 
@@ -110,83 +114,103 @@ Phase 2 exit criteria are satisfied at the host/device-build level. Physical FM-
 
 ---
 
-## Phase 3 — parameter locks and tracker effects
+## Phase 3 - parameter locks and tracker effects
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
 
-Status: **COMPLETE — WP3.1–WP3.10 host/device-build exit satisfied**
+Status: **COMPLETE - WP3.1-WP3.10 host/device-build exit satisfied**
 
 Parent issue: #20
 
 Progress:
 
-1. ✅ **WP3.1 — stable parameter ID registry**. D027. Final run `40025790828`.
-2. ✅ **WP3.2 — sparse four-lock-per-step storage**. D028. Final run `40038453521`.
-3. ✅ **WP3.3 — hold-step + encoder p-lock editing**. D029. Final run `40054322180`.
-4. ✅ **WP3.4 — p-lock browse / single-lock delete UX**. D030. Final run `40064122343`.
-5. ✅ **WP3.5 — basic pitch/volume p-lock playback**. D031. Final run `40069110111`.
-6. ✅ **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects**. D032 freezes commands in `FmtStep.effect/effect_value`, exact six-tick D020 timing, Q7 persistent/transient pitch composition and bounded fixed caches/state. Final run `40073680548`; evidence `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
-7. ✅ **WP3.7 — retrig / note delay / note cut**. D033 adds commands `0x06..0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state without a general queue. Final run `40077809743`; evidence `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
-8. ✅ **WP3.8 — bounded event queue and overflow policy**. D034 freezes the exact 32-entry SPSC main->audio queue, reject-newest overflow and fail-to-silence audition recovery. Final run `40079824265`; evidence `WP3_8_QUEUE_CONTRACT.md`, `WP3_8_VERIFICATION.md`.
-9. ✅ **WP3.9 — lock/effect visual feedback**. D035 preserves the ten-region / max-two-redraw surface, adds bounded `LK` and stored `FX` feedback, and keeps every audio/runtime fixture unchanged. Final run `40083510351`; evidence `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
-10. ✅ **WP3.10 — Phase 3 worst-case tests and exit gate**. D036 found no production defect after full-pool/cache/queue/UI/timing/combined stress and fail-fast realtime audit. Final run `40084706845`; evidence `WP3_10_TEST_PLAN.md`, `WP3_10_VERIFICATION.md`.
+1. ✅ **WP3.1 - stable parameter ID registry**. D027. Final run `40025790828`.
+2. ✅ **WP3.2 - sparse four-lock-per-step storage**. D028. Final run `40038453521`.
+3. ✅ **WP3.3 - hold-step + encoder p-lock editing**. D029. Final run `40054322180`.
+4. ✅ **WP3.4 - p-lock browse / single-lock delete UX**. D030. Final run `40064122343`.
+5. ✅ **WP3.5 - basic pitch/volume p-lock playback**. D031. Final run `40069110111`.
+6. ✅ **WP3.6 - arpeggio / slide / portamento / vibrato tracker effects**. D032 freezes commands in `FmtStep.effect/effect_value`, exact six-tick D020 timing, Q7 persistent/transient pitch composition and bounded fixed caches/state. Final run `40073680548`; evidence `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
+7. ✅ **WP3.7 - retrig / note delay / note cut**. D033 adds commands `0x06..0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state without a general queue. Final run `40077809743`; evidence `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
+8. ✅ **WP3.8 - bounded event queue and overflow policy**. D034 freezes the exact 32-entry SPSC main->audio queue, reject-newest overflow and fail-to-silence audition recovery. Final run `40079824265`; evidence `WP3_8_QUEUE_CONTRACT.md`, `WP3_8_VERIFICATION.md`.
+9. ✅ **WP3.9 - lock/effect visual feedback**. D035 preserves the ten-region / max-two-redraw surface, adds bounded `LK` and stored `FX` feedback, and keeps every audio/runtime fixture unchanged. Final run `40083510351`; evidence `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
+10. ✅ **WP3.10 - Phase 3 worst-case tests and exit gate**. D036 found no production defect after full-pool/cache/queue/UI/timing/combined stress and fail-fast realtime audit. Final run `40084706845`; evidence `WP3_10_TEST_PLAN.md`, `WP3_10_VERIFICATION.md`.
 
 Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal RAM and 113,000 B pool, with zero production delta versus WP3.9. The historical default WAV plus every frozen D031-D035 regression remain deterministic. Final exit run `40084706845`, job `120845144453`.
 
-Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
-
-Phase 4 is active. **WP4.1 / #31 through WP4.9 / #40 are COMPLETE**. The linked D037-D045 8-BIT tracker lane is production audio and passed final WP4.9 host/target closeout. **WP4.10 / #41** is now the only active Phase 4 package: representative eight-track benchmark + final Phase 4 exit gate.
+Phase 3 exit criteria are satisfied at host/device-build level. Physical FM-1 verification remains later hardware work.
 
 ---
 
-## Phase 4 — 8-BIT engine
+## Phase 4 - first engine family: 8-BIT/chip
 
-Goal: a musically complete chip-style palette.
+Goal: prove the first complete, deterministic instrument-engine family and its tracker integration.
 
-Status: **IN PROGRESS — WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 representative benchmark + Phase 4 closeout active**
+Status: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 Phase 4 closeout active**
 
 Parent issue: #30
-Active package: WP4.10 / #41 — D046 FROZEN in `WP4_10_PHASE4_EXIT_CONTRACT.md`. Implement the production-frozen representative 2,048-lock/eight-track benchmark, long-run + D034 pressure + structural realtime audit, inherited regressions and exact pinned target identity; then close Phase 4 without claiming physical execution margin until hardware exists. Branch: `phase4/8bit-engine`.
 
-Required starting engines:
+The current Phase 4 implementation is intentionally all-8-BIT and remains frozen historical/verification scope under D037-D046. D047 does not retroactively convert it into a mixed-engine implementation.
+
+Active package: WP4.10 / #41 - D046 FROZEN in `WP4_10_PHASE4_EXIT_CONTRACT.md`. The representative linked benchmark and structural realtime audit have been implemented as verification-only work. The first aggregate exit run `40120541899` is red, so the immediate task is to isolate/fix that aggregate gate and obtain a complete green Phase 4 closeout without changing production unless D046 proves a real defect.
+
+Required first-family engines:
 
 1. PULSE
 2. NOISE
 3. TRIANGLE
 4. WAVETABLE-8
 
-Also:
+Also proven/being closed:
 
-- integer envelope primitive;
+- integer common envelope primitive;
 - deterministic voice allocation/stealing;
 - primary parameter pages + p-lock mapping;
 - pitch/retrigger integration;
-- representative eight-track host/device-build benchmark with physical execution-margin measurement explicitly deferred until hardware exists.
+- eight-track linked playback;
+- representative eight-track host/device-build benchmark;
+- physical execution-margin measurement explicitly deferred until hardware exists.
 
-Eight voices are the initial budget target, not a promise about final polyphonic-track capacity.
-
----
-
-## Phase 5 — 16-BIT FM4 engine
-
-Goal: a distinct deeper early-digital mode without destabilizing the tracker.
-
-Planned:
-
-- fixed-point four-operator primitive;
-- curated algorithms;
-- ratio table;
-- modulation levels/index;
-- bounded feedback;
-- common envelope first;
-- deterministic voice allocation;
-- parameter pages/p-lock mapping;
-- pitch/modulation validation;
-- worst-case benchmark.
+Eight voices are the current Phase 4 family budget, not a promise about final mixed-engine or polyphonic capacity.
 
 ---
 
-## Core milestone after Phases 4/5 — live performance capture + performance FX
+## Phase 5 - mixed-engine routing + FM4
+
+Goal: remove the old project-wide sound-mode gate, establish a bounded per-instrument engine router, then add the first non-chip family: compact fixed-point FM4.
+
+Normative direction: `D047_MIXED_ENGINE_ARCHITECTURE.md`.
+
+Phase 5 begins only after Phase 4 is formally green.
+
+Planned order:
+
+0. **WP5.0 - mixed-engine routing contract + migration**
+   - instrument header determines engine family + engine;
+   - song-level mode no longer gates valid instruments;
+   - different tracks may run different families simultaneously;
+   - one logical track still owns at most one primary sequenced voice across all families;
+   - no active cross-track steal;
+   - static/bounded family dispatch only;
+   - 8-BIT-only projects remain regression-equivalent;
+   - exact mixed-engine RAM/CPU/publication/ownership representation is measured and frozen before FM4 integration.
+1. **WP5.1 - FM operator primitive**.
+2. **WP5.2 - curated FM algorithm routing**.
+3. **WP5.3 - ratio table**.
+4. **WP5.4 - levels/modulation index**.
+5. **WP5.5 - bounded feedback**.
+6. **WP5.6 - FM envelope strategy**.
+7. **WP5.7 - FM voice allocation/integration**.
+8. **WP5.8 - FM parameter pages + p-lock mapping**.
+9. **WP5.9 - mixed 8-BIT + FM4 pitch/modulation/instrument-switch validation**.
+10. **WP5.10 - worst-case mixed-engine benchmark and Phase 5 exit**.
+
+FM4 remains intentionally compact: fixed-point four operators, curated algorithms, bounded feedback and measured resources rather than a desktop/DX-completeness target.
+
+The architecture after WP5.0 must be able to accept later dedicated modern/drum/digital engines without another tracker or song-routing rewrite.
+
+---
+
+## Core milestone after Phases 4/5 - live performance capture + performance FX
 
 Status: **PLANNED CORE, not optional**
 
@@ -197,6 +221,7 @@ Must cover:
 - PLAY continues while REC arms/disarms capture;
 - live notes -> deterministic tracker events;
 - fast target-track switching;
+- engine choice follows the selected instrument rather than a project-wide mode;
 - drum-oriented live capture;
 - metronome/count-in policy;
 - quantization/timestamp and overwrite/merge/overdub rules;
@@ -205,14 +230,15 @@ Must cover:
 - encoder/pot capture into bounded locks/automation/events;
 - explicit global automation ownership where needed;
 - reference drums+bass+poly+lead setup across the existing eight logical tracks;
-- measured 3–6 voice poly target if hardware permits;
+- mixed engine families in that reference setup where useful;
+- measured 3-6 voice poly target if hardware permits;
 - deterministic voice allocation and stress tests.
 
 No unbounded stream of every ADC sample is acceptable. Captured performance must remain tracker-editable data.
 
 ---
 
-## Phase 6 — song/order mode and persistence
+## Phase 6 - song/order mode and persistence
 
 Goal: complete songs and safe persistence.
 
@@ -222,15 +248,19 @@ Planned:
 - safe pattern switching;
 - repeats/loop range;
 - versioned project format with magic/length/CRC;
+- persistent instrument payloads carrying engine family + engine identity;
+- no project-wide engine-family restriction in the serialized format;
 - flash-region audit;
 - explicit save/load flow;
 - corruption recovery;
 - migration/version harness;
 - power-cycle round trip.
 
+The existing runtime `FmtSongMeta.mode` byte is not a target project-wide playback gate after D047. Its serialized meaning, if any, is frozen explicitly in Phase 6.
+
 ---
 
-## Phase 7 — hardware UX freeze
+## Phase 7 - hardware UX freeze
 
 Physical FM-1 required.
 
@@ -242,6 +272,7 @@ Validate specifically:
 - p-lock ergonomics;
 - chord-entry behavior;
 - tracker-screen readability;
+- instrument/engine selection clarity across mixed families;
 - final live PLAY/REC flow;
 - drum/poly workflow;
 - metronome;
@@ -251,13 +282,13 @@ Exit: final V1 control map, no frequent awkward gestures, core workflows learnab
 
 ---
 
-## Phase 8 — interoperability
+## Phase 8 - interoperability
 
 Goal: desktop connectivity without turning firmware into Furnace.
 
 Candidates:
 
-- internal interchange spec;
+- internal interchange spec with explicit engine-family/instrument identity;
 - MIDI pattern/project transfer;
 - Furnace documented export audit;
 - one-way supported-subset converter;
@@ -265,18 +296,25 @@ Candidates:
 
 ---
 
-## Phase 9 — optional expansion
+## Phase 9 - optional engine/features expansion
 
-Only after measurement:
+Only after measurement. Mixed-engine routing itself is **not** Phase 9 anymore; D047 makes it core Phase 5 infrastructure.
 
+Candidates include:
+
+- modern virtual-analog engine;
+- supersaw/unison engine;
+- broader modern wavetable/digital engine;
+- dedicated drum synthesis engine;
 - WAVETABLE-16;
 - PCM/sample playback beyond specifically approved core performance needs;
 - swing;
 - additional microtiming;
 - polymeter/per-track lengths;
-- mixed engines;
 - additional DSP FX algorithms;
 - specifically licensed authentic chip cores.
+
+Every new engine still requires explicit CPU/RAM/parameter/licensing contracts. Architectural support does not make every candidate a V1 prerequisite.
 
 **Live performance capture is not optional Phase 9 work.**
 
@@ -290,8 +328,8 @@ Prefer small playable releases. Illustrative sequence:
 0.1 host tracker skeleton
 0.2 FM-1 step recorder
 0.3 visible/p-lock tracker
-0.4 8-BIT playable
-0.5 16-BIT FM4
+0.4 first 8-BIT engine family playable
+0.5 mixed-engine router + FM4
 0.6 live performance capture
 0.7 song/save
 1.0 hardware UX freeze
