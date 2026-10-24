@@ -85,3 +85,5 @@ assert s.count(old) == 1, 'TEST_MATRIX D038 row mismatch'
 p.write_text(s.replace(old, new))
 
 print('WP4_2_D038_DOC_FREEZE_OK=1 state_bytes=4 width=32..224 full_app_delta=0')
+
+# Deliberate trigger: workflow existed before this push.
