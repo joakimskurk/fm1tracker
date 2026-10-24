@@ -1,0 +1,43 @@
+name: WP5.0 D048 realtime audit
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_engine_router.c
+      - firmware/src/fmt_engine_router.h
+      - firmware/src/fmt_8bit_linked_params.c
+      - firmware/src/fmt_8bit_linked_params.h
+      - firmware/src/fmt_8bit_engine.c
+      - firmware/src/fmt_rt_queue.c
+      - firmware/src/fmt_tracker_effect.c
+      - firmware/src/fmt_tracker_event.c
+      - firmware/src/fmt_playback_params.c
+      - tests/run_wp5_0_realtime_audit.sh
+      - .github/workflows/wp5_0_realtime_audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  realtime-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run D048 realtime structural audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_0_realtime_audit.sh | tee "$RUNNER_TEMP/wp5_0_realtime_audit.log"
+          grep -F 'WP5_0_REALTIME_AUDIT_OK=1 hardware_margin_claim=none' "$RUNNER_TEMP/wp5_0_realtime_audit.log"
+      - name: Upload D048 realtime audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-realtime-audit
+          if-no-files-found: warn
+          path: build/wp5_0_realtime/realtime_audit.log
