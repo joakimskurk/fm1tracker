@@ -42,6 +42,7 @@ jobs:
           p.write_text(s)
           PY
           git diff --check
+          mkdir -p build
           python3 -m pip install --disable-pip-version-check Pillow
           sh tests/run_host.sh > build/wp3_6_host_default.log
           test "$(sha256sum build/host/fm1tracker.wav | cut -d' ' -f1)" = '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440'
