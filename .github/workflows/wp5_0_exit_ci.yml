@@ -1,0 +1,55 @@
+name: WP5.0 D048 aggregate exit
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - firmware/src/**
+      - tests/run_wp5_0_*.sh
+      - tests/wp5_0_*.c
+      - tests/run_wp4_9_inherited_regressions.sh
+      - tests/run_wp4_10_representative_host.sh
+      - docs/WP5_0_PREMIGRATION_EVIDENCE.md
+      - .github/workflows/wp5_0_exit_ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install host UI dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+      - name: Run complete WP5.0 D048 exit gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp5_0_exit
+          sh tests/run_wp5_0_exit_ci.sh | tee "$RUNNER_TEMP/wp5_0_exit.log"
+          cp "$RUNNER_TEMP/wp5_0_exit.log" build/wp5_0_exit/ci.log
+          grep -F 'WP5_0_EXIT_OK=1' build/wp5_0_exit/summary.txt
+          grep -F 'hardware_margin_claim=none' build/wp5_0_exit/summary.txt
+      - name: Upload WP5.0 exit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-exit
+          if-no-files-found: warn
+          path: |
+            build/wp5_0_exit/**
+            build/wp5_0_postmigration/**
+            build/wp5_0_representative/**
+            build/wp5_0_family_switch/**
+            build/wp5_0_realtime/**
+            build/wp5_0_inherited/**
+            build/host/fm1tracker.wav
+            build/host/wp4_10_representative.wav
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
