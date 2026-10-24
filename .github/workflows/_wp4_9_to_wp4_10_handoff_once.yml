@@ -22,11 +22,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 .github/tmp/wp4_9_to_wp4_10_handoff.py
-          git diff --check
-          grep -F 'WP4_9_TO_WP4_10_HANDOFF_OK=1' <(python3 .github/tmp/wp4_9_to_wp4_10_handoff.py)
-          git checkout -- docs/PROJECT_STATE.md docs/WORK_PACKAGES.md docs/ROADMAP.md docs/TEST_MATRIX.md START_HERE.md
-          python3 .github/tmp/wp4_9_to_wp4_10_handoff.py
+          python3 .github/tmp/wp4_9_to_wp4_10_handoff.py | tee /tmp/wp4_10_handoff.log
+          grep -F 'WP4_9_TO_WP4_10_HANDOFF_OK=1' /tmp/wp4_10_handoff.log
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
