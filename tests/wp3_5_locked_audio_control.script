@@ -1,0 +1,7 @@
+# WP3.5 no-lock control with the same SEQ/held-step navigation timing.
+50 btn 11
+100 keys 128
+140 keys 0
+160 keys 512
+200 keys 0
+1200 end
