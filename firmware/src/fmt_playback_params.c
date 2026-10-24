@@ -3,9 +3,25 @@
 
 volatile uint32_t fmt_playback_param_cache[FMT_PLAYBACK_PARAM_ROWS]
     __attribute__((aligned(4)));
+volatile uint32_t
+    fmt_playback_param_cache_extra[FMT_PLAYBACK_PARAM_EXTRA_TRACKS]
+                                  [FMT_PLAYBACK_PARAM_ROWS]
+    __attribute__((aligned(4)));
 
 FMT_STATIC_ASSERT(playback_param_cache_is_256,
                   sizeof(fmt_playback_param_cache) == 256u);
+FMT_STATIC_ASSERT(playback_param_extra_cache_is_1792,
+                  sizeof(fmt_playback_param_cache_extra) == 1792u);
+
+static volatile uint32_t *fmt_playback_params_slot(uint32_t track,
+                                                   uint32_t step)
+{
+    if (track >= FMT_TRACKS || step >= FMT_PLAYBACK_PARAM_ROWS)
+        return (volatile uint32_t *)0;
+    if (track == FMT_PLAYBACK_TRACK)
+        return &fmt_playback_param_cache[step];
+    return &fmt_playback_param_cache_extra[track - 1u][step];
+}
 
 uint32_t fmt_playback_params_pack(uint8_t voice_level,
                                   uint8_t fine_pitch,
@@ -48,33 +64,39 @@ uint8_t fmt_playback_params_flags(uint32_t word)
 
 void fmt_playback_params_reset(void)
 {
-    uint32_t step;
+    uint32_t track, step;
     uint32_t word = fmt_playback_params_default_word();
 
-    for (step = 0u; step < FMT_PLAYBACK_PARAM_ROWS; step++)
-        fmt_playback_param_cache[step] = word;
+    for (track = 0u; track < FMT_TRACKS; track++) {
+        for (step = 0u; step < FMT_PLAYBACK_PARAM_ROWS; step++) {
+            volatile uint32_t *slot = fmt_playback_params_slot(track, step);
+            *slot = word;
+        }
+    }
 }
 
-int fmt_playback_params_refresh_step(uint32_t step)
+int fmt_playback_params_refresh_track_step(uint32_t track, uint32_t step)
 {
+    volatile uint32_t *slot;
     uint8_t count = 0u, ordinal;
     uint8_t voice = FMT_PLAYBACK_PARAM_VOICE_DEFAULT;
     uint8_t fine = FMT_PLAYBACK_PARAM_FINE_DEFAULT;
-    uint8_t track = FMT_PLAYBACK_PARAM_TRACK_DEFAULT;
+    uint8_t track_level = FMT_PLAYBACK_PARAM_TRACK_DEFAULT;
     uint8_t flags = FMT_PLAYBACK_PARAM_FLAG_NONE;
     FmtLockStatus status;
 
-    if (step >= FMT_PLAYBACK_PARAM_ROWS)
+    slot = fmt_playback_params_slot(track, step);
+    if (!slot)
         return 0;
 
     status = fmt_lock_count(FMT_PLAYBACK_PATTERN,
-                            FMT_PLAYBACK_TRACK,
+                            track,
                             step,
                             &count);
     if (status != FMT_LOCK_STATUS_OK) {
-        fmt_playback_param_cache[step] =
-            fmt_playback_params_pack(voice, fine, track,
-                                     FMT_PLAYBACK_PARAM_FLAG_STRUCTURAL_FALLBACK);
+        *slot = fmt_playback_params_pack(
+            voice, fine, track_level,
+            FMT_PLAYBACK_PARAM_FLAG_STRUCTURAL_FALLBACK);
         return 1;
     }
 
@@ -83,17 +105,17 @@ int fmt_playback_params_refresh_step(uint32_t step)
         uint16_t value = 0u;
 
         status = fmt_lock_at(FMT_PLAYBACK_PATTERN,
-                             FMT_PLAYBACK_TRACK,
+                             track,
                              step,
                              ordinal,
                              &param_id,
                              &value);
         if (status != FMT_LOCK_STATUS_OK) {
-            fmt_playback_param_cache[step] =
-                fmt_playback_params_pack(FMT_PLAYBACK_PARAM_VOICE_DEFAULT,
-                                         FMT_PLAYBACK_PARAM_FINE_DEFAULT,
-                                         FMT_PLAYBACK_PARAM_TRACK_DEFAULT,
-                                         FMT_PLAYBACK_PARAM_FLAG_STRUCTURAL_FALLBACK);
+            *slot = fmt_playback_params_pack(
+                FMT_PLAYBACK_PARAM_VOICE_DEFAULT,
+                FMT_PLAYBACK_PARAM_FINE_DEFAULT,
+                FMT_PLAYBACK_PARAM_TRACK_DEFAULT,
+                FMT_PLAYBACK_PARAM_FLAG_STRUCTURAL_FALLBACK);
             return 1;
         }
 
@@ -115,27 +137,48 @@ int fmt_playback_params_refresh_step(uint32_t step)
         else if (param_id == (FmtParamId)FMT_PARAM_PITCH_FINE)
             fine = (uint8_t)value;
         else
-            track = (uint8_t)value;
+            track_level = (uint8_t)value;
     }
 
-    fmt_playback_param_cache[step] =
-        fmt_playback_params_pack(voice, fine, track, flags);
+    *slot = fmt_playback_params_pack(voice, fine, track_level, flags);
     return 1;
+}
+
+int fmt_playback_params_refresh_step(uint32_t step)
+{
+    return fmt_playback_params_refresh_track_step(FMT_PLAYBACK_TRACK, step);
+}
+
+void fmt_playback_params_rebuild_track(uint32_t track)
+{
+    uint32_t step;
+
+    if (track >= FMT_TRACKS)
+        return;
+    for (step = 0u; step < FMT_PLAYBACK_PARAM_ROWS; step++)
+        (void)fmt_playback_params_refresh_track_step(track, step);
 }
 
 void fmt_playback_params_rebuild(void)
 {
-    uint32_t step;
+    uint32_t track;
 
-    for (step = 0u; step < FMT_PLAYBACK_PARAM_ROWS; step++)
-        (void)fmt_playback_params_refresh_step(step);
+    for (track = 0u; track < FMT_TRACKS; track++)
+        fmt_playback_params_rebuild_track(track);
+}
+
+uint32_t fmt_playback_params_read_track(uint32_t track, uint32_t step)
+{
+    volatile uint32_t *slot = fmt_playback_params_slot(track, step);
+
+    if (!slot)
+        return fmt_playback_params_default_word();
+    return *slot;
 }
 
 uint32_t fmt_playback_params_read(uint32_t step)
 {
-    if (step >= FMT_PLAYBACK_PARAM_ROWS)
-        return fmt_playback_params_default_word();
-    return fmt_playback_param_cache[step];
+    return fmt_playback_params_read_track(FMT_PLAYBACK_TRACK, step);
 }
 
 uint32_t fmt_playback_scale_u8(uint32_t value, uint8_t scale)
