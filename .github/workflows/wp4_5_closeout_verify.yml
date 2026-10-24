@@ -1,0 +1,56 @@
+name: WP4.5 WAVETABLE-8 closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_osc_wavetable8.h
+      - firmware/src/fmt_osc_wavetable8.c
+      - tests/test_wp4_5_wavetable8.c
+      - tests/verify_wp4_5_table_data.py
+      - tests/run_wp4_5_wavetable8_tests.sh
+      - tests/run_wp4_5_closeout_ci.sh
+      - .github/workflows/wp4_5_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-5-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D041 isolated WAVETABLE-8 closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_5_closeout_ci.sh | tee build/wp4_5_closeout.log
+          grep -F 'WP4_5_ISOLATED_PRODUCTION_DELTA_OK=1' build/wp4_5_closeout.log
+          grep -F 'WP4_5_TARGET_OBJECTS_OK=1' build/wp4_5_closeout.log
+          grep -F 'WP4_5_DEVICE_BASELINE' build/wp4_5_closeout.log
+          grep -F 'WP4_5_D041_EXIT_OK=1' build/wp4_5_closeout.log
+          grep -F 'WP4_5_CLOSEOUT_OK=1' build/wp4_5_closeout.log
+
+      - name: Upload WP4.5 closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-5-wavetable8-closeout-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp4_5_*.log
+            build/wp4_5_*.txt
+            build/wp4_5_target/
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
