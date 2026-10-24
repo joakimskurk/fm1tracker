@@ -1,0 +1,65 @@
+name: WP3.10 final Phase 3 closeout verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - tests/run_wp3_10_closeout_ci.sh
+      - tests/run_wp3_10_worst_case.sh
+      - tests/test_wp3_10_worst_case.c
+      - tests/run_wp3_10_combined_host.sh
+      - tests/run_wp3_10_timing_matrix.sh
+      - tests/test_wp3_10_timing_matrix.c
+      - tests/run_wp3_10_realtime_audit.sh
+      - .github/workflows/wp3_10_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase3-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run final WP3.10 / Phase 3 closeout gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_10_closeout_ci.sh > build/wp3_10_closeout.log
+          cat build/wp3_10_closeout.log
+          grep -F 'WP3_10_PRODUCTION_IDENTICAL_OK=1' build/wp3_10_closeout.log
+          grep -F 'WP3_10_PHASE3_EXIT_OK=1 wp3_1_through_wp3_10=complete host_device_build=1 physical_hardware_pending=1' build/wp3_10_closeout.log
+          grep -F 'WP3_10_CLOSEOUT_OK=1' build/wp3_10_closeout.log
+
+      - name: Upload final Phase 3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-10-phase3-closeout-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp3_10_*.log
+            build/wp3_10_*.txt
+            build/wp3_9_measured_metrics.txt
+            build/wp3_9_symbols.txt
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
+            build/host/fm1tracker_wp3_5_locked.wav
+            build/host/fm1tracker_wp3_6_*.wav
+            build/host/fm1tracker_wp3_7_*.wav
+            build/host/fm1tracker_wp3_8_*.wav
+            build/host/fm1tracker_wp3_9_visual-1000.ppm
+            build/host/fm1tracker_wp3_9_visual-3000.ppm
+            build/host/fm1tracker_wp3_10_stress_a.wav
+            build/host/fm1tracker_wp3_10_stress_a-1000.ppm
+            build/host/fm1tracker_wp3_10_stress_a-3000.ppm
