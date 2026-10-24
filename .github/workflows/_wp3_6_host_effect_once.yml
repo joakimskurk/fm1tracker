@@ -1,0 +1,59 @@
+name: WP3.6 host effect fixture support once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_host_effect_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch host script parser and run regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('tests/host.c')
+          s = p.read_text()
+          def once(old, new):
+              global s
+              assert s.count(old) == 1, (old[:80], s.count(old))
+              s = s.replace(old, new, 1)
+
+          once('#include <string.h>\n', '#include <string.h>\n\n#include "fmt_store.h"\n#include "fmt_tracker_effect.h"\n')
+          once(' *   "T enc ID DELTA", "T midi ST D1 D2", "T end"\n',
+               ' *   "T enc ID DELTA", "T midi ST D1 D2", "T effect STEP CMD VALUE", "T end"\n')
+          once('    uint8_t enc;\n    int16_t enc_delta;\n',
+               '    uint8_t enc;\n    int16_t enc_delta;\n    uint8_t effect_action, effect_step, effect_command, effect_value;\n')
+          once('        else if (!strcmp(what, "midi")) { sscanf(line, "%*u %*s %i %u %u", (int *)&a, &b, &c); e.st = (uint8_t)a; e.d1 = (uint8_t)b; e.d2 = (uint8_t)c; }\n',
+               '        else if (!strcmp(what, "midi")) { sscanf(line, "%*u %*s %i %u %u", (int *)&a, &b, &c); e.st = (uint8_t)a; e.d1 = (uint8_t)b; e.d2 = (uint8_t)c; }\n        else if (!strcmp(what, "effect")) { sscanf(line, "%*u %*s %u %u %u", &a, &b, &c); e.effect_action = 1u; e.effect_step = (uint8_t)a; e.effect_command = (uint8_t)b; e.effect_value = (uint8_t)c; }\n')
+          once('        if (script[step].st) {\n',
+               '        if (script[step].effect_action) {\n            FmtStep *row = fmt_store_step(FMT_PLAYBACK_PATTERN, FMT_PLAYBACK_TRACK, script[step].effect_step);\n            if (!row) { fprintf(stderr, "invalid host effect step %u\\n", script[step].effect_step); exit(1); }\n            row->effect = script[step].effect_command;\n            row->effect_value = script[step].effect_value;\n            if (!fmt_tracker_effect_cache_refresh_step(script[step].effect_step)) { fprintf(stderr, "effect cache refresh failed\\n"); exit(1); }\n            printf("%6u ms  effect step %u cmd %u value %u\\n", fm1_ms, script[step].effect_step, script[step].effect_command, script[step].effect_value);\n        } else if (script[step].st) {\n')
+          p.write_text(s)
+          PY
+          git diff --check
+          python3 -m pip install --disable-pip-version-check Pillow
+          sh tests/run_host.sh > build/wp3_6_host_default.log
+          test "$(sha256sum build/host/fm1tracker.wav | cut -d' ' -f1)" = '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440'
+          sh tests/run_wp3_5_locked_audio_host.sh
+          grep -F 'WP3_5_LOCKED_AUDIO_SHA256=8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8' build/wp3_5_locked_audio_analysis.txt
+          echo 'WP3_6_HOST_EFFECT_PARSER_BACKCOMPAT_OK=1'
+      - name: Commit host-only fixture support
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/host.c
+          git commit -m 'WP3.6: add host-only tracker effect fixture command'
+          git push origin HEAD:phase3/plocks-effects
