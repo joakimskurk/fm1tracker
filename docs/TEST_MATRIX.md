@@ -194,9 +194,17 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | Default and D031 locked WAVs remain byte-identical through WP3.6 | required | required | n/a | ✅ `453dc6b7...` / `8d2e478e...` |
 | WP3.6 final resource delta measured/frozen | n/a | required | n/a | ✅ +804 B image / +268 B RAM / +0 B pool |
 | WP3.6 preserves all Phase 2 + WP3.1–WP3.5 regressions | required | required | later | ✅ run `40073680548` |
-| Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
-| Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
-| Retrig timing/count bounded | required | required | required | ⬜ WP3.7 |
+| D033 command domain exactly RETRIG `0x06` / NOTE DELAY `0x07` / NOTE CUT `0x08` | required | compile | observable | ✅ WP3.7 |
+| D033 row-event state exactly 4 B and no general queue | required | required | n/a | ✅ WP3.7 |
+| NOTE DELAY 0..5 timing bounded on exact D032 six-tick grid | required | required | required | ✅ frame 2757 for delay 3 at 120 BPM |
+| NOTE CUT 0..5 timing bounded including CUT0-before-first-sample | required | required | required | ✅ WP3.7 full-app audio proof |
+| RETRIG interval/count bounded to nonzero ticks 1..5 | required | required | required | ✅ frame 1838 first divergence for retrig 2 |
+| D033 values >5 are scheduling no-ops without modulo wrap | required | compile | observable | ✅ delay6/cut6/retrig6 byte-identical to control |
+| Delayed NOTE consumes exact D031 row snapshot captured at dispatch | required | compile | observable | ✅ WP3.7 |
+| D033 preserves frozen D032 audio hashes and historical default/D031 WAVs | required | required | n/a | ✅ run `40077809743` |
+| WP3.7 final resource delta measured/frozen | n/a | required | n/a | ✅ +412 B image / +4 B RAM / +0 B pool |
+| WP3.7 preserves all Phase 2 + WP3.1-WP3.6 regressions | required | required | later | ✅ run `40077809743` |
+| Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 / #27 |
 
 Phase 3 evidence so far:
 
@@ -206,6 +214,7 @@ Phase 3 evidence so far:
 - `WP3_4_VERIFICATION.md`
 - `WP3_5_VERIFICATION.md`
 - `WP3_6_VERIFICATION.md`
+- `WP3_7_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 

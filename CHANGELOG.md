@@ -303,3 +303,18 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 - Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool; delta vs WP3.5 +804 / +268 / +0 B.
 - Final verification: run `40073680548`, job `120812368036`; evidence `docs/WP3_6_VERIFICATION.md`.
 - Next: WP3.7 / #26 retrig, note delay and note cut. D033 must freeze semantics before source.
+
+
+## 2026-10-24 - WP3.7 retrig / note delay / note cut
+
+- Frozen D033 before production audio integration in `docs/WP3_7_EVENT_CONTRACT.md`.
+- Extended the existing tracker command domain with RETRIG `0x06`, NOTE DELAY `0x07` and NOTE CUT `0x08`; values above the valid scheduling range safely no-op.
+- Reused the exact D032 six-tick D020-derived row grid rather than introducing a second timing domain.
+- Added exactly 4 B of fixed `FmtTrackerRowEventState`; WP3.7 deliberately does not pull the WP3.8 general event queue forward.
+- Integrated delayed NOTE against the exact D031 row snapshot captured at dispatch, CUT0 before the first rendered sample, and bounded nonzero-tick delay/cut/retrig actions.
+- Added deterministic scheduler/unit and full-app WAV proofs. At 120 BPM, DELAY 3 and CUT 3 act at frame 2757 and RETRIG 2 first diverges at frame 1838.
+- Verified delay/cut/retrig value 6 as byte-identical scheduling no-ops and preserved all frozen WP3.6 effect WAVs plus historical default and D031 locked WAVs.
+- Final resources: 65,940 B image / 13,008 B normal RAM / 113,000 B pool; delta vs WP3.6 +412 / +4 / +0 B.
+- Final artifacts: `fm1tracker.bin` `f71bc5770ce2b56bcbc3fb4034b882f1a80f0b1997cdd4534cc7b8dd45100e2b`; `fm1tracker-0.1.fwsc` `cd4b3138ecb6e4e853b67cbe4b8a049e43290798dad26accf606279dc69e383d`.
+- Final clean-tree verification: checkpoint `d2a97798149816957745de818e4568c518a9a7e7`, run `40077809743`, job `120824870575`; evidence `docs/WP3_7_VERIFICATION.md`.
+- Next: WP3.8 / #27 bounded event queue and overflow policy. D034 architecture freeze is required before source.
