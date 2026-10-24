@@ -1,19 +1,22 @@
 from pathlib import Path
+import re
 
-# App: both tracker sync sites use the D035 feedback-aware sync.
+# App: both tracker sync sites use the D035 feedback-aware sync. Match only the
+# exact four-argument D026 call, independent of local indentation.
 p = Path('firmware/src/dinghy.c')
 s = p.read_text()
-old = '''fmt_tracker_screen_sync(&fmt_tracker_screen_runtime,
-                                          &fmt_pattern_input_runtime,
-                                          &fmt_step_record_runtime,
-                                          &fmt_transport_runtime)'''
-new = '''fmt_tracker_screen_sync_feedback(&fmt_tracker_screen_runtime,
+pattern = re.compile(
+    r'fmt_tracker_screen_sync\(&fmt_tracker_screen_runtime,\s*'
+    r'&fmt_pattern_input_runtime,\s*'
+    r'&fmt_step_record_runtime,\s*'
+    r'&fmt_transport_runtime\)')
+replacement = '''fmt_tracker_screen_sync_feedback(&fmt_tracker_screen_runtime,
                                                    &fmt_pattern_input_runtime,
                                                    &fmt_step_record_runtime,
                                                    &fmt_transport_runtime,
                                                    &fmt_lock_editor_runtime)'''
-assert s.count(old) == 2, f'dinghy sync count={s.count(old)}'
-s = s.replace(old, new)
+s, count = pattern.subn(replacement, s)
+assert count == 2, f'dinghy sync count={count}'
 p.write_text(s)
 
 # Footer: mark the one D031 storage-only parameter whenever detailed feedback names it.
