@@ -17,7 +17,7 @@ static volatile uint32_t *fmt_playback_params_slot(uint32_t track,
                                                    uint32_t step)
 {
     if (track >= FMT_TRACKS || step >= FMT_PLAYBACK_PARAM_ROWS)
-        return (volatile uint32_t *)0;
+        return 0;
     if (track == FMT_PLAYBACK_TRACK)
         return &fmt_playback_param_cache[step];
     return &fmt_playback_param_cache_extra[track - 1u][step];

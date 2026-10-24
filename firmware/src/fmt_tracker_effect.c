@@ -17,7 +17,7 @@ static volatile uint32_t *fmt_tracker_effect_cache_slot(uint32_t track,
                                                         uint32_t step)
 {
     if (track >= FMT_TRACKS || step >= FMT_TRACKER_EFFECT_ROWS)
-        return (volatile uint32_t *)0;
+        return 0;
     if (track == FMT_PLAYBACK_TRACK)
         return &fmt_tracker_effect_cache[step];
     return &fmt_tracker_effect_cache_extra[track - 1u][step];
