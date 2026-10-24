@@ -93,15 +93,22 @@ new = 'Active package: WP4.2 / #32 — freeze D038 PULSE primitive/test contract
 assert s.count(old) == 1, 'ROADMAP active package mismatch'
 p.write_text(s.replace(old, new))
 
-# TEST_MATRIX: add Phase 4 section before regression rule.
+# TEST_MATRIX: enrich the existing Phase 4 section with the completed WP4.1 proof and WP4.2 next gates.
 p = Path('docs/TEST_MATRIX.md')
 s = p.read_text()
-anchor = '\n## Regression rule\n'
-assert s.count(anchor) == 1, 'TEST_MATRIX regression anchor mismatch'
-assert '## Phase 4 8-BIT engine' not in s, 'TEST_MATRIX Phase 4 section already exists'
-section = r'''
+old = '''## Phase 4 8-BIT engine
 
-## Phase 4 8-BIT engine
+| Check | Host | Firmware/hardware |
+|---|---:|---:|
+| Pitch sanity across intended range | required | required |
+| No float/double symbols | inspect/build | required |
+| No runtime 64-bit divide | inspect/build | required |
+| PULSE/NOISE/TRIANGLE/WAVETABLE bounds deterministic | required | required |
+| Voice stealing deterministic | required | required |
+| Representative eight-track timing | benchmark | required |
+| P-lock modulation stable | required | required |
+'''
+new = '''## Phase 4 8-BIT engine
 
 | Check | Automated host | Firmware/device build | Hardware | Status |
 |---|---:|---:|---:|---|
@@ -112,13 +119,19 @@ section = r'''
 | Pinned JieLi/AC79 build remains exact Phase 3 artifact identity | n/a | required | n/a | ✅ 66,960 B image / 13,296 B RAM / 113,000 B pool |
 | WP4.1 firmware BIN/FWSC hashes unchanged | n/a | required | n/a | ✅ `b2fc3af1...` / `7870d11b...` |
 | D037 Phase 4 resource ceilings frozen | inspect/gate | n/a | n/a | ✅ image 132,496 / RAM 21,488 / pool 129,384 maximum |
-| Physical FM-1 install/audio/execution margin | n/a | n/a | required later | ⬜ no physical FM-1 available |
+| No float/double symbols in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
+| No runtime 64-bit divide in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
 | D038 PULSE primitive/test contract frozen | required | compile | n/a | ⬜ WP4.2 active |
 | PULSE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.2 next |
+| NOISE/TRIANGLE/WAVETABLE bounds deterministic | required | required | optional later | ⬜ WP4.3-WP4.5 |
+| Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
+| P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |
+| Representative eight-track timing | benchmark | required | required later | ⬜ WP4.10 |
+| Physical FM-1 install/audio/execution margin | n/a | n/a | required later | ⬜ no physical FM-1 available |
 
 WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.
 '''
-s = s.replace(anchor, section + anchor)
-p.write_text(s)
+assert s.count(old) == 1, 'TEST_MATRIX Phase 4 block mismatch'
+p.write_text(s.replace(old, new))
 
 print('WP4_1_CLOSEOUT_DOCS_OK=1 next=WP4.2 issue=32')
