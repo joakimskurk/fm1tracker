@@ -1,21 +1,7 @@
-name: WP3.6 tracker effect verification
+name: WP3.6 historical tracker effect verification
 
+# Historical focused proof. Manual reruns always checkout the exact green WP3.6 checkpoint.
 on:
-  push:
-    branches:
-      - phase3/plocks-effects
-    paths:
-      - firmware/src/fmt_tracker_effect.h
-      - firmware/src/fmt_tracker_effect.c
-      - firmware/src/dinghy.c
-      - tests/host.c
-      - tests/test_fmt_tracker_effect.c
-      - tests/run_tracker_effect_tests.sh
-      - tests/test_wp3_6_tick_grid.c
-      - tests/run_wp3_6_tick_grid_tests.sh
-      - tests/run_wp3_6_effect_audio_host.sh
-      - tests/wp3_6_effect_*.script
-      - .github/workflows/wp3_6_tracker_effect_verify.yml
   workflow_dispatch:
 
 permissions:
@@ -25,20 +11,39 @@ jobs:
   effect-core:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout verified WP3.6 checkpoint
+        uses: actions/checkout@v4
         with:
+          ref: d1910cb86b84240051cedfabb7701140259d8274
           fetch-depth: 0
+
+      - name: Verify exact historical checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "d1910cb86b84240051cedfabb7701140259d8274"
+          echo "WP3_6_FOCUSED_HISTORICAL_CHECKPOINT_OK=1"
+
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
       - name: Run D032 tracker effect core tests
         run: sh tests/run_tracker_effect_tests.sh
+
       - name: Run exact D020/D032 rendered-frame tick grid
         run: sh tests/run_wp3_6_tick_grid_tests.sh
+
       - name: Run inherited playback parameter tests
         run: sh tests/run_playback_params_tests.sh
+
       - name: Run inherited playback tests
         run: sh tests/run_playback_tests.sh
+
       - name: Run inherited lock store tests
         run: sh tests/run_lock_store_tests.sh
+
       - name: Run inherited lock editor tests
         run: sh tests/run_lock_editor_tests.sh
+
       - name: Run full-app D032 effect audio proof
         run: sh tests/run_wp3_6_effect_audio_host.sh
