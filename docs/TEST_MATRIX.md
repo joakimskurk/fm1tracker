@@ -119,30 +119,38 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | Assigned parameter IDs unique and deterministic | required | target compile | n/a | ✅ exactly 4 initial IDs |
 | GLOBAL/master namespace remains reserved/unassigned | required | target compile | n/a | ✅ `0xE0..0xEF` |
 | Tracker effect-command IDs remain separate from parameter IDs | inspect/test | compile | n/a | ✅ D027 |
-| Registry translation unit compiles on JieLi PI32v2 | host n/a | required | n/a | ✅ WP3.1/WP3.2 |
-| WP3.1 preserves all Phase 2 unit/full-app regressions | required | required | later | ✅ run `40025790828` |
-| WP3.1 default WAV remains byte-identical | required | required | n/a | ✅ frozen Phase 2 SHA-256 |
-| WP3.1 runtime cost is zero | n/a | required | n/a | ✅ +0 B image / +0 B RAM / +0 B pool |
+| Registry translation unit compiles on JieLi PI32v2 | host n/a | required | n/a | ✅ WP3.1+ |
 | Concrete lock record/capacity/pool budget frozen | required | required | n/a | ✅ D028 / WP3.2 |
 | `FmtLock` exact 8 B layout and offsets | required | target compile | n/a | ✅ WP3.2 |
 | Global lock storage exactly 2,048 records / 16,384 B | required | required | n/a | ✅ `.pool` `0x01C30168` |
-| Allocator runtime exactly 4 B | required | required | n/a | ✅ `.bss` `0x01C0B080` |
 | All 8,192 step-owner mappings unique | required | compile | n/a | ✅ exhaustive WP3.2 test |
 | Maximum four locks per individual step enforced | required | required | optional | ✅ fifth prevalidated ID -> STEP_FULL |
 | Lock pool reset/free-list contains every record exactly once | required | compile | n/a | ✅ WP3.2 |
 | Active lists strictly sorted by parameter ID | required | compile | n/a | ✅ WP3.2 |
-| Duplicate parameter set replaces in place without allocation | required | compile | later | ✅ WP3.2 storage API |
+| Duplicate parameter set replaces in place without allocation | required | compile | later | ✅ WP3.2/WP3.3 |
 | Pool exhaustion fails safely and one free record recovers exactly | required | compile | n/a | ✅ WP3.2 |
 | Invalid/unassigned parameter IDs rejected by lock storage | required | compile | n/a | ✅ WP3.2 |
 | Cross-owner/in-range corruption rejected without neighbor mutation | required | compile | n/a | ✅ WP3.2 owner check |
 | Malformed/out-of-range/unsorted/overlong chains fail without partial mutation | required | compile | n/a | ✅ WP3.2 |
-| WP3.2 preserves all Phase 2 + WP3.1 regressions | required | required | later | ✅ run `40038453521` |
-| WP3.2 default WAV remains byte-identical | required | required | n/a | ✅ `453dc6...3440` |
-| WP3.2 final resource delta measured/frozen | n/a | required | n/a | ✅ +136 B image / +4 B RAM / +16,384 B pool |
-| Hold-step + encoder target isolation deterministic | required | required | required | ⬜ WP3.3 |
-| Encoder-to-parameter/value mapping documented and deterministic | required | required | required | ⬜ WP3.3 |
+| Hold-white-step target snapshots exact track/global step | required | required | required | ✅ D029/WP3.3 all 64×8 targets |
+| Active p-lock hold suppresses track/page/step retargeting | required | required | required | ✅ WP3.3 full-app fixture |
+| STEP REC/PERFORMANCE cannot start p-lock hold | required | compile | required | ✅ WP3.3 |
+| PLAY may toggle without losing held p-lock target | required | required | required | ✅ WP3.3 reviewed full-app fixture |
+| KNOB1..4 map only to four current D027 IDs | required | compile | required | ✅ D029/WP3.3 |
+| Editor value domain/reference/clamp deterministic | required | compile | required | ✅ 0..255; refs 255/128/255/128 |
+| Inactive/begin/release encoder deltas cannot leak into lock write | required | required | required | ✅ WP3.3 fixture and frozen screens |
+| Zero delta creates no lock | required | compile | n/a | ✅ WP3.3 |
+| Missing lock first edit deterministic | required | compile | required | ✅ reference + signed delta |
+| Existing lock replacement is in-place and capacity-neutral | required | compile | required | ✅ WP3.3 |
+| Existing current-ID value >255 rejected without reinterpretation | required | compile | n/a | ✅ editor RANGE |
+| WP3.3 full-app SEQ p-lock gesture emits no audition MIDI | required | compile | required | ✅ `midi_events=0` |
+| WP3.3 p-lock footer framebuffers visually reviewed/frozen | required | compile | required | ✅ `224c0c05...` / `95bbee21...` |
+| P-lock editor writes storage only; playback/base params remain untouched | required | required | observable | ✅ WP3.3 frozen WAV unchanged |
+| `FmtLockEditor` exact 8 B and adds no pool allocation | required | required | n/a | ✅ +8 B RAM / +0 B pool |
+| WP3.3 final resource delta measured/frozen | n/a | required | n/a | ✅ +2,328 B image / +8 B RAM / +0 B pool |
+| WP3.3 preserves all Phase 2 + WP3.1 + WP3.2 regressions | required | required | later | ✅ run `40054322180` |
 | User-facing delete/clear cannot corrupt neighbors | required | required | required | ⬜ WP3.4 |
-| Lock application does not mutate stored base instrument | required | required | observable | ⬜ WP3.5+ |
+| Lock application to playback is deterministic and does not mutate stored base data | required | required | observable | ⬜ WP3.5+ |
 | Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
 | Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
 | Retrig timing/count bounded | required | required | required | ⬜ WP3.7 |
@@ -151,6 +159,7 @@ Phase 3 evidence so far:
 
 - `WP3_1_VERIFICATION.md`
 - `WP3_2_VERIFICATION.md`
+- `WP3_3_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 
@@ -209,6 +218,7 @@ Physical FM-1 required:
 - track selection avoids accidental notes/edits;
 - chord behavior matches expectation;
 - tracker rows readable on 240×240;
+- p-lock hold/delete ergonomics comfortable and deliberate;
 - later live PLAY/REC, metronome and CHANNEL/GLOBAL performance FX feel immediate.
 
 ## Regression rule
