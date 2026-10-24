@@ -20,6 +20,7 @@
 #include "fmt_playback_params.h"
 #include "fmt_tracker_effect.h"
 #include "fmt_8bit_linked_params.h"
+#include "fmt_8bit_engine.h"
 
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
@@ -115,7 +116,7 @@ static void app_main(void);
  *   "T clear",
  *   "T step TRACK ROW NOTE INSTRUMENT EFFECT VALUE",
  *   "T lock TRACK ROW PARAM VALUE",
- *   "T base INSTRUMENT A D S R WIDTH TABLE", "T end"
+ *   "T base INSTRUMENT A D S R WIDTH TABLE", "T probe", "T end"
  * The final four commands are host-fixture setup helpers. They mutate only the
  * same public main/editor store/publication APIs used by the firmware and are
  * processed before audio when scheduled at t=1 ms.
@@ -140,7 +141,8 @@ enum {
     HOST_FIX_CLEAR = 1u,
     HOST_FIX_STEP = 2u,
     HOST_FIX_LOCK = 3u,
-    HOST_FIX_BASE = 4u
+    HOST_FIX_BASE = 4u,
+    HOST_FIX_PROBE = 5u
 };
 static const host_ev_t SCRIPT0[] = {
     {200, 1u << 7, -1, 0, 0, 0, 0, 0, 0},                                /* C4 */
@@ -179,6 +181,7 @@ static void read_script(const char *path)
         else if (!strcmp(what, "midi")) { sscanf(line, "%*u %*s %i %u %u", (int *)&a, &b, &c); e.st = (uint8_t)a; e.d1 = (uint8_t)b; e.d2 = (uint8_t)c; }
         else if (!strcmp(what, "effect")) { sscanf(line, "%*u %*s %u %u %u", &a, &b, &c); e.effect_action = 1u; e.effect_step = (uint8_t)a; e.effect_command = (uint8_t)b; e.effect_value = (uint8_t)c; }
         else if (!strcmp(what, "clear")) { e.fixture_action = HOST_FIX_CLEAR; }
+        else if (!strcmp(what, "probe")) { e.fixture_action = HOST_FIX_PROBE; }
         else if (!strcmp(what, "step")) {
             if (sscanf(line, "%*u %*s %u %u %u %u %u %u", &a, &b, &c, &e1, &e2, &e3) != 6) continue;
             e.fixture_action = HOST_FIX_STEP; e.fixture_track = (uint8_t)a; e.fixture_row = (uint8_t)b;
@@ -295,6 +298,26 @@ static void platform_poll(void)                 /* one call = one millisecond */
             }
             printf("%6u ms  fixture lock t%u r%u id%u value%u\n",
                    fm1_ms, track, row, script[step].fixture_param, script[step].fixture_value);
+        } else if (script[step].fixture_action == HOST_FIX_PROBE) {
+            uint32_t track, slot;
+            printf("%6u ms  fixture probe tracks", fm1_ms);
+            for (track = 0u; track < FMT_TRACKS; track++) {
+                uint8_t v = fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime, (uint8_t)track);
+                if (v == FMT_VOICE_NONE)
+                    printf(" t%u=-", track);
+                else
+                    printf(" t%u=v%u/e%u/i%u/s%u", track, v,
+                           fmt_8bit_engine_runtime.voice[v].engine,
+                           fmt_8bit_engine_runtime.voice[v].instrument,
+                           fmt_8bit_engine_runtime.voice[v].envelope.stage);
+            }
+            printf(" slots");
+            for (slot = 0u; slot < FMT_VOICE_ALLOCATOR_SLOTS; slot++)
+                printf(" v%u=o%u/s%u/e%u", slot,
+                       fmt_8bit_engine_runtime.allocator.voice_owner[slot],
+                       fmt_8bit_engine_runtime.voice[slot].envelope.stage,
+                       fmt_8bit_engine_runtime.voice[slot].engine);
+            putchar('\n');
         } else if (script[step].fixture_action == HOST_FIX_BASE) {
             Fmt8BitParamSet base;
             base.attack = script[step].fixture_base[0];
