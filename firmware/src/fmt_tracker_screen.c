@@ -70,6 +70,13 @@ static void fmt_tracker_screen_three_digits(char out[4], uint32_t value)
     out[3] = 0;
 }
 
+static char fmt_tracker_screen_hex(uint8_t nibble)
+{
+    nibble &= 0x0Fu;
+    return nibble < 10u ? (char)('0' + nibble)
+                        : (char)('A' + (nibble - 10u));
+}
+
 static void fmt_tracker_screen_u16_dec(char **dst, uint16_t value)
 {
     static const uint16_t place[5] = {10000u, 1000u, 100u, 10u, 1u};
@@ -106,12 +113,16 @@ void fmt_tracker_screen_reset(FmtTrackerScreen *screen)
     screen->selected_step = 0xFFu;
     screen->play_step = 0xFFu;
     screen->playing = 0u;
+    screen->lock_target_active = 0u;
+    screen->lock_target_step = 0xFFu;
 
     for (i = 0u; i < FMT_TRACKER_SCREEN_ROWS; i++) {
         screen->row_note[i] = 0u;
         screen->row_instrument[i] = 0u;
         screen->row_volume[i] = 0u;
         screen->row_effect[i] = 0u;
+        screen->row_effect_value[i] = 0u;
+        screen->row_lock_info[i] = 0u;
     }
 }
 
@@ -132,10 +143,13 @@ uint8_t fmt_tracker_screen_window_start(const FmtPatternInput *input)
 int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
                             const FmtPatternInput *input,
                             const FmtStepRecord *record,
-                            const FmtTransport *transport)
+                            const FmtTransport *transport,
+                            const FmtLockEditor *lock_editor)
 {
     uint8_t track, page, window_start, selected_step, play_step, playing, step_rec;
+    uint8_t lock_target_active, lock_target_step;
     uint8_t old_selected, old_play, old_playing, old_window;
+    uint8_t old_lock_target_active, old_lock_target_step;
     uint16_t dirty;
     uint32_t row;
     int full;
@@ -149,6 +163,8 @@ int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
         input->selected_track >= FMT_PATTERN_INPUT_TRACK_COUNT) {
         screen->active = 0u;
         screen->dirty = 0u;
+        screen->lock_target_active = 0u;
+        screen->lock_target_step = 0xFFu;
         return 0;
     }
 
@@ -159,11 +175,18 @@ int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
     play_step = transport->step < FMT_STEPS_PER_PATTERN ? transport->step : 0u;
     playing = (uint8_t)(transport->running && transport->step < FMT_STEPS_PER_PATTERN);
     step_rec = (uint8_t)(record && fmt_step_record_is_active(record));
+    lock_target_active = (uint8_t)(lock_editor &&
+                                   fmt_lock_editor_is_active(lock_editor) &&
+                                   lock_editor->track == track &&
+                                   lock_editor->step < FMT_STEPS_PER_PATTERN);
+    lock_target_step = lock_target_active ? lock_editor->step : 0xFFu;
 
     old_selected = screen->selected_step;
     old_play = screen->play_step;
     old_playing = screen->playing;
     old_window = screen->window_start;
+    old_lock_target_active = screen->lock_target_active;
+    old_lock_target_step = screen->lock_target_step;
     dirty = screen->dirty;
 
     full = !screen->active || screen->track != track || screen->page != page ||
@@ -188,29 +211,53 @@ int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
             dirty |= screen->dirty;
         }
 
+        if (old_lock_target_active != lock_target_active ||
+            old_lock_target_step != lock_target_step) {
+            if (old_lock_target_active)
+                fmt_tracker_screen_mark_step_dirty(screen, old_lock_target_step, old_window);
+            if (lock_target_active)
+                fmt_tracker_screen_mark_step_dirty(screen, lock_target_step, window_start);
+            dirty |= screen->dirty;
+        }
+
         if (screen->bpm != transport->bpm)
             dirty |= fmt_tracker_screen_region_bit(FMT_TRACKER_SCREEN_REGION_HEADER);
     }
 
     for (row = 0u; row < FMT_TRACKER_SCREEN_ROWS; row++) {
+        uint32_t global_step = (uint32_t)window_start + row;
         const FmtStep *step = fmt_store_step_const(FMT_TRACKER_SCREEN_PATTERN,
                                                    track,
-                                                   (uint32_t)window_start + row);
+                                                   global_step);
         uint8_t note = step ? step->note : 0xFCu;
         uint8_t instrument = step ? step->instrument : 0xFEu;
         uint8_t volume = step ? step->volume : 0xFEu;
         uint8_t effect = step ? step->effect : 0xFFu;
+        uint8_t effect_value = step ? step->effect_value : 0xFFu;
+        uint8_t lock_info = FMT_TRACKER_SCREEN_LOCK_ERROR;
+        uint8_t lock_count = 0u;
+        FmtLockStatus lock_status = fmt_lock_count(FMT_TRACKER_SCREEN_PATTERN,
+                                                   track,
+                                                   global_step,
+                                                   &lock_count);
+
+        if (lock_status == FMT_LOCK_STATUS_OK && lock_count <= FMT_LOCKS_PER_STEP)
+            lock_info = lock_count;
 
         if (!full && (screen->row_note[row] != note ||
                       screen->row_instrument[row] != instrument ||
                       screen->row_volume[row] != volume ||
-                      screen->row_effect[row] != effect))
+                      screen->row_effect[row] != effect ||
+                      screen->row_effect_value[row] != effect_value ||
+                      screen->row_lock_info[row] != lock_info))
             dirty |= fmt_tracker_screen_region_bit(FMT_TRACKER_SCREEN_REGION_ROW0 + row);
 
         screen->row_note[row] = note;
         screen->row_instrument[row] = instrument;
         screen->row_volume[row] = volume;
         screen->row_effect[row] = effect;
+        screen->row_effect_value[row] = effect_value;
+        screen->row_lock_info[row] = lock_info;
     }
 
     screen->active = 1u;
@@ -222,6 +269,8 @@ int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
     screen->play_step = play_step;
     screen->playing = playing;
     screen->bpm = transport->bpm;
+    screen->lock_target_active = lock_target_active;
+    screen->lock_target_step = lock_target_step;
     screen->dirty = dirty;
     return 1;
 }
@@ -362,22 +411,80 @@ void fmt_tracker_screen_volume_text(uint32_t volume, char out[4])
     fmt_tracker_screen_three_digits(out, volume);
 }
 
-void fmt_tracker_screen_effect_text(uint32_t effect, char out[4])
+void fmt_tracker_screen_lock_text(const FmtTrackerScreen *screen,
+                                  uint32_t visible_row,
+                                  char out[3])
 {
+    uint8_t info, step, target;
+
     if (!out)
         return;
-    if (effect == FMT_EFFECT_NONE) {
-        out[0] = '-'; out[1] = '-'; out[2] = '-'; out[3] = 0;
-    } else {
-        out[0] = '?'; out[1] = '?'; out[2] = '?'; out[3] = 0;
+    out[0] = '-';
+    out[1] = '-';
+    out[2] = 0;
+
+    if (!screen || !screen->active || visible_row >= FMT_TRACKER_SCREEN_ROWS)
+        return;
+
+    info = screen->row_lock_info[visible_row];
+    step = (uint8_t)(screen->window_start + visible_row);
+    target = (uint8_t)(screen->lock_target_active && screen->lock_target_step == step);
+
+    if (info == FMT_TRACKER_SCREEN_LOCK_ERROR || info > FMT_LOCKS_PER_STEP) {
+        out[0] = target ? 'P' : 'L';
+        out[1] = '!';
+        return;
     }
+
+    if (target) {
+        out[0] = 'P';
+        out[1] = (char)('0' + info);
+    } else if (info > 0u) {
+        out[0] = 'L';
+        out[1] = (char)('0' + info);
+    }
+}
+
+void fmt_tracker_screen_effect_text(uint32_t effect,
+                                    uint32_t effect_value,
+                                    char out[5])
+{
+    char a = '?', b = '?';
+
+    if (!out)
+        return;
+
+    if (effect == FMT_TRACKER_EFFECT_NONE) {
+        out[0] = '-'; out[1] = '-'; out[2] = '-'; out[3] = '-'; out[4] = 0;
+        return;
+    }
+
+    switch (effect) {
+    case FMT_TRACKER_EFFECT_ARPEGGIO:   a = 'A'; b = 'R'; break;
+    case FMT_TRACKER_EFFECT_SLIDE_UP:   a = 'S'; b = 'U'; break;
+    case FMT_TRACKER_EFFECT_SLIDE_DOWN: a = 'S'; b = 'D'; break;
+    case FMT_TRACKER_EFFECT_PORTAMENTO: a = 'P'; b = 'O'; break;
+    case FMT_TRACKER_EFFECT_VIBRATO:    a = 'V'; b = 'I'; break;
+    case FMT_TRACKER_EFFECT_RETRIG:     a = 'R'; b = 'T'; break;
+    case FMT_TRACKER_EFFECT_NOTE_DELAY: a = 'D'; b = 'L'; break;
+    case FMT_TRACKER_EFFECT_NOTE_CUT:   a = 'C'; b = 'T'; break;
+    default:
+        out[0] = '?'; out[1] = '?'; out[2] = '?'; out[3] = '?'; out[4] = 0;
+        return;
+    }
+
+    out[0] = a;
+    out[1] = b;
+    out[2] = fmt_tracker_screen_hex((uint8_t)(effect_value >> 4));
+    out[3] = fmt_tracker_screen_hex((uint8_t)effect_value);
+    out[4] = 0;
 }
 
 void fmt_tracker_screen_row_text(const FmtTrackerScreen *screen,
                                  uint32_t visible_row,
                                  char out[32])
 {
-    char note[5], instrument[3], volume[4], effect[4];
+    char note[5], instrument[3], volume[4], lock[3], effect[5];
     char *p;
 
     if (!out)
@@ -389,7 +496,10 @@ void fmt_tracker_screen_row_text(const FmtTrackerScreen *screen,
     fmt_tracker_screen_note_text(screen->row_note[visible_row], note);
     fmt_tracker_screen_instrument_text(screen->row_instrument[visible_row], instrument);
     fmt_tracker_screen_volume_text(screen->row_volume[visible_row], volume);
-    fmt_tracker_screen_effect_text(screen->row_effect[visible_row], effect);
+    fmt_tracker_screen_lock_text(screen, visible_row, lock);
+    fmt_tracker_screen_effect_text(screen->row_effect[visible_row],
+                                   screen->row_effect_value[visible_row],
+                                   effect);
 
     p = out;
     fmt_tracker_screen_two_digits(&p, (uint32_t)screen->window_start + visible_row + 1u);
@@ -399,6 +509,8 @@ void fmt_tracker_screen_row_text(const FmtTrackerScreen *screen,
     fmt_tracker_screen_copy(&p, instrument);
     *p++ = ' ';
     fmt_tracker_screen_copy(&p, volume);
+    *p++ = ' ';
+    fmt_tracker_screen_copy(&p, lock);
     *p++ = ' ';
     fmt_tracker_screen_copy(&p, effect);
     *p = 0;
@@ -459,7 +571,7 @@ void fmt_tracker_screen_header_line3(char out[32])
     if (!out)
         return;
     p = out;
-    fmt_tracker_screen_copy(&p, "ST NOTE IN VOL FX");
+    fmt_tracker_screen_copy(&p, "ST NOTE IN VOL LK FX");
     *p = 0;
 }
 
