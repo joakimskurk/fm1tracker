@@ -1,5 +1,6 @@
 name: WP3.7 freeze D033 once
 
+# Retry after diff-hygiene fix in the temporary patch script.
 on:
   push:
     branches:
