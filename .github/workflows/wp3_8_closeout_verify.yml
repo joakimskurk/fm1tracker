@@ -1,4 +1,5 @@
 name: WP3.8 full closeout verification
+# Final clean-tree gate after one-shot workflow cleanup.
 
 on:
   push:
