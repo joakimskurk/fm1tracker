@@ -2,22 +2,22 @@
 
 This is the **single source of truth for current execution state**.
 
-A new chat/session should read `START_HERE.md`, then this file, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, `ROADMAP.md`, and the verification document for the most recently completed package before changing code.
+A new chat/session should read `START_HERE.md`, then this file, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
 
 ## Current phase
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 / D048 production migration underway after frozen pre-migration evidence - 2026-10-24**
+State: **IN PROGRESS - WP5.0 complete, WP5.1 contract/test freeze is the only active package - 2026-10-24**
 
-Current work package: **WP5.0 - mixed-engine routing contract + migration**  
+Current work package: **WP5.1 - fixed-point FM operator primitive**  
 Parent issue: **#42**  
-Work-package issue: **#43**  
-Current branch: `phase5/mixed-engine-routing`  
+Work-package issue: **#44**  
+Current branch: `phase5/fm4-operator`  
 Phase 5 branch point: `d56505ac15c233eb806c567b6a5944bccf02ec1e`  
-D048 contract commit: `166dbf8272e7323aea2abe16c33544edba0b456f`
+WP5.0 production verification head: `813792fb25632b4d7acda787422e51f713fad21e`
 
-D048 pre-migration evidence is frozen and green. The generic router core and instrument identity publication are implemented, the obsolete song-level 8-BIT gate has been removed from the 8-BIT row/editor context, and the top-level `dinghy.c` integration is currently being validated as a transient CI transform before it is committed to production.
+Do not begin WP5.2 algorithm routing, feedback, envelopes, voice allocation, parameter pages or mixed FM playback while WP5.1 is active.
 
 ## Phase status summary
 
@@ -27,15 +27,13 @@ Pinned Dinghy/Felucca/SLOOP provenance, fixed `FM-1_987` identity, pinned JieLi/
 
 ### Phase 2 - tracker core - COMPLETE
 
-The core model is proven at host/device-build level:
-
-- 8 tracks x 64 steps x 16 patterns;
-- `FmtStep` exactly 8 B;
-- one 65,896 B pool-backed `FmtSong`;
-- exact integer D020 transport;
-- deterministic NOTE/REST/TIE/OFF STEP REC behavior;
-- provisional step-page/track-selection controls;
-- bounded tracker screen.
+- 8 tracks x 64 steps x 16 patterns
+- `FmtStep` exactly 8 B
+- one 65,896 B pool-backed `FmtSong`
+- exact integer transport
+- deterministic NOTE/REST/TIE/OFF STEP REC
+- provisional step-page/track-selection controls
+- bounded tracker screen
 
 Final Phase 2 checkpoint: `7063be51e53c2657178084b3bef5ace813dafcd7`.
 
@@ -43,11 +41,7 @@ Final Phase 2 checkpoint: `7063be51e53c2657178084b3bef5ace813dafcd7`.
 
 D027-D036 are complete: stable semantic parameter IDs, 2,048-record sparse p-lock pool, held-step edit/browse/delete, row-local publication snapshots, exact six-tick tracker effects, NOTE DELAY/RETRIG/CUT, bounded 32-entry SPSC audition queue, bounded UI and worst-case closeout.
 
-Final Phase 3 target footprint:
-
-- image 66,960 B
-- normal RAM 13,296 B
-- pool RAM 113,000 B
+Final Phase 3 target footprint: 66,960 B image / 13,296 B normal RAM / 113,000 B pool.
 
 Final closeout: `e90d0232c179ea92e2295171403697ceaf5e3ecf`, run `40084706845`, job `120845144453`.
 
@@ -55,103 +49,107 @@ Final closeout: `e90d0232c179ea92e2295171403697ceaf5e3ecf`, run `40084706845`, j
 
 WP4.1-WP4.10 are complete at host/device-build level.
 
-The family contains PULSE, NOISE, TRIANGLE, WAVETABLE-8, common integer ADSR, deterministic eight-slot ownership/allocation, D044 parameter pages, linked all-eight-track playback and D046 representative/full-pool/realtime/target closeout.
-
-Frozen production baseline:
-
-`c93c39ad344760b4da0dfbc76829ca5fef886174`
+PULSE, NOISE, TRIANGLE, WAVETABLE-8, common integer ADSR, deterministic eight-slot allocation, D044 parameter pages, linked all-eight-track playback and D046 representative/full-pool/realtime/target closeout are frozen.
 
 Canonical D046 closeout:
 
+- production baseline `c93c39ad344760b4da0dfbc76829ca5fef886174`
 - verification head `2379d3e7e52d1cefe9f845f8287ad0ccda8c019a`
-- run `40124536375`
-- job `120963022289`
-- evidence `docs/WP4_10_VERIFICATION.md`
-- representative WAV SHA-256 `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
-- 4,096-row / 64-wrap repeat-identical linked long run
-- exact D033/D043 counts
-- zero active cross-track steals
-- structural realtime audit green
-- inherited regressions green
-- pinned target identity/resources/artifacts exact
+- run `40124536375`, job `120963022289`
+- representative WAV `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
+- normal WAV `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`
+- target 72,504 B image / 19,604 B RAM / 113,000 B pool
 - `hardware_margin_claim=none`
 
-Final linked target footprint:
+Evidence: `docs/WP4_10_VERIFICATION.md`.
 
-- image 72,504 B
-- normal RAM 19,604 B
-- pool RAM 113,000 B
-- D037 remaining margin: image 59,992 B / RAM 1,884 B / pool 16,384 B
-- BIN SHA-256 `214fba8ec0af4be3120bc91dafbaa24e7d4d8a5a6de7395de2473f12374c4215`
-- FWSC SHA-256 `20f0bbe556edcf6a00118f9983335913dda2f29fc64d3c87997bfd6756bcf119`
-- normal linked WAV SHA-256 `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`
+### WP5.0 / D048 - mixed-engine routing migration - COMPLETE
 
-## Active work package - WP5.0 / D048
+D047 supersedes the old future project-wide 8-BIT/16-BIT restriction. D048 implements the smallest bounded production migration.
 
-Normative documents:
+Accepted production model:
 
-- `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-- `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`
-- `docs/WP5_0_PREMIGRATION_EVIDENCE.md`
+```text
+tracker row/track
+    -> instrument reference
+    -> published instrument family + engine identity
+    -> fixed per-track family router
+    -> family-local engine/allocator
+```
 
-D048 was frozen before production migration.
+Frozen facts:
 
-### Frozen/green evidence already reached
+- `FmtStep` remains 8 B.
+- `FmtInstrumentHeader` remains 4 B.
+- family compatibility values remain `0 = 8-BIT/chip`, `1 = FM/digital`.
+- `FmtSongMeta.mode` remains physically present but no longer gates playback/publication.
+- instrument identity publication is fixed 64 B.
+- global route ownership is exactly 8 B, one family byte per logical track.
+- static bounded dispatch only, no runtime plugin registry or heap.
+- one existing 2,048 B row-page cache remains shared.
+- unsupported/malformed family or engine fails safely toward silence.
+- non-applicable family-specific p-lock IDs are ignored, never reinterpreted.
+- no FM4 production DSP was introduced by WP5.0.
 
-- Pre-migration run `40126003645` is green.
-- Pre-migration artifact `12572841977`, SHA-256 `0b7b5925584e0fa663769eece6e36191f83dc4687ebf2299919fcb4db3c02d87`.
-- The old `FmtSongMeta.mode` playback gate was reproduced from the frozen D046 source before removal.
-- Test-only D048 router semantics prove 8 B route state, 64 B identity publication, simultaneous per-track family identities, deterministic same-track switch ordering and zero active cross-track steals.
-- Router-core run `40126271710` is green; artifact `12573426831`, SHA-256 `5414f85ee591e1164eb6950c69cbbbbc85f30c50f24c9e56c6b42a9bc0ee9899`.
+Canonical WP5.0 closeout:
 
-### Production migration now present
+- production verification head `813792fb25632b4d7acda787422e51f713fad21e`
+- aggregate run `40129822006`
+- aggregate job `120978955451`
+- artifact `12574707919`
+- artifact SHA-256 `7a43d638fbf8e9ad8be9124b88645237459577c6cbf5fab8ea2661f100b898fa`
+- representative D046 WAV remains byte-identical `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
+- normal D046 WAV remains byte-identical `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`
+- target 72,792 B image / 19,676 B RAM / 113,000 B pool
+- delta versus D046 +288 B image / +72 B RAM / +0 B pool
+- BIN SHA-256 `a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125`
+- FWSC SHA-256 `cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073`
+- inherited regressions green
+- realtime audit green
+- family-switch/malformed/delayed/non-applicable-p-lock tests green
+- `hardware_margin_claim=none`
 
-- `firmware/src/fmt_engine_router.[ch]` implements the bounded 8 B family router and aligned 64 B instrument identity publication.
-- `fmt_8bit_linked_row_context()` no longer rejects valid 8-BIT instruments because of `FmtSongMeta.mode`; per-instrument family/engine validation remains.
-- No FM operator/algorithm/oscillator DSP has been added.
-- The top-level `dinghy.c` family adapter is not yet committed. It is currently validated by transient CI transform `tools/wp5_0_apply_dinghy_router.py` and `tests/run_wp5_0_dinghy_dryrun.sh`.
+Evidence: `docs/WP5_0_VERIFICATION.md`.
 
-### D048 implementation contract
+## Active work package - WP5.1 / issue #44
 
-- `FmtStep` remains exactly 8 B and continues to reference instruments.
-- `FmtInstrumentHeader` remains exactly 4 B; its existing `mode` byte is interpreted as family identity.
-- Family compatibility values stay `0 = 8-BIT/chip`, `1 = FM/digital`.
-- `FmtSongMeta.mode` remains physically present but is legacy/default-family metadata only and must never gate playback/publication/edit eligibility.
-- Audio gets instrument family/engine from a fixed aligned 64 B publication bank mirroring all 16 instrument headers.
-- Global primary routing owns exactly one family byte per logical track, 8 B total.
-- Family-local engines retain their own voice handles/allocators.
-- Cross-family NOTE hard-silences/clears the old primary before the new family is attempted and commits the new route only on success.
-- OFF/CUT release through the active family and clear global primary ownership in the same event.
-- TIE/EMPTY/RETRIG do not allocate or change family.
-- Family dispatch is static and bounded, never a runtime plugin system.
-- The existing single 2,048 B row-page publication cache is generalized/reused across families; parallel 2,048 B caches are forbidden by default.
-- Non-applicable family-specific p-lock IDs remain stored but are ignored, never reinterpreted.
-- WP5.0 contains no FM4 production DSP; mixed-family router behavior is proven using a bounded test-only stub family.
+Goal: implement and verify the smallest deterministic fixed-point FM operator primitive required by later FM4 work.
 
-WP5.0 hard incremental ceilings versus D046:
+### Required execution order
 
-- image +4,096 B maximum, total <= 76,600 B
-- normal RAM +256 B maximum, total <= 19,860 B
-- pool +0 B, total remains 113,000 B
+1. Inspect the accepted integer pitch/phase/oscillator conventions from the 8-BIT family.
+2. Write and freeze the normative WP5.1 / D049 contract before production FM DSP source changes.
+3. Freeze exact operator state, phase format, signed modulation input, level/output range, reset semantics and overflow/saturation behavior.
+4. Freeze deterministic host vectors before implementation.
+5. Define target compile, realtime and resource guards.
+6. Only then implement the operator primitive.
+7. Verify repeat identity, edge cases, target build and resource delta.
+8. Write `WP5_1_VERIFICATION.md` before WP5.2 begins.
 
-### Exact next execution action
+### WP5.1 allowed scope
 
-1. Complete transient `dinghy.c` integration gate and require all canonical D045 engine/effect WAVs to remain byte-identical.
-2. Require the normal full-app D046 host WAV to stay exactly `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`.
-3. Add the focused actual-app song-meta independence variant: identical instrument/row data with only `FmtSongMeta.mode` changed must render the same WAV.
-4. Require pinned JieLi/AC79 target build inside WP5.0 ceilings: image <= 76,600 B, normal RAM <= 19,860 B, pool <= 113,000 B.
-5. Only after the transient gate is green, commit the top-level `dinghy.c` adapter and run post-migration/realtime closeout evidence.
-6. Do not begin WP5.1 FM operator code until `docs/WP5_0_VERIFICATION.md` closes WP5.0.
+- fixed-point FM operator state and phase accumulator
+- deterministic carrier lookup primitive chosen by the contract
+- signed phase-modulation input
+- bounded operator-level scaling
+- reset/init primitive
+- host vectors and edge tests
+- target compile/resource measurement
+- no-float/no-heap/no-runtime-64-bit-division guards
 
-## D047 / D048 precedence
+### WP5.1 explicitly out of scope
 
-D047 supersedes D004's project-wide 8-BIT/16-BIT restriction for future architecture. D048 is the normative implementation contract for WP5.0.
+- algorithm routing, WP5.2
+- ratio table/pitch policy, WP5.3
+- final level/modulation-index mappings, WP5.4
+- feedback, WP5.5
+- FM envelope strategy, WP5.6
+- FM voice allocation/router integration, WP5.7
+- FM parameter pages/p-lock mapping, WP5.8
+- simultaneous production 8-BIT + FM4 playback, WP5.9
 
-Historical D037-D046 evidence remains authoritative for the complete 8-BIT family. D047/D048 do not rewrite those checkpoints.
+## Phase 5 sequence after WP5.1
 
-## Phase 5 sequence after WP5.0
-
-- WP5.1 FM operator primitive
 - WP5.2 curated FM algorithm routing
 - WP5.3 ratio table
 - WP5.4 levels/modulation index
@@ -162,49 +160,35 @@ Historical D037-D046 evidence remains authoritative for the complete 8-BIT famil
 - WP5.9 mixed 8-BIT + FM4 validation
 - WP5.10 worst-case mixed-engine benchmark and Phase 5 exit
 
-Modern VA/supersaw/wavetable/drum engines are architecturally possible later but are not part of the current WP5.0/FM4 scope.
-
 ## Important invariants - do not regress
 
 - 8 logical tracks x 64 steps x 16 patterns.
 - `FmtStep` exactly 8 B.
 - exact integer transport and next-frame row-boundary ordering.
 - explicit NONE/NOTE/TIE/OFF semantics.
-- semantic parameter IDs remain separate from tracker-effect command IDs.
+- semantic parameter IDs remain separate from tracker-effect IDs.
 - bounded corruption-safe p-lock storage/editor behavior.
-- D031 common row snapshots and D032 exact six-tick effect clock.
+- D031 row snapshots and D032 exact six-tick effect clock.
 - D033 bounded RETRIG/NOTE DELAY/NOTE CUT scheduling.
-- D034 exact 32-entry SPSC audition queue and fail-to-silence recovery.
+- D034 exact 32-entry SPSC queue and fail-to-silence recovery.
 - D043 still-owned active cross-track primary voices may not be stolen.
 - D044 8-BIT IDs `0x20..0x25` remain stable.
+- D048 per-instrument family/engine routing remains authoritative.
 - no float in firmware DSP and no runtime 64-bit division.
-- eight logical tracks are never silently reduced for polyphony or engine cost.
+- eight logical tracks are never silently reduced for engine cost.
 
 ## Product direction that must not be lost
 
 `docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted core direction: tracker depth underneath, immediate performance/capture on top.
 
-Mixed-engine routing is infrastructure for that product direction, not an excuse to expand WP5.0 into optional synth families or live-capture implementation.
+Mixed-engine routing and FM4 are engine foundations for that product direction, not permission to pull live-capture or optional synth-family work into WP5.1.
 
 ## Hardware limitation still open
 
 No physical FM-1 is currently available. Host/device-build evidence does not prove physical install/boot behavior, physical sound quality, control feel, screen feel or measured AC791N callback margin.
 
-Physical execution-margin and UX validation remain explicit later gates.
-
-## Last relevant checkpoints
-
-- Phase 2 verified: `7063be51e53c2657178084b3bef5ace813dafcd7`
-- Phase 3 production: `354bf7d356774ad828f1f660bd456dbab7f0490d`
-- Phase 3 closeout: `e90d0232c179ea92e2295171403697ceaf5e3ecf`, run `40084706845`
-- WP4.9 final closeout: `89fabc51348078101c8e376bba7814af9d42ae80`, run `40116897104`
-- WP4.10 final verification: `2379d3e7e52d1cefe9f845f8287ad0ccda8c019a`, run `40124536375`, job `120963022289`
-- Phase 5 branch point: `d56505ac15c233eb806c567b6a5944bccf02ec1e`
-- D047: `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-- D048 contract: `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`
-- D048 pre-migration evidence: run `40126003645`, artifact `12572841977`
-- D048 router-core evidence: run `40126271710`, artifact `12573426831`
+`hardware_margin_claim=none`
 
 ## Last updated
 
-2026-10-24 - D048 pre-migration evidence and router core are green. Production migration has begun in bounded pieces. The obsolete song-level gate is removed from the 8-BIT linked row/editor path; the top-level family adapter is being proven transiently before commit. WP5.1 FM DSP remains blocked until WP5.0 closeout.
+2026-10-24 - WP5.0 / D048 is complete and canonically green. WP5.1 / issue #44 is the only active package and must begin contract-first before FM operator production code.

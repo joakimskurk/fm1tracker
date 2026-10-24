@@ -1,82 +1,76 @@
 # FM1Tracker - Start Here
 
-If you are continuing this project after a pause, in a new chat, or as a new contributor, **do not reconstruct the plan from memory**.
+If you are continuing after a pause, in a new chat, or as a new contributor, **do not reconstruct the plan from chat memory**. Repository state is authoritative.
 
 Read in this order:
 
-1. [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) - current phase, active work package, exact next actions and blockers.
-2. [`docs/D047_MIXED_ENGINE_ARCHITECTURE.md`](docs/D047_MIXED_ENGINE_ARCHITECTURE.md) - accepted architecture direction: one engine-agnostic tracker with per-instrument engine families.
-3. [`docs/CURRENT_DECISIONS.md`](docs/CURRENT_DECISIONS.md) - compact current supersession index. `DECISIONS.md` remains the historical decision log through D046.
-4. [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) - roadmap broken into bounded implementation units.
-5. [`docs/DECISIONS.md`](docs/DECISIONS.md) - historical accepted/provisional architectural and UX decisions.
-6. [`docs/EXECUTION_PROTOCOL.md`](docs/EXECUTION_PROTOCOL.md) - how work packages are started, verified and closed.
-7. [`docs/CURRENT_TEST_STATE.md`](docs/CURRENT_TEST_STATE.md) - final D046 state plus active D047/WP5.0 verification obligations.
-8. [`docs/TEST_MATRIX.md`](docs/TEST_MATRIX.md) - detailed historical regression inventory.
-9. [`docs/ROADMAP.md`](docs/ROADMAP.md) - long-term phase direction.
-10. [`docs/WP4_10_VERIFICATION.md`](docs/WP4_10_VERIFICATION.md) - most recent completed-package evidence and canonical Phase 4 closeout.
-11. [`THIRD_PARTY.md`](THIRD_PARTY.md) - external code/assets, licenses and provenance.
+1. `docs/PROJECT_STATE.md` - current phase, active work package and exact next action.
+2. `docs/WP5_0_VERIFICATION.md` - most recent completed-package evidence.
+3. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md` - accepted engine-agnostic/per-instrument architecture.
+4. `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md` - D048 routing semantics now implemented.
+5. `docs/CURRENT_DECISIONS.md` - current supersession index.
+6. `docs/WORK_PACKAGES.md` - bounded implementation order and scope.
+7. `docs/EXECUTION_PROTOCOL.md` - start/implement/verify/close procedure.
+8. `docs/CURRENT_TEST_STATE.md` - current verification overlay and WP5.1 obligations.
+9. `docs/TEST_MATRIX.md` - current regression index.
+10. `docs/ROADMAP.md` - product and phase direction.
+11. `THIRD_PARTY.md` - external code/assets, licenses and provenance.
 
 ## Current handoff
 
-**Phase 4 is complete at host/device-build level.** WP4.10 / D046 closed the complete first 8-BIT engine family without any production-source change after the D045 production freeze.
+**WP5.0 / D048 is COMPLETE at host/device-build level.**
 
-Canonical Phase 4 exit:
+Canonical WP5.0 exit:
 
-- production baseline: `c93c39ad344760b4da0dfbc76829ca5fef886174`
-- verification head: `2379d3e7e52d1cefe9f845f8287ad0ccda8c019a`
-- run: `40124536375`
-- job: `120963022289`
-- evidence: [`docs/WP4_10_VERIFICATION.md`](docs/WP4_10_VERIFICATION.md)
-- representative WAV SHA-256: `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
-- 4,096-row / 64-wrap repeat-identical long run
-- zero active cross-track steals
-- pinned target resources/artifacts unchanged
+- production verification head: `813792fb25632b4d7acda787422e51f713fad21e`
+- aggregate run: `40129822006`
+- aggregate job: `120978955451`
+- evidence: `docs/WP5_0_VERIFICATION.md`
+- target: 72,792 B image / 19,676 B normal RAM / 113,000 B pool
+- delta versus D046: +288 B / +72 B / +0 B
+- representative D046 WAV retained: `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
+- normal D046 WAV retained: `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`
+- BIN SHA-256: `a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125`
+- FWSC SHA-256: `cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073`
 - `hardware_margin_claim=none`
 
-## Current active work package
+D047/D048 now mean:
 
-**WP5.0 - mixed-engine routing contract + migration** is now the only active package.
+- FM1Tracker is one engine-agnostic tracker/sequencer.
+- Tracker rows/tracks reference instruments.
+- Each instrument owns engine family + engine identity.
+- `FmtSongMeta.mode` is no longer an audio eligibility gate.
+- global family routing is fixed, static and bounded.
+- the complete all-8-BIT D046 configuration remains the regression baseline.
 
-D047 is the normative architecture direction. FM1Tracker is one engine-agnostic tracker/sequencer where instrument identity selects engine family + engine. The historical project-wide 8-BIT/16-BIT restriction is superseded for future work.
+## Current active package
 
-WP5.0 must freeze the routing/migration contract before production code changes. In particular it must define and test:
+**WP5.1 - fixed-point FM operator primitive**, issue #44, branch `phase5/fm4-operator`.
 
-- per-instrument family + engine as the authoritative routing identity;
-- removal of `FmtSongMeta.mode` as a project-wide playback eligibility gate while preserving compatibility;
-- simultaneous different engine families across tracks;
-- deterministic same-track switching across engine families;
-- one owned primary sequenced voice per logical track across all families;
-- no active cross-track primary stealing;
-- bounded static dispatch and ownership representation;
-- the common publication/parameter boundary;
-- exact all-8-BIT D046 regression equivalence through the new router.
+The next action is **contract/test freeze, not FM implementation yet**.
 
-**Do not jump to FM4 operator/oscillator implementation before WP5.0 is frozen and its focused pre-migration tests exist.**
+Required order:
 
-Platform provenance remains available in:
+1. inspect existing accepted fixed-point pitch/phase/oscillator patterns;
+2. write and freeze D049/WP5.1 contract;
+3. freeze exact operator state, phase/modulation/level/output formats and overflow rules;
+4. freeze deterministic host vectors;
+5. define target/realtime/resource guards;
+6. only then add production FM operator source.
 
-- [`docs/UPSTREAM_DINGHY.md`](docs/UPSTREAM_DINGHY.md)
-- [`docs/DINGHY_IMPORT_MANIFEST.md`](docs/DINGHY_IMPORT_MANIFEST.md)
+Do not pull in algorithms, ratio tables, feedback, FM envelopes, FM voice allocation, FM p-lock pages or mixed production FM playback while WP5.1 is active.
 
-Architecture/product references:
+## Product direction
 
-- [`docs/D047_MIXED_ENGINE_ARCHITECTURE.md`](docs/D047_MIXED_ENGINE_ARCHITECTURE.md) - current sound-engine architecture direction and supersession rules
-- [`docs/ARCHITECTURE_V0.1.md`](docs/ARCHITECTURE_V0.1.md) - original Phase 0 architecture baseline; project-wide sound-mode clauses are superseded by D047
-- [`docs/DATA_MODEL_V0.1.md`](docs/DATA_MODEL_V0.1.md) - compact tracker/instrument data model retained through D047
-- [`docs/CONTROL_MAP_V0.1.md`](docs/CONTROL_MAP_V0.1.md)
-- [`docs/ENGINE_SCOPE_V0.1.md`](docs/ENGINE_SCOPE_V0.1.md)
-- [`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md`](docs/LIVE_PERFORMANCE_CAPTURE_VISION.md)
+Tracker depth underneath, immediate performance/capture on top.
 
-## Rule of precedence
+`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted core direction. Live capture, drums, metronome and CHANNEL/GLOBAL performance FX remain mandatory later core work, not optional extensions.
 
-When chat history and repository state disagree, treat repository state as authoritative unless the project owner explicitly changes the decision. Write the change back into the repository before building further work on it.
+## Historical checkpoints
 
-For the sound-engine architecture specifically, D047 supersedes D004 and any older statement that mixed 8-BIT/16-BIT engines are a Phase 9-only feature. Historical contracts remain authoritative for the checkpoints they actually verified.
+- Phase 2 complete: `7063be51e53c2657178084b3bef5ace813dafcd7`
+- Phase 3 closeout: run `40084706845`, job `120845144453`
+- Phase 4 / D046 closeout: run `40124536375`, job `120963022289`
+- Phase 5 WP5.0 / D048 closeout: run `40129822006`, job `120978955451`
 
-## Current execution rule
-
-Only one work package should normally be active at a time. Finish its contract, implementation, exit criteria and state updates before advancing.
-
-The next action is **WP5.0 contract/test planning**, not FM4 production implementation.
-
-No physical FM-1 was available for Phase 4 closeout. Physical install/boot/audio/control/screen validation and measured AC791N execution margin remain explicit later gates.
+No physical FM-1 is available. Physical install/boot/audio/control/screen behavior and measured AC791N execution margin remain explicit later gates.

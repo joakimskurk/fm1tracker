@@ -1,255 +1,176 @@
 # FM1Tracker Test Matrix
 
-This file is the current regression index. Detailed package evidence and exact historical vectors/hashes live in the corresponding `WP*_VERIFICATION.md` and contract documents.
+This file is the **current regression index**. Exact historical vectors, hashes, counts and package-specific evidence remain in the corresponding `WP*_VERIFICATION.md`, contract and test-plan documents. Historical evidence is not deleted or rewritten by this compact current matrix.
 
 Legend:
 
 - ✅ verified
-- 🟨 verified only to the stated host/device-build boundary
-- ⬜ not yet verified
-- ⛔ blocked
+- ⬜ active/future requirement
+- ⛔ blocked by unavailable physical hardware
 
-## Platform / baseline
+## Permanent platform / safety invariants
 
-| Check | Host | Firmware/device build | Physical FM-1 | Status |
-|---|---:|---:|---:|---|
-| Pinned Dinghy/Felucca/SLOOP provenance | n/a | n/a | n/a | ✅ Phase 1 |
-| Package identity fixed to `FM-1_987` | n/a | required | n/a | ✅ |
-| Pinned JieLi toolchain + AC79 SDK identity | n/a | required | n/a | ✅ SDK `d179b4484759423312073f5fbb232501aa491047` |
-| HAL-only register access / build safety | inspect | required | n/a | ✅ |
-| No float in firmware DSP | inspect/test | required | n/a | ✅ through D046 |
-| No runtime 64-bit division in firmware DSP | inspect/test | required | n/a | ✅ through D046 |
-| USB rescue/update source path preserved | inspect | inspect/build | required later | 🟨 physical path pending |
-| Actual AC791N callback execution margin | n/a | n/a | required | ⬜ no physical FM-1 |
-| Install/boot/audio/panel behavior | n/a | n/a | required | ⬜ no physical FM-1 |
-
-Phase 1 evidence: `WP1_3_VERIFICATION.md`, `WP1_4_VERIFICATION.md`, `WP1_5_VERIFICATION.md`.
+| Check | Status | Evidence / rule |
+|---|---|---|
+| Package identity `FM-1_987` | ✅ | Phase 1 onward |
+| Pinned JieLi/AC79 build path | ✅ | SDK `d179b4484759423312073f5fbb232501aa491047` |
+| HAL/build safety baseline | ✅ | Phase 1 verification |
+| No float in firmware DSP | ✅ through WP5.0 | structural audits |
+| No runtime 64-bit division in firmware DSP | ✅ through WP5.0 | structural audits |
+| No unbounded heap/plugin mechanism in realtime engine path | ✅ through WP5.0 | D048 audit |
+| Actual physical AC791N callback margin | ⛔ | no physical FM-1 |
+| Physical install/boot/audio/panel/screen behavior | ⛔ | no physical FM-1 |
 
 ## Phase 2 - tracker core - COMPLETE
 
-| Package / invariant | Host | Device build | Hardware | Status |
-|---|---:|---:|---:|---|
-| WP2.1 data model: 8 tracks x 64 steps x 16 patterns | required | required | n/a | ✅ |
-| `FmtStep` exactly 8 B and deterministic sentinels/bounds | required | required | n/a | ✅ |
-| WP2.2 one 65,896 B pool-backed `FmtSong` | required | required | n/a | ✅ |
-| WP2.3 exact integer transport / no cumulative drift | required | required | later | ✅ |
-| 120 BPM row timing / row 63 -> 0 wrap exact | required | required | later | ✅ |
-| WP2.4 audible playback / next-frame row-boundary ordering | required | required | later | ✅ |
-| WP2.5 16 white keys cover one 16-step page exactly | required | compile | required later | ✅ provisional hardware mapping |
-| Four pages cover all 64 rows exactly | required | compile | required later | ✅ |
-| WP2.6 eight black-key track selectors | required | compile | required later | ✅ provisional hardware mapping |
-| Track/page selection cannot mutate song | required | compile | n/a | ✅ |
-| WP2.7 stopped STEP REC note entry | required | required | required later | ✅ |
-| Real transport-stop acknowledgement before editor writes | required | compile | required later | ✅ |
-| One note gesture advances exactly once, including 63 -> 0 | required | required | required later | ✅ |
-| WP2.8 REST/TIE/OFF semantics | required | required | required later | ✅ |
-| Explicit NONE/NOTE/TIE/OFF playback events | required | compile | required later | ✅ |
-| Sentinels never become raw pitch | required | compile | n/a | ✅ |
-| WP2.9 bounded tracker screen / main-loop-only drawing | required | required | required later | ✅ |
-| Ten dirty regions / max two redraws per main-loop poll | required | compile | required later | ✅ |
-| HOME cleans tracker pixels | required | compile | required later | ✅ |
-| WP2.10 complete 64-row/eight-track integration | required | required | required later | ✅ run `40015242947` |
-| Phase 2 production/resource closeout | required | required | n/a | ✅ |
+| Invariant | Status |
+|---|---|
+| 8 tracks x 64 steps x 16 patterns | ✅ |
+| `FmtStep` exactly 8 B | ✅ |
+| one 65,896 B pool-backed `FmtSong` | ✅ |
+| exact integer transport / no cumulative drift | ✅ |
+| next-frame row-boundary ordering | ✅ |
+| NOTE / REST / TIE / OFF semantics | ✅ |
+| stopped STEP REC | ✅ |
+| four 16-step pages cover all 64 rows | ✅ |
+| eight track selectors | ✅ provisional hardware mapping |
+| bounded tracker screen / main-loop-only drawing | ✅ |
 
-Detailed evidence: `WP2_1_VERIFICATION.md` through `WP2_9_VERIFICATION.md`, `WP2_10_TEST_PLAN.md`, `PHASE2_VERIFICATION.md`.
+Evidence: `WP2_1_VERIFICATION.md` through `WP2_9_VERIFICATION.md`, `WP2_10_TEST_PLAN.md`, `PHASE2_VERIFICATION.md`.
 
 ## Phase 3 - p-locks / effects / realtime ingress - COMPLETE
 
-| Package / invariant | Host | Device build | Hardware | Status |
-|---|---:|---:|---:|---|
-| WP3.1 / D027 one-byte semantic parameter registry | required | required | n/a | ✅ |
-| Parameter IDs and tracker effect command IDs remain separate | inspect/test | compile | n/a | ✅ |
-| WP3.2 / D028 global 2,048-record sparse lock pool | required | required | n/a | ✅ |
-| Exactly max four locks per step / 512 saturated owners | required | compile | n/a | ✅ |
-| Corruption-safe owner/list validation | required | compile | n/a | ✅ |
-| WP3.3 / D029 held-step p-lock editing | required | required | required later | ✅ |
-| Held target cannot silently retarget via track/page input | required | required | required later | ✅ |
-| WP3.4 / D030 browse + deliberate single-lock delete | required | required | required later | ✅ |
-| Delete arm/cancel behavior bounded and non-destructive | required | required | required later | ✅ |
-| WP3.5 / D031 VOICE LEVEL/FINE/TRACK LEVEL snapshots | required | required | later | ✅ |
-| TRACK PAN remains explicit storage-only parameter | required | compile | later | ✅ |
-| WP3.6 / D032 exact six-tick tracker effect clock | required | required | later | ✅ |
-| ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO deterministic | required | required | later | ✅ |
-| D031 FINE precedence after D032 pitch | required | required | later | ✅ |
-| WP3.7 / D033 RETRIG/NOTE DELAY/NOTE CUT | required | required | later | ✅ |
-| Tick values 0..5 only; values >5 schedule no action | required | compile | n/a | ✅ |
-| WP3.8 / D034 exact 32-entry SPSC main->audio queue | required | required | later | ✅ |
-| Reject-newest overflow + audio fail-to-silence/O(1) discard | required | required | later | ✅ |
-| WP3.9 / D035 bounded p-lock/effect visual feedback | required | required | required later | ✅ |
-| `FmtTrackerScreen` 62 B / ten regions / max two redraws | required | compile | required later | ✅ |
-| WP3.10 / D036 full 2,048-lock saturation stress | required | required | n/a | ✅ |
-| D036 2,048 queue cycles / 6,144 rejects + recovery | required | required | later | ✅ |
-| D036 4,096-row / 64-wrap D032/D033 timing stress | required | required | later | ✅ |
-| D036 six-hour inherited transport proof | required | required | n/a | ✅ |
-| D036 realtime boundedness audit | inspect/test | required | n/a | ✅ |
-| Phase 3 aggregate exit | required | required | physical caveat | ✅ run `40084706845` |
+| Invariant | Status |
+|---|---|
+| stable one-byte semantic parameter IDs | ✅ |
+| tracker effect IDs separate from parameter IDs | ✅ |
+| 2,048-record sparse global lock pool | ✅ |
+| max four locks per step | ✅ |
+| corruption-safe lock traversal/editor behavior | ✅ |
+| row-local D031 snapshots | ✅ |
+| exact six-tick D032 clock | ✅ |
+| ARP/SLIDE/PORTA/VIBRATO deterministic | ✅ |
+| D033 RETRIG / NOTE DELAY / NOTE CUT bounded | ✅ |
+| exact 32-entry SPSC queue | ✅ |
+| reject-newest overflow and O(1) fail-to-silence recovery | ✅ |
+| bounded p-lock/effect visual feedback | ✅ |
+| full saturation, timing and long-run stress | ✅ |
 
-Final Phase 3 target footprint: 66,960 B image / 13,296 B normal RAM / 113,000 B pool.
+Final Phase 3 target: 66,960 B image / 13,296 B RAM / 113,000 B pool.
 
-Detailed evidence: `WP3_1_VERIFICATION.md` through `WP3_10_VERIFICATION.md` plus the D032-D036 contract/test-plan documents.
+Evidence: `WP3_1_VERIFICATION.md` through `WP3_10_VERIFICATION.md` and D027-D036 contracts/test plans.
 
 ## Phase 4 - first engine family: 8-BIT/chip - COMPLETE
 
-| Package / invariant | Host | Device build | Hardware | Status |
-|---|---:|---:|---:|---|
-| WP4.1 / D037 engine/realtime/resource contract | inspect/gate | required | n/a | ✅ |
-| D037 hard ceilings: image 132,496 / RAM 21,488 / pool 129,384 B | inspect/gate | required | n/a | ✅ |
-| WP4.2 / D038 PULSE deterministic primitive | required | required | optional later | ✅ |
-| WP4.3 / D039 NOISE deterministic maximal-period primitive | required | required | optional later | ✅ |
-| WP4.4 / D040 TRIANGLE deterministic primitive | required | required | optional later | ✅ |
-| WP4.5 / D041 WAVETABLE-8 tables/vectors | required | required | optional later | ✅ |
-| WP4.6 / D042 common integer ADSR | required | required | optional later | ✅ |
-| WP4.7 / D043 deterministic eight-slot allocator | required | required | required later | ✅ |
-| D043 no stealing of still-owned active cross-track primary voice | required | required | required later | ✅ D046 re-proved |
-| WP4.8 / D044 engine pages + six stable parameter IDs | required | required | optional later | ✅ |
-| D044 IDs `0x20..0x25` stable | required | compile | n/a | ✅ |
-| WP4.9 / D045 all-eight-track linked 8-BIT integration | required | required | optional later | ✅ run `40116897104` |
-| Integrated PULSE/NOISE/TRIANGLE/WAVETABLE path | required | required | optional later | ✅ |
-| NOTE/TIE/OFF/DELAY/RETRIG/CUT + D031/D032/D044 precedence | required | required | optional later | ✅ |
-| Normal linked default WAV frozen | required | required | n/a | ✅ `17fa5ce1759c...` |
-| D046 production remains byte-identical to `c93c39ad...` | git compare | required | n/a | ✅ |
-| D046 exact 2,048-record workload over 8 tracks x 64 rows | required | required | n/a | ✅ 512 owners / 4 engines |
-| D046 representative 64-row render deterministic | required | required | optional later | ✅ sample FNV `abbd4fcd`, state FNV `b5f80714` |
-| D046 representative WAV repeat byte-identical | required | required | n/a | ✅ SHA `33e819237fb0...`, 353,024 frames |
-| D046 exact representative D033 action counts | required | required | n/a | ✅ NONE 2958 / DELAY 23 / CUT 37 / RETRIG 62 |
-| D046 exact representative allocator outcomes | required | required | n/a | ✅ NONE 0 / REUSE 224 / FRESH 36 / STEAL_TAIL 68 |
-| D046 4,096-row / 64-wrap linked long run | required | required | optional later | ✅ `ticks=163840`, step 0 / phase 0 |
-| D046 long-run sample/state digest repeat identity | required | required | n/a | ✅ `a86caee1` / `53ae5fad` |
-| D046 exact long-run D033 action counts | required | required | n/a | ✅ NONE 188808 / DELAY 1472 / CUT 2368 / RETRIG 3968 |
-| D046 exact long-run allocator outcomes | required | required | n/a | ✅ NONE 0 / REUSE 14336 / FRESH 1800 / STEAL_TAIL 4352 |
-| D046 active cross-track steals | required | required | required later | ✅ exactly 0 |
-| D046 allocator classification invariant failures | required | required | n/a | ✅ exactly 0 |
-| D046 concurrent D034 pressure/recovery | required | required | optional later | ✅ overflow 16 / 40, recovery 1 |
-| D046 queue callback bound | inspect/test | required | n/a | ✅ capacity/cap 32, O(1) discard |
-| D046 linked render scans exactly eight fixed slots | inspect/test | required | n/a | ✅ |
-| D046 row boundary wins / one six-tick clock | inspect/test | required | n/a | ✅ |
-| D046 no allocator/heap, store traversal or screen work in realtime path | inspect/test | required | n/a | ✅ |
-| D046 no float/double or realtime 64-bit types in audited leaves | inspect/test | required | n/a | ✅ |
-| D046 inherited non-obsolete Phase 2-4 regressions | required | required | physical caveat | ✅ |
-| D046 pinned target image/RAM/pool | n/a | required | n/a | ✅ 72,504 / 19,604 / 113,000 B |
-| D046 target BIN identity | n/a | required | n/a | ✅ `214fba8ec0af...` |
-| D046 target FWSC identity | n/a | required | n/a | ✅ `20f0bbe556ed...` |
-| D046 complete Phase 4 exit | required | required | physical caveat | ✅ run `40124536375`, job `120963022289` |
-| Representative eight-track physical execution margin | n/a | n/a | required later | ⬜ no physical FM-1 |
-| Physical install/audio/control/screen validation | n/a | n/a | required later | ⬜ no physical FM-1 |
+| Invariant | Status |
+|---|---|
+| PULSE deterministic primitive | ✅ |
+| NOISE deterministic primitive | ✅ |
+| TRIANGLE deterministic primitive | ✅ |
+| WAVETABLE-8 deterministic primitive | ✅ |
+| common integer ADSR | ✅ |
+| deterministic eight-slot allocator | ✅ |
+| no stealing of still-owned active cross-track primary | ✅ |
+| D044 engine pages and IDs `0x20..0x25` | ✅ |
+| linked all-eight-track playback | ✅ |
+| NOTE/TIE/OFF/DELAY/RETRIG/CUT integration | ✅ |
+| complete 2,048-lock / 512-owner representative workload | ✅ |
+| 4,096-row / 64-wrap repeat-identical long run | ✅ |
+| D034 concurrent pressure/recovery while tracker runs | ✅ |
+| structural realtime audit | ✅ |
+| inherited regressions | ✅ |
+| representative WAV `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9` | ✅ |
+| normal linked WAV `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076` | ✅ |
+| target 72,504 B image / 19,604 B RAM / 113,000 B pool | ✅ |
+| Phase 4 aggregate exit | ✅ run `40124536375`, job `120963022289` |
 
-Final Phase 4 evidence:
+Evidence: `WP4_1_VERIFICATION.md` through `WP4_10_VERIFICATION.md`.
 
-- `WP4_1_VERIFICATION.md` through `WP4_9_VERIFICATION.md`
-- `WP4_10_PHASE4_EXIT_CONTRACT.md`
-- `WP4_10_VERIFICATION.md`
+## Phase 5 / WP5.0 - mixed-engine routing - COMPLETE
 
-Final Phase 4 production remains the D045 baseline `c93c39ad344760b4da0dfbc76829ca5fef886174`.
+| Check | Status | Evidence / result |
+|---|---|---|
+| D047 architecture frozen before production migration | ✅ | per-instrument family + engine |
+| D048 routing contract frozen before production migration | ✅ | `WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md` |
+| pre-migration project-wide gate reproduced | ✅ | run `40126003645` |
+| global router state exactly 8 B | ✅ | one family byte x 8 tracks |
+| instrument publication exactly 64 B | ✅ | 16 x 4 B headers |
+| `FmtSongMeta.mode` non-gating | ✅ | actual-app mode8/mode16 WAV byte-identical |
+| family identity coexistence across tracks | ✅ | router fixture |
+| same-track cross-family NOTE ordering | ✅ | hard-silence/clear/attempt/commit |
+| delayed NOTE uses same router | ✅ | focused fixture |
+| unknown family fail-safe | ✅ | silence |
+| invalid engine fail-safe | ✅ | silence |
+| non-applicable p-lock behavior | ✅ | ignored, never reinterpreted |
+| one owned primary family route per logical track | ✅ | fixed router semantics |
+| active cross-track primary steals | ✅ | exactly 0 |
+| static/bounded dispatch, no dynamic registry | ✅ | realtime audit |
+| one shared 2,048 B row-page cache | ✅ | no duplicate family cache |
+| D046 representative WAV byte-identical | ✅ | `33e819237fb0...` |
+| D046 normal WAV byte-identical | ✅ | `17fa5ce1759c...` |
+| D046 representative/full-pool/long-run workload | ✅ | migrated production source |
+| applicable Phase 1-4 regressions | ✅ | inherited suite |
+| structural D048 realtime audit | ✅ | bounded O(1) family access |
+| no FM4 production DSP in WP5.0 | ✅ | source guards |
+| target resource budget | ✅ | 72,792 B image / 19,676 B RAM / 113,000 B pool |
+| incremental D048 cost | ✅ | +288 / +72 / +0 B |
+| final BIN | ✅ | `a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125` |
+| final FWSC | ✅ | `cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073` |
+| WP5.0 aggregate exit | ✅ | run `40129822006`, job `120978955451` |
+| physical callback margin | ⛔ | `hardware_margin_claim=none` |
 
-## Phase 5 - mixed-engine routing + FM4 - IN PROGRESS
+Evidence: `WP5_0_PREMIGRATION_EVIDENCE.md`, `WP5_0_VERIFICATION.md`.
 
-Normative direction: `D047_MIXED_ENGINE_ARCHITECTURE.md`.
+## Phase 5 / WP5.1 - fixed-point FM operator primitive - ACTIVE
 
-### WP5.0 - active
+| Check | Status |
+|---|---|
+| D049/WP5.1 normative contract frozen before production source | ⬜ |
+| existing accepted phase/pitch conventions inspected | ⬜ |
+| operator state size/layout frozen | ⬜ |
+| phase accumulator format and exact wrap frozen | ⬜ |
+| deterministic carrier lookup representation frozen | ⬜ |
+| signed modulation input format/range frozen | ⬜ |
+| level/output format/range frozen | ⬜ |
+| overflow/saturation behavior frozen | ⬜ |
+| reset/init semantics frozen | ⬜ |
+| exact deterministic host vectors | ⬜ |
+| positive/negative/extreme modulation vectors | ⬜ |
+| zero/max level vectors | ⬜ |
+| repeated-run identity | ⬜ |
+| no float/double | ⬜ |
+| no heap | ⬜ |
+| no runtime 64-bit division | ⬜ |
+| pinned JieLi/AC79 target compile | ⬜ |
+| exact image/RAM/pool delta | ⬜ |
+| semantically applicable WP5.0 router regressions | ⬜ |
+| D046 all-8-BIT regression remains exact | ⬜ |
+| durable `WP5_1_VERIFICATION.md` | ⬜ |
 
-| Check | Host | Device build | Status |
-|---|---:|---:|---|
-| WP5.0 routing/migration contract frozen before production changes | required | n/a | ⬜ active next action |
-| Current project-wide family gate captured by focused pre-migration test | required | compile | ⬜ |
-| Per-instrument family + engine is authoritative routing identity | required | required | ⬜ |
-| `FmtSongMeta.mode` no longer gates otherwise valid instrument playback | required | required | ⬜ |
-| Different engine families coexist across logical tracks | required | required | ⬜ |
-| Same track can switch instrument across families deterministically | required | required | ⬜ |
-| Max one owned primary sequenced voice per logical track across families | required | required | ⬜ |
-| Still-owned active cross-track primary voices cannot be stolen | required | required | ⬜ |
-| Cross-family allocator/ownership representation measured and frozen | required | required | ⬜ |
-| Dispatch is static/bounded, no dynamic plugin architecture | inspect/test | required | ⬜ |
-| Non-applicable p-lock IDs cannot be reinterpreted by another family | required | required | ⬜ |
-| Common publication/parameter adapter boundary frozen | required | required | ⬜ |
-| All-8-BIT D046 configuration remains regression-identical | required | required | ⬜ |
-| WP5.0 resource delta captured inside explicit budget | required | required | ⬜ |
+WP5.1 must not implement algorithm routing, ratio policy, feedback, FM envelopes, FM voice allocation, FM parameter pages or mixed production FM playback.
 
-### FM4 after WP5.0
+## Remaining Phase 5 gates
 
-| Check | Host | Device build / hardware |
-|---|---:|---:|
-| WP5.1 four-operator fixed-point primitive | required | required |
-| WP5.2 curated algorithm routing | required | required |
-| WP5.3 ratio table / pitch correctness | required | required |
-| WP5.4 operator levels / modulation index | required | required |
-| WP5.5 bounded feedback | stress | required |
-| WP5.6 envelope strategy | required | required |
-| WP5.7 voice allocation/integration | required | required |
-| WP5.8 semantic parameter pages + p-lock mapping | required | required |
-| WP5.9 mixed 8-BIT + FM4 validation | required | required |
-| WP5.10 worst-case mixed-engine benchmark / Phase 5 exit | benchmark | required |
-
-Physical callback execution margin remains a later physical-FM-1 gate.
+| Package | Core verification |
+|---|---|
+| WP5.2 curated algorithms | exact static graph/routing fixtures |
+| WP5.3 ratio table | deterministic tuning vectors |
+| WP5.4 levels/mod index | bounded integer mappings |
+| WP5.5 feedback | bounded deterministic stress |
+| WP5.6 envelope strategy | deterministic NOTE/TIE/RETRIG/OFF |
+| WP5.7 FM voice integration | bounded ownership, no cross-track primary steal |
+| WP5.8 FM parameter pages | stable semantic IDs and p-lock tests |
+| WP5.9 mixed 8-BIT + FM4 | simultaneous and same-track family switching |
+| WP5.10 Phase 5 exit | mixed worst-case workload, realtime audit, target resources/artifacts |
 
 ## Mandatory live performance capture milestone
 
-This is core product work after the engine foundations, not optional Phase 9 work.
+Future required gates include REC arm/disarm while PLAY continues, deterministic live-note mapping, safe track switching, drum capture, transport-locked metronome, explicit CHANNEL/GLOBAL automation ownership, bounded parameter/FX capture and measured polyphony without reducing eight tracker tracks.
 
-| Check | Host | Hardware |
-|---|---:|---:|
-| REC can arm/disarm while playback continues | required | required |
-| Live notes map deterministically to tracker time | required | required |
-| Track switching during capture cannot misroute writes | required | required |
-| Drum capture representation/layout frozen and deterministic | required | required |
-| Metronome locked to transport | required | required |
-| CHANNEL/GLOBAL automation ownership explicit | required | required |
-| Parameter/FX capture bounded, not an unbounded ADC stream | required | stress |
-| Reference drums+bass+poly+lead configuration meets measured budget | benchmark | required |
-| Poly target measured without silently reducing eight tracker tracks | benchmark | required |
+Reference: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
-## Phase 6 - song/order/persistence
+## Physical hardware boundary
 
-| Check | Host | Device/hardware |
-|---|---:|---:|
-| Order-list model and safe pattern switching | required | required |
-| Repeat/loop ranges deterministic | required | required |
-| Binary format magic/version/length/CRC | required | required |
-| Serializer round trip | required | optional |
-| Corrupt/truncated/future data fails safely | required | required |
-| Save/load preserves reference project | required | required |
-| Save path does not unexpectedly block audio | inspect | required |
-| Migration fixture retained per format version | required | n/a |
-| Power-cycle round trip | n/a | required |
+No physical FM-1 is available. Host/device-build evidence does not prove install/boot, physical audio quality, control feel, screen feel or measured AC791N callback execution margin.
 
-## Phase 7 - physical hardware UX freeze
-
-Physical FM-1 required:
-
-- STEP REC understandable and fast;
-- REST/TIE/OFF gestures comfortable;
-- white-key step pages unambiguous;
-- black-key track selection avoids accidental notes/edits;
-- chord behavior matches expectation;
-- tracker rows readable on 240x240;
-- p-lock hold/delete ergonomics comfortable and deliberate;
-- live PLAY/REC, metronome and CHANNEL/GLOBAL performance FX feel immediate;
-- measured execution margin is acceptable under representative worst case.
-
-## Phase 8 - interoperability
-
-Required before any claim of Furnace compatibility beyond inspiration/workflow reference:
-
-- internal interchange specification;
-- MIDI transfer investigation;
-- Furnace export/import audit;
-- converter prototype if legally/technically justified;
-- explicit round-trip/non-round-trip decision.
-
-D003 remains authoritative: Furnace is a workflow/interoperability reference, not a full engine port.
-
-## Phase 9 - optional extensions
-
-Only after core milestones and explicit budget/license review:
-
-- WAVETABLE-16;
-- PCM/sample engines beyond approved core drum needs;
-- swing/microtiming/polymeter;
-- additional modern VA/supersaw/wavetable families;
-- extra DSP effects;
-- licensed chip cores.
-
-Live performance capture is not optional Phase 9 work.
-
-## Regression rule
-
-Once a check becomes ✅, later phases keep it passing. If a deliberate design change invalidates an old assertion, record a superseding decision and replace the assertion explicitly rather than silently dropping coverage.
+`hardware_margin_claim=none`

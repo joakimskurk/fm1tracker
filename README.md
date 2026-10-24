@@ -2,112 +2,109 @@
 
 FM1Tracker is a hardware-first tracker/sequencer firmware project for the M-VAVE FM-1.
 
-The project takes workflow inspiration from trackers such as Furnace, but it is **not** a port of the Furnace engine or codebase. The goal is a compact, deterministic instrument designed around the FM-1 hardware, integer DSP, tracker editing and immediate performance capture.
+The project takes workflow inspiration from trackers such as Furnace, but it is **not** a port of the Furnace engine or codebase. The goal is a compact deterministic instrument built around the FM-1 hardware, integer DSP, tracker editing and immediate performance capture.
 
-License: GPL-3.0-only unless otherwise noted. See `THIRD_PARTY.md` for provenance and external components.
+License: GPL-3.0-only unless otherwise noted. See `THIRD_PARTY.md`.
 
 ## Current status
 
-**Phase 4 is complete at host/device-build level. Phase 5 / WP5.0 is active.**
+**Phase 5 is in progress. WP5.0 mixed-engine routing is complete. WP5.1 fixed-point FM operator primitive is active.**
 
 Completed foundation:
 
-- clean pinned Dinghy/Felucca/SLOOP platform baseline;
+- pinned Dinghy/Felucca/SLOOP platform baseline;
 - 8 logical tracks x 64 steps x 16 patterns;
 - exact integer transport;
 - stopped STEP REC with NOTE / REST / TIE / OFF;
 - compact tracker display;
 - 2,048-record sparse p-lock pool;
-- tracker effects with exact six-tick timing;
+- exact six-tick tracker effects;
 - bounded 32-entry main-to-audio queue;
-- PULSE, NOISE, TRIANGLE and WAVETABLE-8 engines;
+- complete PULSE, NOISE, TRIANGLE and WAVETABLE-8 family;
 - common integer ADSR;
-- deterministic eight-slot tracker voice allocation;
+- deterministic eight-slot 8-BIT allocation;
 - linked all-eight-track 8-BIT playback;
-- full representative/full-pool/realtime/pinned-target Phase 4 closeout.
+- D046 representative/full-pool/realtime/target closeout;
+- D047/D048 per-instrument mixed-engine routing foundation.
 
-Canonical Phase 4 exit:
+## Mixed-engine architecture
 
-- production baseline: `c93c39ad344760b4da0dfbc76829ca5fef886174`
-- verification head: `2379d3e7e52d1cefe9f845f8287ad0ccda8c019a`
-- run: `40124536375`
-- job: `120963022289`
-- evidence: `docs/WP4_10_VERIFICATION.md`
-- representative WAV SHA-256: `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
-- target footprint: 72,504 B image / 19,604 B normal RAM / 113,000 B pool
-- zero active cross-track steals in the D046 representative/long-run ownership evidence
-- no physical-hardware execution-margin claim: `hardware_margin_claim=none`
+FM1Tracker is **one engine-agnostic tracker/sequencer**.
 
-No physical FM-1 is currently available, so install/boot/audio/control/screen feel and measured AC791N execution margin remain later explicit hardware gates.
+The project is not globally locked to 8-BIT or 16-BIT. Tracker rows/tracks reference instruments, and each instrument owns engine family + engine identity.
 
-## Current architecture direction
+WP5.0 proved this architecture without changing the verified 8-BIT sound output:
 
-D047 establishes FM1Tracker as **one engine-agnostic tracker/sequencer**.
+- `FmtSongMeta.mode` no longer gates valid playback;
+- instrument family/engine publication is fixed at 64 B;
+- global family route state is fixed at 8 B;
+- family dispatch is static and bounded;
+- cross-family replacement has deterministic fail-safe ordering;
+- malformed/unsupported family/engine fails toward silence;
+- non-applicable family-specific p-locks are ignored, never reinterpreted;
+- D046 representative and normal WAVs remain byte-identical;
+- no FM4 production DSP was mixed into the routing migration.
 
-The project is not globally locked to 8-BIT or 16-BIT. Instruments own engine family + engine identity, and tracker rows/tracks reference instruments.
+Canonical WP5.0 exit:
 
-The first complete all-8-BIT family remains the regression baseline while the common mixed-family router is introduced.
+- head `813792fb25632b4d7acda787422e51f713fad21e`
+- run `40129822006`
+- job `120978955451`
+- evidence `docs/WP5_0_VERIFICATION.md`
+- target 72,792 B image / 19,676 B normal RAM / 113,000 B pool
+- delta versus D046 +288 B / +72 B / +0 B
+- BIN `a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125`
+- FWSC `cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073`
+- `hardware_margin_claim=none`
 
 ## Active work package
 
-**WP5.0 - mixed-engine routing contract + migration**
+**WP5.1 - fixed-point FM operator primitive**, issue #44, branch `phase5/fm4-operator`.
 
-Before FM4 production implementation, WP5.0 must freeze and prove:
+Work remains contract-first. Before production FM operator code, WP5.1 must freeze:
 
-- per-instrument family + engine routing;
-- removal of `FmtSongMeta.mode` as a project-wide family gate while preserving compatibility;
-- simultaneous different engine families across logical tracks;
-- deterministic same-track cross-family instrument switching;
-- one owned primary sequenced voice per logical track across families;
-- no active cross-track primary stealing;
-- bounded static dispatch and ownership representation;
-- safe engine-specific parameter/p-lock behavior;
-- exact all-8-BIT D046 regression equivalence through the new router.
+- operator state and exact phase format;
+- deterministic integer carrier lookup;
+- signed modulation input format;
+- level/output range;
+- reset semantics;
+- overflow/saturation behavior;
+- exact deterministic host vectors;
+- target/realtime/resource guards.
 
-Do not jump directly to FM4 operators before WP5.0 closes.
+WP5.1 does not include algorithm routing, ratios, feedback, envelopes, voice allocation, FM parameter pages or mixed production FM playback.
 
 ## Planned FM4 sequence
 
-After WP5.0:
-
-1. four-operator fixed-point primitive
-2. curated algorithm routing
-3. integer ratio table
-4. operator levels / modulation index
-5. bounded feedback
-6. envelope strategy
-7. voice allocation/integration
-8. semantic parameter pages + p-lock mapping
-9. mixed 8-BIT + FM4 validation
-10. worst-case mixed-engine benchmark / Phase 5 exit
+1. WP5.1 fixed-point operator primitive
+2. WP5.2 curated algorithm routing
+3. WP5.3 integer ratio table
+4. WP5.4 levels / modulation index
+5. WP5.5 bounded feedback
+6. WP5.6 envelope strategy
+7. WP5.7 voice allocation/integration
+8. WP5.8 semantic parameter pages + p-lock mapping
+9. WP5.9 mixed 8-BIT + FM4 validation
+10. WP5.10 worst-case mixed-engine benchmark / Phase 5 exit
 
 ## Product direction
 
-The long-term interaction goal is:
+**Tracker depth underneath, immediate performance/capture on top.**
 
-**tracker depth underneath, immediate performance/capture on top.**
+The finished instrument should support precise stopped STEP REC and live capture while playback continues. Tracker data remains the source of truth.
 
-The finished instrument should support stopped STEP REC for precise programming and live capture while playback continues. Tracker data remains the source of truth.
-
-Core future work includes:
-
-- seamless track switching during live capture;
-- drums;
-- transport-locked metronome;
-- CHANNEL and GLOBAL performance FX/automation;
-- bounded tracker-editable parameter/FX capture;
-- song/order/save/load;
-- physical hardware UX freeze.
+Core future work includes seamless track switching during capture, drums, transport-locked metronome, CHANNEL/GLOBAL performance FX/automation, bounded tracker-editable capture, song/order/save/load and physical hardware UX freeze.
 
 Live performance capture is a core milestone, not an optional extension.
 
 ## Start here
 
-For a new session or contributor, read [`START_HERE.md`](START_HERE.md) first.
+For a new session, read `START_HERE.md` first.
 
-The authoritative execution files are:
+Authoritative execution files:
 
 - `docs/PROJECT_STATE.md`
+- `docs/WP5_0_VERIFICATION.md`
 - `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
 - `docs/CURRENT_DECISIONS.md`
 - `docs/WORK_PACKAGES.md`
@@ -115,6 +112,7 @@ The authoritative execution files are:
 - `docs/CURRENT_TEST_STATE.md`
 - `docs/TEST_MATRIX.md`
 - `docs/ROADMAP.md`
-- `docs/WP4_10_VERIFICATION.md`
 
 Repository state wins over old chat context.
+
+No physical FM-1 is currently available, so physical install/boot/audio/control/screen feel and measured AC791N execution margin remain later explicit gates.
