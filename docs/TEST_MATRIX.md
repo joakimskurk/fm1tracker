@@ -145,11 +145,30 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | Existing current-ID value >255 rejected without reinterpretation | required | compile | n/a | ✅ editor RANGE |
 | WP3.3 full-app SEQ p-lock gesture emits no audition MIDI | required | compile | required | ✅ `midi_events=0` |
 | WP3.3 p-lock footer framebuffers visually reviewed/frozen | required | compile | required | ✅ `224c0c05...` / `95bbee21...` |
-| P-lock editor writes storage only; playback/base params remain untouched | required | required | observable | ✅ WP3.3 frozen WAV unchanged |
-| `FmtLockEditor` exact 8 B and adds no pool allocation | required | required | n/a | ✅ +8 B RAM / +0 B pool |
+| P-lock editor writes storage only; playback/base params remain untouched | required | required | observable | ✅ WP3.3/WP3.4 frozen WAV unchanged |
+| WP3.3 `FmtLockEditor` exact 8 B and adds no pool allocation | required | required | n/a | ✅ WP3.3 +8 B RAM / +0 B pool |
 | WP3.3 final resource delta measured/frozen | n/a | required | n/a | ✅ +2,328 B image / +8 B RAM / +0 B pool |
-| WP3.3 preserves all Phase 2 + WP3.1 + WP3.2 regressions | required | required | later | ✅ run `40054322180` |
-| User-facing delete/clear cannot corrupt neighbors | required | required | required | ⬜ WP3.4 |
+| Existing-lock browse follows D028 sorted semantic order | required | compile | required | ✅ D030/WP3.4 |
+| SELECT browse clamps first/last and never wraps | required | compile | required | ✅ WP3.4 including extreme deltas |
+| Zero-lock browse is explicit safe no-op | required | compile | n/a | ✅ `PLOCK NO LOCKS` |
+| Successful KNOB edit selects the semantic lock for browse/delete | required | compile | required | ✅ WP3.4 |
+| EDIT arm is non-destructive | required | required | required | ✅ WP3.4 |
+| Same-poll EDIT+SEL cannot delete | required | required | required | ✅ reviewed armed 1000-ms fixture |
+| EDIT release cancels pending delete | required | required | required | ✅ WP3.4 full-app fixture |
+| PLAY cancels delete arm before transport action | required | required | required | ✅ WP3.4 full-app fixture |
+| Unrelated note/OCT intent cannot leave latent destructive arm | required | required | required | ✅ note fixture + D030 ordering |
+| Encoder motion while delete is armed cannot move/edit target | required | required | required | ✅ drained/discarded D030 input path |
+| First/middle/last/only selected lock deletion deterministic | required | compile | required | ✅ WP3.4 unit coverage |
+| Successful delete restores exactly one free record | required | compile | n/a | ✅ WP3.4 free-list checks |
+| User-facing one-lock delete cannot corrupt neighboring step/locks | required | required | required | ✅ D030/WP3.4 |
+| RANGE current-ID lock can be identified and removed without reinterpretation | required | compile | n/a | ✅ WP3.4 |
+| NOT_FOUND/BAD_ADDRESS/CORRUPT delete paths have no partial mutation | required | compile | n/a | ✅ WP3.4 |
+| No clear-all panel gesture exists in WP3.4 | inspect/test | compile | required later | ✅ deliberate D030 boundary |
+| WP3.4 full-app browse/delete emits no audition MIDI | required | compile | required | ✅ `midi_events=0` |
+| WP3.4 armed/deleted framebuffers visually reviewed/frozen | required | compile | required | ✅ `6ce56a09...` / `f0185637...` |
+| `FmtLockEditor` exact 10 B after D030 and adds no pool allocation | required | required | n/a | ✅ WP3.4, pool +0 B |
+| WP3.4 final resource delta measured/frozen | n/a | required | n/a | ✅ +2,512 B image / +4 B RAM / +0 B pool |
+| WP3.4 preserves all Phase 2 + WP3.1 + WP3.2 + WP3.3 regressions | required | required | later | ✅ run `40064122343` |
 | Lock application to playback is deterministic and does not mutate stored base data | required | required | observable | ⬜ WP3.5+ |
 | Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
 | Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
@@ -160,6 +179,7 @@ Phase 3 evidence so far:
 - `WP3_1_VERIFICATION.md`
 - `WP3_2_VERIFICATION.md`
 - `WP3_3_VERIFICATION.md`
+- `WP3_4_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 
