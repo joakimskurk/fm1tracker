@@ -68,6 +68,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_playback_params_tests.sh | tee build/wp3_5_playback_params.log
           grep -F 'FMT_PLAYBACK_PARAMS_TESTS_OK=1' build/wp3_5_playback_params.log
           grep -F 'cache_bytes=256 rows=64 word_bytes=4 defaults=255,128,255 active_params=voice,fine,track pan=storage_only' build/wp3_5_playback_params.log
