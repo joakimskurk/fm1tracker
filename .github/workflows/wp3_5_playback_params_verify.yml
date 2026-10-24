@@ -7,10 +7,14 @@ on:
     paths:
       - .github/workflows/wp3_5_playback_params_verify.yml
       - docs/DECISIONS.md
+      - firmware/src/dinghy.c
       - firmware/src/fmt_playback_params.h
       - firmware/src/fmt_playback_params.c
       - tests/test_fmt_playback_params.c
       - tests/run_playback_params_tests.sh
+      - tests/wp3_5_locked_audio.script
+      - tests/wp3_5_locked_audio_control.script
+      - tests/run_wp3_5_locked_audio_host.sh
   workflow_dispatch:
 
 permissions:
@@ -25,6 +29,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
       - name: Verify focused WP3.5 scope
         shell: bash
         run: |
@@ -36,10 +43,14 @@ jobs:
               '.github/workflows/wp3_5_playback_params_verify.yml',
               'docs/PROJECT_STATE.md',
               'docs/DECISIONS.md',
+              'firmware/src/dinghy.c',
               'firmware/src/fmt_playback_params.h',
               'firmware/src/fmt_playback_params.c',
               'tests/test_fmt_playback_params.c',
               'tests/run_playback_params_tests.sh',
+              'tests/wp3_5_locked_audio.script',
+              'tests/wp3_5_locked_audio_control.script',
+              'tests/run_wp3_5_locked_audio_host.sh',
           }
           changed = set(subprocess.check_output(
               ['git', 'diff', '--name-only', base, 'HEAD'], text=True
@@ -81,4 +92,21 @@ jobs:
           sh tests/run_playback_tests.sh | grep -F 'FMT_PLAYBACK_TESTS_OK=1'
           sh tests/run_lock_store_tests.sh | grep -F 'FMT_LOCK_STORE_TESTS_OK=1'
           sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
+          sh tests/run_lock_editor_tests.sh | grep -F 'FMT_LOCK_EDITOR_TESTS_OK=1'
           echo 'WP3_5_FOUNDATION_REGRESSIONS_OK=1'
+
+      - name: Preserve frozen no-lock audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tests/run_host.sh
+          sha="$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')"
+          test "$sha" = '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440'
+          echo "WP3_5_DEFAULT_WAV_UNCHANGED=$sha"
+
+      - name: Prove locked audio behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_5_locked_audio_host.sh
+          grep -F 'WP3_5_LOCKED_AUDIO_BEHAVIOR_OK=1 pre_equal=1 combined_level=1 fine_pitch=1 empty_mute=1 unlocked_restore=1 midi_events=0' build/wp3_5_locked_audio_analysis.txt
