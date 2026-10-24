@@ -1,0 +1,38 @@
+name: WP3.6 repair hygiene helper once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_fix_wp3_6_hygiene_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Make payload decoding whitespace-safe
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/_wp3_6_host_hygiene_once.yml')
+          s = p.read_text()
+          old = " | base64 -d > /tmp/wp3_6_host_hygiene.py"
+          new = " | tr -d '[:space:]' | base64 -d > /tmp/wp3_6_host_hygiene.py"
+          assert s.count(old) == 1
+          p.write_text(s.replace(old, new, 1))
+          PY
+          git diff --check
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/_wp3_6_host_hygiene_once.yml
+          git commit -m 'WP3.6: make hygiene payload decode whitespace-safe'
+          git push origin HEAD:phase3/plocks-effects
