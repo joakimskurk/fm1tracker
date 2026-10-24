@@ -1,0 +1,31 @@
+name: WP4.7 to WP4.8 handoff once
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - .github/workflows/_wp4_7_to_wp4_8_handoff_once.yml
+      - .github/tmp/wp4_7_to_wp4_8_handoff.py
+
+permissions:
+  contents: write
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply WP4.7 to WP4.8 handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tmp/wp4_7_to_wp4_8_handoff.py
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_STATE.md docs/WORK_PACKAGES.md docs/ROADMAP.md docs/TEST_MATRIX.md
+          git commit -m 'docs: hand off WP4.7 to WP4.8'
+          git push origin HEAD:phase4/8bit-engine
