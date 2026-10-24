@@ -57,6 +57,12 @@ test "$HOST_FRAMES" = '286464'
 printf 'WP5_0_POSTMIGRATION_D046_WAV_OK=1 sha256=%s frames=%s\n' "$HOST_SHA" "$HOST_FRAMES" | tee "$OUT/wav_identity.txt"
 
 # Actual-app legacy metadata independence: only startup FmtSongMeta.mode changes.
+# Keep the generated translation unit in a dedicated empty directory. dinghy.c
+# includes production .c files with quotes, so sharing build/tests with earlier
+# suites can shadow those includes and make an aggregate run order-dependent.
+MODE_SRC=build/wp5_0_songmode_src
+rm -rf "$MODE_SRC"
+mkdir -p "$MODE_SRC"
 printf '%s\n' 'WP5_0_POSTMIGRATION_SONG_META_STAGE=generate'
 python3 - <<'PY'
 from pathlib import Path
@@ -67,13 +73,13 @@ assert src.count(old) == 1, 'unexpected startup song-mode assignment count'
 mutated = src.replace(old, new, 1)
 assert old not in mutated, 'legacy startup song-mode assignment survived mutation'
 assert mutated.count(new) == src.count(new) + 1, 'song-mode mutation was not singular'
-Path('build/tests/dinghy_wp5_0_songmode16.c').write_text(mutated)
+Path('build/wp5_0_songmode_src/dinghy.c').write_text(mutated)
 PY
 printf '%s\n' 'WP5_0_POSTMIGRATION_SONG_META_STAGE=compile'
 cc -O2 -Wall -Wno-unused-function -DDINGHY_HOST \
     -DAPP_NAME='"FM1TRACKER"' -DAPP_VER='"dev"' \
     -Ifirmware/src -Ifirmware/gen \
-    -o build/host/fm1tracker_songmode16 build/tests/dinghy_wp5_0_songmode16.c
+    -o build/host/fm1tracker_songmode16 "$MODE_SRC/dinghy.c"
 printf '%s\n' 'WP5_0_POSTMIGRATION_SONG_META_STAGE=run'
 build/host/fm1tracker_songmode16 build/host/fm1tracker_songmode16 > "$OUT/songmode16_host.log"
 test -s build/host/fm1tracker_songmode16.wav
