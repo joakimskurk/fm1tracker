@@ -1,0 +1,31 @@
+name: WP4.2 D038 MIDI-128 clarification once
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - .github/workflows/_wp4_2_contract_clarify_once.yml
+      - .github/tmp/wp4_2_contract_clarify.py
+
+permissions:
+  contents: write
+
+jobs:
+  clarify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Clarify legal versus private MIDI-128 pitch boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tmp/wp4_2_contract_clarify.py
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/WP4_2_PULSE_CONTRACT.md
+          git commit -m 'docs: clarify D038 private MIDI-128 lookup'
+          git push origin HEAD:phase4/8bit-engine
