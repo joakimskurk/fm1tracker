@@ -1,0 +1,34 @@
+name: Phase 3 final handoff sync once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_phase3_final_handoff_once.yml
+      - .github/tmp/phase3_final_handoff.py
+
+permissions:
+  contents: write
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Synchronize final Phase 3 state
+        run: python3 .github/tmp/phase3_final_handoff.py
+
+      - name: Validate and commit handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/DECISIONS.md docs/PROJECT_STATE.md docs/WORK_PACKAGES.md docs/ROADMAP.md docs/TEST_MATRIX.md CHANGELOG.md
+          git commit -m 'docs: close Phase 3 and hand off to Phase 4'
+          git push origin HEAD:phase3/plocks-effects
