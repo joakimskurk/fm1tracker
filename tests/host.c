@@ -273,7 +273,6 @@ static uint32_t host_d046_state_hash(void)
 
     hash = host_fnv_u32(hash, fmt_transport_runtime.step);
     hash = host_fnv_u32(hash, fmt_transport_runtime.phase);
-    hash = host_fnv_u32(hash, fmt_transport_runtime.residual);
     hash = host_fnv_u32(hash, fmt_lock_store_used_count());
     hash = host_fnv_u32(hash, fmt_lock_store_free_count());
 
