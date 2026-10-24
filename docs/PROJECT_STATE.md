@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.6/D042 COMPLETE; WP4.7/allocator active; D043 contract freeze next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.6/D042 COMPLETE; WP4.7/allocator active; D043 FROZEN; isolated implementation/tests next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.7 / #37
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.7 - deterministic voice allocation and stealing**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.6/D042 COMPLETE; WP4.7 / #37 active; D043 ownership/allocation/steal/tie-break contract required before allocator source**
+State: **IN PROGRESS - WP4.1/D037 through WP4.6/D042 COMPLETE; WP4.7 / #37 active; D043 FROZEN; isolated allocator implementation/tests next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -328,7 +328,7 @@ WP4.6 closed on run `40102339789`, job `120896886645`. D042 common envelope pass
 
 The complete starting oscillator palette plus D042 envelope remain isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.6.
 
-WP4.7 must freeze D043 before production allocator source. D043 must define exact eight-slot ownership state, one-primary-voice-per-track reuse, free/IDLE/release selection, deterministic steal priority and tie-breaks, age/wrap semantics, reset/preserve behavior on allocation or steal, D037/D042 NOTE/TIE/OFF/RETRIG interaction, NO_VOICE behavior, bounded work and focused deterministic evidence.
+D043 is frozen in `docs/WP4_7_ALLOCATOR_CONTRACT.md`: exact 52-byte eight-slot ownership/recency state, same-track reuse, lowest-IDLE fresh allocation, OFF/CUT detached release tails, oldest unowned RELEASE-tail steal only, no active cross-track steal, saturating 32-bit recency with lower-index tie-break, explicit NO_VOICE fail-safe and bounded fixed-slot work.
 
 The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.7 allocator work. Do not pull engine parameter pages or full engine integration forward.
 
@@ -352,6 +352,7 @@ The Phase 3 proof sine remains the full-app production audio implementation duri
 - D040: WP4.4 TRIANGLE is a 4-byte phase-only integer oscillator with exact zero/peak quarter-cycle points, 15-bit quarter-slope quantization, half-cycle antisymmetry and direct D038 pitch reuse while isolated.
 - D041: WP4.5 WAVETABLE-8 is a 4-byte phase oscillator over eight immutable 32-sample signed-8-bit tables (256 B total), top-five-bit zero-order-hold lookup, `raw*258` Q15 expansion and direct D038 pitch reuse while isolated.
 - D042: WP4.6 common envelope is a 20-byte linear ADSR with Q15.16 level, division-free 16-entry rate mapping, hard NOTE/RETRIG articulation, TIE/EMPTY no-op and OFF/CUT release from current level while isolated.
+- D043: WP4.7 allocator is a 52-byte fixed eight-slot owner/recency map that reuses same-track voices, prefers IDLE, detaches OFF/CUT release tails and may steal only the oldest unowned RELEASE tail; active cross-track stealing is forbidden.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -365,7 +366,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze D043 and the focused WP4.7 deterministic allocator/steal test contract in the repository before creating allocator production source. Keep all four oscillator primitives and D042 envelope isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical.
+Implement and verify isolated `fmt_voice_allocator.*` exactly under D043 with ownership/free/release-tail/recency/saturation/corruption/replay host tests, static realtime audit and pinned PI32v2 target compilation. Keep D038-D042 primitives isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical; do not begin WP4.8 or full engine integration.
 
 ## Last relevant checkpoints
 
@@ -394,7 +395,8 @@ Freeze D043 and the focused WP4.7 deterministic allocator/steal test contract in
 - WP4.5 D041 verification/closeout: `bb56d16c31330e3515ba36241726c09a2a30729b` — run `40095198147`, job `120875856198`
 - WP4.6 D042 contract: `983757fc3fc48d884ade9b9fdb59df0a1d070f9c`
 - WP4.6 D042 verification/closeout: `14a9f06ab3d808cf9579d53e881ef75a2fa30486` — run `40102339789`, job `120896886645`
+- WP4.7 D043 contract: `1215c89aa48cd2727c10c6af327fdc0052d72562`
 
 ## Last updated
 
-2026-10-24 - WP4.6 / #36 COMPLETE. D042 common envelope passed deterministic all-rate/sustain/event/stage/zero-time/hash verification, independent PI32v2 compilation and full-app closeout with zero linked delta; run `40102339789`, job `120896886645`. WP4.7 / #37 is now active. Exact next action: freeze D043 deterministic allocator ownership/free/release/steal/tie-break/age-wrap/test contract before production source.
+2026-10-24 - WP4.7 / #37 active. D043 is frozen in `WP4_7_ALLOCATOR_CONTRACT.md` before allocator source. Exact next action: implement/test isolated `fmt_voice_allocator.*` with mapping/free/detach/release-tail/recency/saturation/fail-safe proof and real PI32v2 compile while the full app remains byte-identical.

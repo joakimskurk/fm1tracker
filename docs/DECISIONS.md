@@ -887,3 +887,24 @@ The primitive is intentionally isolated in WP4.6. Full-app image/RAM/pool/WAV/BI
 **Reason:** Phase 4 now has four deterministic oscillator primitives but still needs one common articulation boundary before allocator and engine integration. Linear ADSR gives familiar tracker articulation and explicit TIE legato while keeping state small. A compact rate table plus nibble shifting removes division from the audio render path, makes worst-case work trivial to bound and spans useful millisecond-to-minute slopes without floating point.
 
 **Consequence:** Focused tests must prove exact state/layout, all 256 rate controls, sustain mapping, NOTE/TIE/RETRIG/OFF semantics, zero-time edges, monotonic ramps, exact terminal levels, default timing and the frozen long-run hash. `fmt_envelope.c` must compile with the real pinned PI32v2 compiler and contain no render loop/division/float/int64/allocation/store traversal. Final allocator, parameter mapping and full engine integration remain WP4.7-WP4.9. Any change to hard articulation, stage topology, rate table, update ordering or live retiming requires a superseding decision and new deterministic evidence.
+
+## D043 — WP4.7 uses an eight-slot deterministic allocator that steals only detached RELEASE tails
+
+Date: 2026-10-24
+Status: accepted — frozen before allocator production source
+
+**Decision:** WP4.7 implements one isolated fixed eight-slot allocator exactly as frozen in `docs/WP4_7_ALLOCATOR_CONTRACT.md`. `FmtVoiceAllocator` is exactly 52 B: eight 32-bit recency ages, one saturating 32-bit clock, eight voice->track owner bytes and eight track->voice bytes. `FmtVoiceAllocation` is exactly 4 B and reports NONE/REUSE/FRESH_IDLE/STEAL_TAIL plus whether engine state must be reset.
+
+D043 preserves D037's one-primary-voice-per-track invariant and explicitly forbids stealing a voice still owned by another logical track. OFF/NOTE CUT first start D042 RELEASE and then detach the track from that slot; the release may continue as an unowned tail. NOTE acquisition reuses an already-owned non-IDLE slot, otherwise takes the lowest-index IDLE slot, otherwise steals the oldest unowned RELEASE tail with lower slot index as the age tie-break. If none of those candidates exists, allocation fails to `NO_VOICE` without mutation.
+
+This release-tail rule is sufficient for the eight-track/eight-slot Phase 4 architecture: a valid requesting track with no owned slot cannot require another track's still-owned primary voice to be cut. It also allows a track to start a new primary voice while its older detached release tail continues when spare capacity exists.
+
+The allocator receives only the caller-owned eight-byte D042 stage snapshot. IDLE synchronization clears stale owner mappings. Unowned ATTACK/DECAY/SUSTAIN is malformed and fails safely. TIE/EMPTY/RETRIG never allocate; delayed NOTE allocates only when it fires. Fresh/steal results require deterministic oscillator/engine reset by the later adapter; REUSE does not reset oscillator state, preserving D037 ordinary-NOTE phase semantics.
+
+Recency uses only 32-bit integer state. The clock saturates at `UINT32_MAX` and never wraps; once saturated, the lower voice index remains the deterministic tie-break. Allocator work is event-boundary fixed eight-slot scanning only, with no heap, blocking, tracker-store traversal, recursion, float, runtime 64-bit arithmetic or unbounded search. Persistent isolated state cost is 52 B normal RAM and no pool RAM.
+
+WP4.7 remains disconnected from `dinghy.c`, so full-app image/RAM/pool/WAV/BIN/FWSC delta must remain exactly zero versus WP4.6.
+
+**Reason:** D037/D042 already provide eight track identities, eight voice slots and click-safe release behavior. Detaching release tails gives the allocator a musically useful bounded steal target without ever cutting a still-owned track. Saturating recency avoids wrap arithmetic while preserving deterministic oldest-tail selection for practical lifetime and a frozen tie-break after saturation.
+
+**Consequence:** focused tests must prove exact 52 B/4 B layouts, reset/mapping invariants, all-eight deterministic first allocation, same-track reuse, IDLE synchronization, OFF/CUT detach, free-before-tail priority, oldest-tail/tie selection, no active cross-track steal, saturation without wrap, malformed-state no-mutation, guards/replay and a frozen long sequence hash. `fmt_voice_allocator.c` must compile on pinned PI32v2 and the complete full app must remain byte-identical while isolated. Parameter mapping and full engine integration remain WP4.8/WP4.9.
