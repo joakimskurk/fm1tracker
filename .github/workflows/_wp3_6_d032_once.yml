@@ -1,0 +1,71 @@
+name: WP3.6 append D032 once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_d032_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Append D032 without rewriting prior decisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq '## D032 —' docs/DECISIONS.md; then
+            echo 'D032 already exists' >&2
+            exit 1
+          fi
+          cp docs/DECISIONS.md /tmp/decisions_before.md
+          cat >> docs/DECISIONS.md <<'EOF'
+
+          ## D032 — WP3.6 tracker effects use exact six-tick D020 timing and bounded persistent pitch state
+
+          Date: 2026-10-24  
+          Status: accepted before WP3.6 production source
+
+          **Decision:** WP3.6 uses the existing `FmtStep.effect/effect_value` bytes as a tracker-effect command domain that remains separate from D027 p-lock parameter IDs. Assigned commands are `NONE=0x00`, `ARPEGGIO=0x01`, `SLIDE_UP=0x02`, `SLIDE_DOWN=0x03`, `PORTAMENTO=0x04`, and `VIBRATO=0x05`; all other command bytes resolve safely to NONE. `FmtStep` remains exactly 8 bytes.
+
+          Effect timing is derived directly from D020: `661500 / 6 = 110250` phase units gives exactly six effect ticks per row. Tick 0 starts at D021 row dispatch; internal tick boundaries occur at transport phases `110250`, `220500`, `330750`, `441000`, and `551250`. The real D020 phase/residual remains authoritative, so WP3.6 introduces no second free-running clock or cumulative rounding.
+
+          Persistent proof pitch is Q7. SLIDE_UP/DOWN and PORTAMENTO may move persistent pitch; D031 FINE remains row-local and never mutates that state. ARPEGGIO and VIBRATO are transient only. Final pitch precedence is `persistent_pitch_q7 + (D031_FINE - 128) + transient_effect_mod_q7`, clamped to `0..16383`. NOTE/TIE/EMPTY/OFF, portamento-target memory, vibrato phase continuity, exact command arguments, and saturation/reset rules are frozen in the detailed contract below.
+
+          Main/startup publishes one aligned 32-bit effect snapshot for each of the 64 proof-lane rows, exactly 256 bytes ordinary RAM. Audio reads one effect word at row dispatch; `FmtPlaybackEvent` remains exactly 4 bytes. Effect runtime state is fixed at no more than 16 bytes. Per-frame work is bounded to at most one effect-threshold comparison plus fixed integer work at an actual effect tick. No allocator, D028 traversal, variable event loop, screen/flash work, float, or runtime 64-bit division enters the audio path.
+
+          The normative detailed WP3.6 contract is `docs/WP3_6_EFFECT_CONTRACT.md`. It freezes ARPEGGIO `XY` sequence `0,X,Y,0,X,Y`; Q7 SLIDE_UP/DOWN; Q7 PORTAMENTO with remembered target; 64-phase triangle VIBRATO; NOTE/TIE/EMPTY/OFF behavior; D031 FINE precedence; invalid-command fallback; cache ownership; real-time bounds; and required deterministic regressions.
+
+          **Reason:** six ticks divide the existing D020 integer row phase exactly, preserving tracker-style timing without pulling WP3.8 queue architecture forward. Keeping commands in the existing two step bytes preserves the data model and D027 separation between tracker effects and p-lock parameters. A fixed proof-lane cache provides bounded main-to-audio publication analogous to D031.
+
+          **Consequence:** WP3.6 may add only the small effect registry/cache/state and proof-lane audio integration required by `WP3_6_EFFECT_CONTRACT.md`. Retrig/note-delay/note-cut, general queue work, effect-entry UI, new synth engines, persistence, and live capture remain out of scope.
+          EOF
+          cmp /tmp/decisions_before.md <(head -c "$(wc -c < /tmp/decisions_before.md)" docs/DECISIONS.md)
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/DECISIONS.md')
+          s = p.read_text()
+          s = s.replace('\n          ## D032 —', '\n## D032 —', 1)
+          for prefix in ('          Date:', '          Status:', '          **Decision:**', '          Effect timing', '          Persistent proof', '          Main/startup', '          The normative', '          **Reason:**', '          **Consequence:**'):
+              s = s.replace('\n' + prefix, '\n' + prefix[10:])
+          s = s.replace('\n          EOF', '\nEOF') if '\n          EOF' in s else s
+          p.write_text(s)
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = 'docs/DECISIONS.md'
+      - name: Commit D032
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/DECISIONS.md
+          git commit -m 'WP3.6: accept D032 tracker effect contract'
+          git push origin HEAD:phase3/plocks-effects
