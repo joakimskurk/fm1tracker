@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8/parameter pages active; D044 contract freeze next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8/parameter pages active; D044 FROZEN; isolated implementation/tests next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.8 / #39
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.8 - four-parameter engine pages + p-lock mapping**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8 / #39 active; D044 stable-ID/page/default/domain/publication contract required before parameter source**
+State: **IN PROGRESS - WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8 / #39 active; D044 FROZEN; isolated parameter-page implementation/tests next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -329,7 +329,7 @@ WP4.7 closed on run `40103427588`, job `120900076833`. D043 deterministic alloca
 
 The complete D038-D043 oscillator/envelope/allocator primitive set remains isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.7.
 
-WP4.8 must freeze D044 before production parameter-page source. D044 must define stable semantic IDs from the reserved Phase 4 range `0x20..0x5F`, exactly four exposed controls per 8-BIT engine, parameter order/names/defaults/normalized domains, exact normalized-byte mappings into D038-D042 controls, lockability and D027/D031 publication behavior, malformed/unsupported behavior, base-value versus row-local override ownership, bounded snapshot representation, deterministic vectors and zero-full-app-delta isolation boundary.
+D044 is frozen in `docs/WP4_8_PARAMETER_PAGE_CONTRACT.md`: six stable IDs `0x20..0x25`, a 6 B semantic base set, one exact four-control page per engine, direct D042 envelope mapping, bounded WIDTH/TABLE transforms, <=4-lock row resolution and a future 2048 B aligned row cache. Global registry/UI/cache activation remains deferred to WP4.9 so WP4.8 stays isolated and byte-identical at full-app level.
 
 The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.8 parameter-layer work. Do not pull WP4.9 proof-sine migration or full engine integration forward.
 
@@ -354,6 +354,7 @@ The Phase 3 proof sine remains the full-app production audio implementation duri
 - D041: WP4.5 WAVETABLE-8 is a 4-byte phase oscillator over eight immutable 32-sample signed-8-bit tables (256 B total), top-five-bit zero-order-hold lookup, `raw*258` Q15 expansion and direct D038 pitch reuse while isolated.
 - D042: WP4.6 common envelope is a 20-byte linear ADSR with Q15.16 level, division-free 16-entry rate mapping, hard NOTE/RETRIG articulation, TIE/EMPTY no-op and OFF/CUT release from current level while isolated.
 - D043: WP4.7 allocator is a 52-byte fixed eight-slot owner/recency map that reuses same-track voices, prefers IDLE, detaches OFF/CUT release tails and may steal only the oldest unowned RELEASE tail; active cross-track stealing is forbidden.
+- D044: WP4.8 freezes six 8-BIT semantic IDs (`0x20..0x25`), one exact four-control page per engine, a 6 B base set, bounded normalized WIDTH/TABLE mappings and a future aligned 2048 B row cache; global registry/UI/cache activation is deferred to WP4.9.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -367,7 +368,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze D044 and the focused WP4.8 parameter-page/p-lock publication test contract in the repository before creating parameter-page production source. Keep D038-D043 primitives isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical.
+Implement the isolated D044 parameter-page resolver and focused deterministic tests from the frozen contract. Do not activate the six IDs in the linked global registry, allocate the final cache, alter the current knob UI or connect D038-D043 to `dinghy.c`; keep the Phase 3 proof sine/full-app artifacts byte-identical.
 
 ## Last relevant checkpoints
 

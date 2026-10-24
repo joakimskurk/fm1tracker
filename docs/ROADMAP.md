@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Phase 4 is active. **WP4.1 / #31 through WP4.7 / #37 are COMPLETE**; **WP4.8 / #39 four-parameter engine pages + p-lock mapping is active**, with D044 required before source.
+Phase 4 is active. **WP4.1 / #31 through WP4.7 / #37 are COMPLETE**; **WP4.8 / #39 four-parameter engine pages + p-lock mapping is active**, with D044 now frozen and isolated implementation/testing next.
 
 ---
 
@@ -143,10 +143,10 @@ Phase 4 is active. **WP4.1 / #31 through WP4.7 / #37 are COMPLETE**; **WP4.8 / #
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8 / #39 parameter pages + p-lock mapping active; D044 before source**
+Status: **IN PROGRESS — WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8 / #39 parameter pages + p-lock mapping active; D044 FROZEN; isolated implementation/tests next**
 
 Parent issue: #30
-Active package: WP4.8 / #39 — freeze D044 stable Phase 4 engine parameter IDs, exactly four controls per 8-BIT engine, defaults/domains/value mappings and bounded D027/D031 p-lock/publication semantics before production source. WP4.1 / #31 through WP4.7 / #37 are complete; D038-D043 primitives remain isolated. Branch: `phase4/8bit-engine`.
+Active package: WP4.8 / #39 — D044 is frozen in `WP4_8_PARAMETER_PAGE_CONTRACT.md`; implement/test the isolated six-ID, four-control-page and bounded p-lock resolver primitive while keeping D038-D043 and the running full app unchanged. WP4.1 / #31 through WP4.7 / #37 are complete. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 
