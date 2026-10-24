@@ -7,6 +7,7 @@
 #include "fmt_playback.h"
 
 #define FMT_TRACKER_EFFECT_ROWS            FMT_STEPS_PER_PATTERN
+#define FMT_TRACKER_EFFECT_EXTRA_TRACKS    (FMT_TRACKS - 1u)
 #define FMT_TRACKER_EFFECT_TICKS_PER_ROW   6u
 #define FMT_TRACKER_EFFECT_TICK_PHASE      110250u
 
@@ -47,8 +48,12 @@ FMT_STATIC_ASSERT(tracker_effect_tick_divides_row_exactly,
 FMT_STATIC_ASSERT(tracker_effect_one_tick_max_per_frame,
                   0xFFFFu < FMT_TRACKER_EFFECT_TICK_PHASE);
 
-/* D032/D033: one aligned atomic publication word per proof-lane row. */
+/* Historical D032/D033 track-0 cache remains the exact 256 B symbol. D045 Gate
+ * 1 adds seven fixed aligned rows for tracks 1..7 behind track-aware APIs. */
 extern volatile uint32_t fmt_tracker_effect_cache[FMT_TRACKER_EFFECT_ROWS];
+extern volatile uint32_t
+    fmt_tracker_effect_cache_extra[FMT_TRACKER_EFFECT_EXTRA_TRACKS]
+                                  [FMT_TRACKER_EFFECT_ROWS];
 
 uint8_t fmt_tracker_effect_command_valid(uint8_t command);
 uint32_t fmt_tracker_effect_pack(uint8_t command,
@@ -63,6 +68,12 @@ void fmt_tracker_effect_cache_reset(void);
 void fmt_tracker_effect_cache_rebuild(void);
 int fmt_tracker_effect_cache_refresh_step(uint32_t step);
 uint32_t fmt_tracker_effect_cache_read(uint32_t step);
+
+/* D045 Gate 1 track-aware publication. Legacy helpers above remain exact
+ * track-0 wrappers. */
+void fmt_tracker_effect_cache_rebuild_track(uint32_t track);
+int fmt_tracker_effect_cache_refresh_track_step(uint32_t track, uint32_t step);
+uint32_t fmt_tracker_effect_cache_read_track(uint32_t track, uint32_t step);
 
 void fmt_tracker_effect_state_reset(FmtTrackerEffectState *state);
 void fmt_tracker_effect_begin_row(FmtTrackerEffectState *state,
