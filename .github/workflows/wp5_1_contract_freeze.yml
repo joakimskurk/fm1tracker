@@ -1,0 +1,33 @@
+name: WP5.1 D049 contract freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-operator
+    paths:
+      - docs/WP5_1_FM_OPERATOR_CONTRACT.md
+      - tests/run_wp5_1_contract_freeze.sh
+      - .github/workflows/wp5_1_contract_freeze.yml
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify D049 pre-implementation contract and reference vectors
+        run: sh tests/run_wp5_1_contract_freeze.sh
+
+      - name: Upload D049 contract-freeze evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-1-d049-contract-freeze
+          path: |
+            docs/WP5_1_FM_OPERATOR_CONTRACT.md
+            build/host/fm1tracker.wav
+          if-no-files-found: warn
