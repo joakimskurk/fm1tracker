@@ -38,8 +38,9 @@ jobs:
           grep -F 'WP5_0_DINGHY_SOURCE_ROUTER_OK=1 song_mode_gate=absent static_dispatch=1 identity_publication=1' build/wp5_0_dinghy/ci.log
           grep -F 'WP5_0_DINGHY_SHARED_CACHE_OK=1 definitions=1 size_asserts=1 bytes=2048' build/wp5_0_dinghy/ci.log
           grep -F 'WP5_0_DINGHY_D046_WAV_IDENTITY_OK=1 sha256=17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076 frames=286464' build/wp5_0_dinghy/ci.log
+          grep -F 'WP5_0_DINGHY_SONG_META_NONGATING_OK=1 mode8_mode16_wav=byte_identical sha256=17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076 frames=286464' build/wp5_0_dinghy/ci.log
           grep -F 'WP5_0_DINGHY_TARGET_METRICS_OK=1' build/wp5_0_dinghy/metrics.txt
-          grep -F 'WP5_0_DINGHY_DRYRUN_OK=1 d048_router=linked d046_wav=byte_identical canonical_8bit=pass target=pinned fm_dsp=absent hardware_margin_claim=none' build/wp5_0_dinghy/ci.log
+          grep -F 'WP5_0_DINGHY_DRYRUN_OK=1 d048_router=linked d046_wav=byte_identical song_meta=nongating canonical_8bit=pass target=pinned fm_dsp=absent hardware_margin_claim=none' build/wp5_0_dinghy/ci.log
       - name: Upload D048 dinghy dry-run evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,5 +50,6 @@ jobs:
           path: |
             build/wp5_0_dinghy/**
             build/host/fm1tracker.wav
+            build/host/fm1tracker_songmode16.wav
             build/fm1tracker.bin
             build/fm1tracker-0.1.fwsc
