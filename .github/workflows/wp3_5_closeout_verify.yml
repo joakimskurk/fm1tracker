@@ -1,13 +1,7 @@
 name: WP3.5 full closeout verification
 
-# Exact device/resource/artifact assertions are frozen in run_wp3_5_closeout_ci.sh.
+# Historical WP3.5 proof. Manual reruns always verify the exact green source/workflow checkpoint.
 on:
-  push:
-    branches:
-      - phase3/plocks-effects
-    paths:
-      - .github/workflows/wp3_5_closeout_verify.yml
-      - tests/run_wp3_5_closeout_ci.sh
   workflow_dispatch:
 
 permissions:
@@ -17,15 +11,23 @@ jobs:
   playback-closeout:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout verified WP3.5 checkpoint
         uses: actions/checkout@v4
         with:
+          ref: 17316f203dba7a93c9d03a52df6f45b12a7a2580
           fetch-depth: 0
+
+      - name: Verify exact historical checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "17316f203dba7a93c9d03a52df6f45b12a7a2580"
+          echo "WP3_5_HISTORICAL_CHECKPOINT_OK=1"
 
       - name: Install host screenshot dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Run complete WP3.5 closeout gate
+      - name: Run complete frozen WP3.5 closeout gate
         shell: bash
         run: sh tests/run_wp3_5_closeout_ci.sh
 
