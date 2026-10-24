@@ -1,229 +1,300 @@
 # FM1Tracker V0.1 Engine Scope
 
-Status: **design freeze candidate**
+Status: **current engine-family direction amended by D037-D047**
 
-The first playable firmware should prove the tracker workflow, not win a chip-emulation feature-count contest. Both sound modes must therefore start with a deliberately small set of engines that are cheap enough to run comfortably inside the FM-1 audio budget.
+FM1Tracker should prove a small number of musically useful, deterministic engines before expanding feature count. The important architecture rule after D047 is that engines are **per instrument**, not project-wide modes.
 
-## 1. Shared engine contract
+Current normative mixed-engine direction: `D047_MIXED_ENGINE_ARCHITECTURE.md`.
 
-Every engine must expose:
+## 1. Shared engine-family contract
 
-- note on / note off / optional tie
-- integer velocity/level
-- integer pitch representation
-- deterministic reset behavior
-- bounded render cost
-- a stable parameter-ID table for p-locks
-- a four-parameter primary performance page
-- optional engine-specific secondary pages
+Every engine family integrated into tracker playback must provide a bounded adapter for the common tracker semantics it supports.
 
-All DSP is fixed-point/integer on device.
+At minimum, an engine must define:
 
-The host build may use helper code for tests, but behavior relevant to the firmware must be reproducible without floating point.
+- NOTE / OFF behavior and TIE policy;
+- integer/fixed-point pitch input;
+- deterministic reset/retrigger behavior;
+- bounded render cost;
+- deterministic voice ownership/allocation policy;
+- stable semantic parameter IDs for lockable controls;
+- a compact primary performance page suitable for the FM-1 controls;
+- explicit behavior for unsupported/malformed instrument/parameter data;
+- measured image/RAM/pool cost;
+- deterministic host/device-build evidence.
 
-## 2. 8-BIT mode
+All real-time firmware DSP is fixed-point/integer. No float, runtime 64-bit division, heap allocation, dynamic plugin discovery or unbounded per-sample work is allowed.
 
-8-BIT means a curated chip-style synthesis palette. It does not imply authentic emulation of a particular console unless a later engine is explicitly named and verified as such.
+The tracker/sequencer owns musical time. An engine may not introduce a parallel tracker clock or private unbounded event stream.
 
-### V0.1 required engines
+## 2. Instrument routing after D047
 
-#### PULSE
-
-Core:
-
-- band-unlimited pulse/square initially acceptable if aliasing remains musically tolerable and CPU savings matter
-- selectable duty values, with continuous PWM only if cheap enough
-- simple amplitude envelope
-- optional pitch envelope after core is stable
-
-Primary encoder page:
+The target relationship is:
 
 ```text
-DUTY | DECAY | FINE | LEVEL
+track / row -> instrument -> engine family -> engine
 ```
 
-Candidate p-lock parameters:
+The project itself is not `8-BIT` or `16-BIT`.
+
+Different tracks may eventually run different engine families simultaneously, and an explicit instrument change on a NOTE may cross families once WP5.0 freezes the mixed router.
+
+The current `FmtInstrumentHeader.mode` byte is kept as the compatibility family discriminator until WP5.0 decides whether to retain/alias/rename the source field. `FmtInstrumentHeader.engine` remains the engine-within-family identity.
+
+`8-BIT`, `FM/DIGITAL`, `MODERN`, `DRUM` and similar labels may be useful browser categories, but they are not project types.
+
+## 3. First proven family - 8-BIT/chip
+
+Phase 4 implements and verifies the first complete engine family.
+
+### PULSE
+
+Frozen implementation highlights:
+
+- 32-bit phase-only oscillator;
+- hard-edge pulse output;
+- bounded WIDTH domain;
+- common Q7 pitch helper;
+- deterministic reset/retrigger;
+- no anti-aliasing path hidden in the realtime loop.
+
+Current D044 primary page:
 
 ```text
-DUTY
-LEVEL
-PITCH_FINE
-ENV_DECAY
+WIDTH | DECAY | SUSTAIN | RELEASE
 ```
 
-#### TRIANGLE
+### NOISE
 
-Core:
+Frozen implementation highlights:
 
-- integer phase accumulator
-- triangle transfer function/table
-- amplitude envelope
+- deterministic 15-bit maximal LFSR;
+- one bounded state advance maximum per rendered frame;
+- saturated pitch-derived noise clock;
+- deterministic reset seed.
 
-Primary page:
+Current D044 primary page:
 
 ```text
-SHAPE | DECAY | FINE | LEVEL
+ATTACK | DECAY | SUSTAIN | RELEASE
 ```
 
-`SHAPE` may initially be fixed/reserved if a useful cheap variant is not found.
+### TRIANGLE
 
-#### WAVETABLE-8
+Frozen implementation highlights:
 
-Core:
+- 32-bit phase-only integer triangle;
+- exact bounded Q15-style output;
+- direct common pitch reuse;
+- no table/interpolation cost.
 
-- small mono single-cycle tables stored as constants
-- integer table lookup
-- optional interpolation only after profiling
-- small built-in wave bank, no user import in V0.1
-
-Primary page:
+Current D044 primary page:
 
 ```text
-WAVE | DECAY | FINE | LEVEL
+ATTACK | DECAY | SUSTAIN | RELEASE
 ```
 
-#### NOISE
+### WAVETABLE-8
 
-Core:
+Frozen implementation highlights:
 
-- deterministic LFSR or equivalent integer pseudo-noise source
-- at least two tonal/color modes if cheap
-- amplitude envelope
+- eight immutable 32-sample signed-8-bit tables;
+- top-five-bit zero-order-hold lookup;
+- deterministic table fallback;
+- 256 B immutable table bank.
 
-Primary page:
+Current D044 primary page:
 
 ```text
-TYPE | DECAY | TONE | LEVEL
+TABLE | DECAY | SUSTAIN | RELEASE
 ```
 
-### 8-BIT polyphony target
+### Common Phase 4 family components
 
-Start with **8 voices maximum**, dynamically assigned across the eight logical tracks. The exact per-engine cost must be measured before promising eight simultaneous expensive voices.
+- D042 common integer linear ADSR;
+- D043 deterministic eight-slot owner/release-tail allocator;
+- D044 six stable 8-BIT semantic parameter IDs;
+- D045 linked all-eight-track adapter;
+- D046 representative/full-pool/long-run/realtime closeout.
 
-Voice stealing must be deterministic: prefer oldest/released voice according to a documented policy.
+The Phase 4 all-8-BIT implementation remains the regression baseline after mixed routing is introduced. D047 does not require changing it before WP4.10 closes.
 
-## 3. 16-BIT mode
+## 4. Next family - FM4 / early digital
 
-16-BIT means a broader early-digital sound palette. It is a musical category, not a guarantee about every arithmetic width.
+FM4 is the next engine family to build after WP5.0 establishes the common mixed-engine router.
 
-### V0.1 required engine
+Required direction:
 
-#### FM4
-
-A compact fixed-point four-operator FM engine.
-
-Required:
-
-- four operators
-- small curated algorithm set rather than an unbounded matrix
-- per-operator ratio from precomputed integer tables
-- per-operator level
-- feedback on a bounded subset/operator if CPU allows
-- shared/common amplitude envelope first; per-operator envelopes only if profiling proves feasible
-
-Primary page:
+- four fixed-point operators;
+- small curated algorithm set rather than an unrestricted matrix;
+- precomputed/integer operator ratios;
+- explicit modulation/index/level mapping;
+- bounded feedback;
+- deterministic pitch/retrigger/NOTE/OFF semantics;
+- measured envelope strategy;
+- deterministic voice allocation/integration;
+- stable parameter IDs;
+- primary page initially targeted around:
 
 ```text
 ALGO | MOD | FEED | LEVEL
 ```
 
-Secondary EDIT page may expose operator ratios/levels.
+A secondary focused editor may expose operator ratios/levels if hardware/resources justify it.
 
-The first milestone should favor a musically useful simplified FM4 over a superficially complete DX-style implementation that misses the ISR budget.
+The first milestone should prefer a musically useful compact FM4 over superficial DX-style completeness that compromises realtime bounds.
 
-### V0.1 optional engine
+### Phase 5 ordering
 
-#### WAVETABLE-16
+FM4 production integration may not bypass the router work:
 
-A larger/broader wavetable oscillator than WAVETABLE-8, potentially with morph/phase-distortion-style shaping if the CPU budget permits.
+```text
+WP5.0 mixed-engine routing contract + migration
+WP5.1 FM operator primitive
+WP5.2 curated algorithms
+WP5.3 ratio table
+WP5.4 levels/modulation index
+WP5.5 bounded feedback
+WP5.6 FM envelope strategy
+WP5.7 FM voice allocation/integration
+WP5.8 FM parameter pages + p-lock mapping
+WP5.9 mixed 8-BIT + FM4 validation
+WP5.10 mixed worst-case Phase 5 exit
+```
 
-It is optional for the first audible 16-BIT milestone. FM4 alone is sufficient to validate the mode split.
+## 5. Future modern/drum engine direction
 
-### Deferred PCM
+D047 deliberately prevents the tracker from being redesigned again when later engines arrive.
 
-PCM/sample playback is intentionally deferred until after the tracker, p-locks and both synthesis modes are stable.
+Possible future bounded engine packages include:
 
-Reasons:
+- virtual analog;
+- supersaw/unison;
+- broader wavetable/digital synthesis;
+- dedicated drum synthesis;
+- phase-distortion-style digital synthesis;
+- PCM/sample playback if storage/transfer/runtime budgets support it;
+- specifically licensed authentic chip cores.
 
-- sample storage competes with pool/flash resources;
-- import/format conversion adds non-audio scope;
-- sample start/end/loop parameters add UI complexity;
-- voice streaming/storage policy should be designed from measured remaining resources.
+These are **architecturally allowed**, not automatically V1-required.
 
-## 4. Envelope policy
+Each new engine still needs its own explicit parameter/resource/realtime contract and deterministic verification.
 
-V0.1 should begin with the cheapest envelope that still makes instruments musical.
+## 6. Polyphony and voice-budget policy
 
-Preferred implementation:
+Eight logical tracker tracks are stable sequencer lanes. They are not a voice-count promise.
 
-- integer stage machine
-- control-rate update where audibly safe
-- precomputed/time-mapped coefficient or increment tables
-- no division in the audio callback
+Rules:
 
-The UI may present familiar ADSR terminology even if an early engine internally uses a simpler decay/release model, but the displayed controls must match the actual behavior.
+- engine families may have different voice costs;
+- at most one owned primary sequenced voice per logical track remains the mixed-router baseline until a later polyphonic-track package explicitly extends it;
+- release tails may exist only under an explicit bounded policy;
+- one track may not steal another track's still-owned active primary voice;
+- the accepted future target is 3-6 voices for at least one polyphonic instrument if measured FM-1 CPU/RAM permits;
+- do not silently reduce the eight logical tracks to obtain polyphony;
+- do not silently substitute an engine, reduce synthesis quality or drop random notes when a configuration exceeds budget;
+- resource-limit behavior must be explicit and deterministic.
 
-## 5. Pitch policy
+WP5.0 must choose the cross-family ownership representation from measured options rather than forcing every engine into the current `Fmt8BitVoice` layout.
 
-Use 32-bit phase accumulators and precomputed note-increment tables.
+## 7. Envelope policy
 
-Required:
+D042 proves one cheap common linear ADSR implementation for the 8-BIT family.
 
-- MIDI-style note 0..127 input domain
-- octave switching without runtime expensive division
-- fine pitch parameter with deterministic integer mapping
-- effect pitch slides use accumulators rather than repeated lossy note re-quantization
+A later family may reuse it or define another bounded envelope representation if required by its synthesis model. Envelope state/rates still must obey:
 
-## 6. Mixer policy
+- integer/fixed-point arithmetic;
+- bounded stage work;
+- no division in the sample loop;
+- deterministic NOTE/TIE/RETRIG/OFF semantics;
+- displayed controls matching actual behavior.
 
-V0.1 mixer:
+FM4's exact envelope strategy is intentionally WP5.6 work rather than silently assumed from the 8-BIT family.
 
-- per-track level
-- per-track pan if CPU/memory cost is negligible
-- master headroom strategy documented and measured
-- explicit saturation/clipping behavior
+## 8. Pitch policy
 
-Delay/reverb are not required for the first playable build. A tracker with excellent entry/editing and dry sound is more valuable than an overloaded DSP build.
+Common tracker pitch semantics remain engine-independent.
 
-## 7. Engine quality gates
+Current foundation:
 
-An engine is not accepted into V0.1 merely because it makes sound.
+- MIDI-style note `0..127`;
+- D031/D032 Q7 semitone domain for fine/effect composition;
+- exact integer transport/effect timing;
+- expensive conversion work occurs on note/pitch changes, not unnecessarily per sample.
 
-It must pass:
+Each engine family must document how the common resolved pitch becomes its internal oscillator/operator phase increments without changing tracker semantics.
 
-1. host deterministic render test;
-2. note/pitch sanity across the intended keyboard range;
-3. note-off/retrigger test;
-4. p-lock parameter update test;
-5. worst-case simultaneous voice render benchmark;
-6. hardware ISR timing measurement;
-7. no forbidden float/64-bit divide symbols in the firmware build;
-8. no zipper/click artifacts beyond those intentionally characteristic of the engine.
+## 9. Mixer policy
 
-## 8. Resource stop rules
+The mixer remains bounded and explicit.
 
-If an engine pushes normal worst-case audio rendering above the target half-budget, simplify in this order:
+Current Phase 4 linked engine:
+
+- per-track common gain from D031 VOICE LEVEL x TRACK LEVEL;
+- signed bounded mix/clamp;
+- TRACK PAN remains storage-only.
+
+Future work may add pan/sends/global processing only through explicit packages with measured CPU/RAM and ownership rules.
+
+Delay/reverb/modern FX are not prerequisites for validating a new sound engine.
+
+## 10. Parameter/p-lock policy
+
+D027 semantic parameter identity remains the common storage contract.
+
+Rules:
+
+- existing IDs are never renumbered for mixed-engine routing;
+- new engine parameters receive explicit IDs in their owning package;
+- primary page position does not define parameter identity;
+- a lock irrelevant to the resolved engine is ignored safely;
+- an engine change never reinterprets one engine's lock ID as another parameter;
+- parameter caches/publication remain bounded and audio never traverses D028 lists.
+
+## 11. Engine quality gates
+
+An engine is not accepted merely because it makes sound.
+
+It must pass the applicable gates:
+
+1. deterministic host render/state tests;
+2. pitch/note sanity over intended range;
+3. NOTE/OFF/TIE/retrigger behavior;
+4. p-lock parameter application and safe irrelevant-lock handling;
+5. deterministic voice ownership/allocation;
+6. simultaneous-engine/family integration tests once linked;
+7. worst-case render/resource benchmark;
+8. pinned target compile/build;
+9. no forbidden float/runtime-64-bit-divide/allocation/unbounded realtime work;
+10. physical hardware callback margin before final hardware signoff;
+11. no unacceptable zipper/click artifacts beyond deliberate engine character.
+
+Host wall-clock timing is diagnostic only and is not AC791N execution-margin proof.
+
+## 12. Resource stop rules
+
+If an engine or mixed configuration exceeds measured budget, simplify in this order where musically appropriate:
 
 1. reduce control-rate work;
 2. replace runtime math with tables/shifts;
 3. reduce expensive interpolation/modulation;
-4. reduce simultaneous voice count for that engine;
+4. reduce that engine's explicit polyphony/voice target;
 5. reduce algorithm complexity;
-6. defer the engine.
+6. defer the engine/configuration.
 
-Do not sacrifice transport timing or p-lock determinism to preserve an overly ambitious synth feature.
+Do not sacrifice transport timing, p-lock determinism, active-track ownership or silent engine substitution to preserve an overly ambitious synth feature.
 
-## 9. Authentic chip emulation policy
+## 13. Authentic chip/core policy
 
-Future authentic profiles/cores are welcome only after an explicit audit covering:
+Future authentic profiles/cores require explicit audit of:
 
-- upstream license compatibility with GPL-3.0-only firmware;
-- source provenance and notices;
-- code/constant size;
+- GPL-3.0-only compatibility;
+- provenance/notices;
+- image/constants size;
 - RAM/pool cost;
 - worst-case CPU cost;
-- endianness/alignment assumptions;
-- use of float, dynamic allocation, 64-bit division or unavailable libc functions;
-- whether the implementation is sufficiently accurate to use the chip/system name.
+- endian/alignment assumptions;
+- float/dynamic allocation/runtime 64-bit division/libc requirements;
+- accuracy sufficient to use the claimed system/chip name.
 
-Until then, product/UI naming stays generic: PULSE, TRIANGLE, WAVETABLE, NOISE, FM4.
+Until then, generic product names such as PULSE, TRIANGLE, WAVETABLE, NOISE and FM4 remain appropriate.
