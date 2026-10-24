@@ -37,15 +37,14 @@ jobs:
               assert s.count(needle) == 1, (name, s.count(needle))
               repl = f'        with:\n          ref: {checkpoint}\n          fetch-depth: 0\n'
               s = s.replace(needle, repl, 1)
-              anchor = repl + '\n'
               verify = ("      - name: Verify exact historical checkpoint\n"
                         "        shell: bash\n"
                         "        run: |\n"
                         "          set -euo pipefail\n"
                         f"          test \"$(git rev-parse HEAD)\" = \"{checkpoint}\"\n"
                         "          echo 'WP3_6_HISTORICAL_CHECKPOINT_OK=1'\n\n")
-              assert s.count(anchor) == 1, (name, 'checkout anchor')
-              s = s.replace(anchor, anchor + verify, 1)
+              pos = s.index('          fetch-depth: 0\n') + len('          fetch-depth: 0\n')
+              s = s[:pos] + '\n' + verify + s[pos:]
               p.write_text(s)
           PY
 
