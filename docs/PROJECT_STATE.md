@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9/linked 8-BIT engine integration active; D045 FROZEN; Gates 1-2 GREEN; Gate 3 D044 registry/cache/editor activation next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9/linked 8-BIT engine integration active; D045 FROZEN; Gates 1-3 GREEN; Gate 4 dinghy/audio migration next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.9 / #40
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.9 - linked 8-BIT engine integration**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 FROZEN; Gates 1-2 GREEN; Gate 3 D044 linked registry/cache/base-bank + page-aware p-lock editor next**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 FROZEN; Gates 1-3 GREEN; Gate 4 linked dinghy/audio migration next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -370,7 +370,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Begin D045 Gate 3 only: activate D044 IDs `0x20..0x25` in the linked D027 registry, add the fixed 16 × 6 B instrument base bank, publish the aligned 8 × 64 × 4 B D044 row cache from main context, and make held-step KNOB1..4 p-lock editing use the selected track's exact four engine-page IDs while preserving D028 max-four sparse locks. Do not modify `dinghy.c` or migrate the proof-sine tracker lane until Gate 3 is green.
+Begin D045 Gate 4 only: migrate `dinghy.c` from the Phase 3 proof-sine tracker lane to the bounded 8-BIT engine, seed deterministic 8-BIT instruments/base sets, link all eight tracker tracks through the Gate 1-3 publication/engine layers, preserve the separate D034 audition-sine lane, and add deterministic per-engine/mixed/eight-track/D033/precedence fixtures plus pinned target resource proof. Do not begin WP4.10 timing/Phase 4 closeout until Gate 4 is green.
 
 ## Last relevant checkpoints
 
@@ -407,7 +407,8 @@ Begin D045 Gate 3 only: activate D044 IDs `0x20..0x25` in the linked D027 regist
 - WP4.9 D045 contract: `fd31801b8a73e27345d4575026b593fb45e10c20`
 - WP4.9 D045 Gate 1 verification: `362c3f825791e5def2c9367fc27e6032018e8539` — run `40108097887`, host `120913890803`, PI32v2 `120913891037`
 - WP4.9 D045 Gate 2 verification: `ceee70e94e3aaa6fd266e18490f4b3ce28ee51e5` — run `40109064516`, host `120916760172`, PI32v2 `120916760440`; replay `c2a8d4df`
+- WP4.9 D045 Gate 3 verification: `9263b754c877dc0e6076c34538a496820e2ededb` — run `40111447360`, host `120923852664`, PI32v2 `120923852448`; evidence `WP4_9_GATE3_VERIFICATION.md`
 
 ## Last updated
 
-2026-10-24 - WP4.9 / #40 active. D045 Gates 1-2 are GREEN. Gate 2 added only the isolated 404 B `Fmt8BitEngine` pair, passed lifecycle/release-tail/malformed-note/eight-slot mix tests, all D038-D044 regressions and pinned PI32v2 compilation on run `40109064516`; replay `c2a8d4df`, object `967fba0d...`. Exact next action: Gate 3 only — D044 linked registry/cache/base bank + page-aware selected-track p-lock editor. Keep `dinghy.c` untouched.
+2026-10-24 - WP4.9 / #40 active. D045 Gates 1-3 are GREEN. Gate 3 activated exactly six D044 IDs, the 96 B base-bank/2048 B aligned row-cache publication layer and page-aware selected-track p-lock mutation, while `dinghy.c` and proof audio remained unchanged. Canonical run `40111447360`; evidence `WP4_9_GATE3_VERIFICATION.md`. Exact next action: Gate 4 only — migrate the tracker lane to the linked 8-BIT engine and prove integrated host/target behavior/resources.
