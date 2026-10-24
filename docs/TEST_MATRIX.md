@@ -278,7 +278,9 @@ Phase 3 evidence so far:
 | Envelope stage/time/gate/retrigger/release vectors + JieLi target compile | required | required | optional later | ✅ run `40102268841` / closeout `40102339789` |
 | WP4.6 full app remains exact WP4.5 baseline while envelope is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
 | D043 deterministic allocator/steal contract frozen before source | required | compile | n/a | ✅ `WP4_7_ALLOCATOR_CONTRACT.md` / `1215c89a...` |
-| Voice allocation/stealing deterministic | required | required | required later | ⬜ WP4.7 next |
+| Voice allocation/stealing deterministic | required | required | required later | ✅ run `40103284377` / closeout `40103427588`; audit `40103577801` |
+| WP4.7 full app remains exact WP4.6 baseline while allocator is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
+| D044 engine parameter-page/p-lock publication contract frozen before source | required | compile | n/a | ⬜ WP4.8 active |
 | P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |
 | Representative eight-track timing | benchmark | required | required later | ⬜ WP4.10 |
 | Physical FM-1 install/audio/execution margin | n/a | n/a | required later | ⬜ no physical FM-1 available |
@@ -289,6 +291,7 @@ WP4.3 detailed evidence: `WP4_3_NOISE_CONTRACT.md`, `WP4_3_VERIFICATION.md`.
 WP4.4 detailed evidence: `WP4_4_TRIANGLE_CONTRACT.md`, `WP4_4_VERIFICATION.md`.
 WP4.5 detailed evidence: `WP4_5_WAVETABLE8_CONTRACT.md`, `WP4_5_VERIFICATION.md`.
 WP4.6 detailed evidence: `WP4_6_ENVELOPE_CONTRACT.md`, `WP4_6_VERIFICATION.md`.
+WP4.7 detailed evidence: `WP4_7_ALLOCATOR_CONTRACT.md`, `WP4_7_VERIFICATION.md`.
 
 ## Phase 5 FM4
 
