@@ -268,7 +268,7 @@ Phase 3 evidence so far:
 | D039 NOISE primitive/test contract frozen before source | required | compile | n/a | ✅ `WP4_3_NOISE_CONTRACT.md` / `9cf3fd7d...` |
 | NOISE deterministic vectors + JieLi target compile | required | required | optional later | ✅ run `40093607376` / closeout `40093740514` |
 | WP4.3 full app remains exact WP4.2 baseline while NOISE is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
-| D040 TRIANGLE primitive/test contract frozen before source | required | compile | n/a | ⬜ WP4.4 active |
+| D040 TRIANGLE primitive/test contract frozen before source | required | compile | n/a | ✅ `WP4_4_TRIANGLE_CONTRACT.md` / `79167dd9...` |
 | TRIANGLE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.4 next |
 | WAVETABLE-8 bounds deterministic | required | required | optional later | ⬜ WP4.5 |
 | Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |

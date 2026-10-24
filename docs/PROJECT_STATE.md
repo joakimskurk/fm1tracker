@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/TRIANGLE active; D040 contract freeze next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/TRIANGLE active; D040 FROZEN; isolated implementation/tests next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.4 / #34
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.4 - TRIANGLE oscillator**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4 / #34 active; D040 contract/test plan required before TRIANGLE source**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4 / #34 active; D040 FROZEN; isolated TRIANGLE implementation/tests next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -325,7 +325,7 @@ WP4.3 closed on run `40093740514`, job `120871569195`. D039 NOISE passed exact 3
 
 D038 PULSE and D039 NOISE remain isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.3.
 
-WP4.4 must freeze D040 before production TRIANGLE source. D040 must define exact 32-bit phase-to-Q15 triangle mapping, endpoint/midpoint/symmetry semantics, reset/retrigger/first-sample behavior, sample/advance ordering, D038 pitch reuse, deterministic vectors/hash, realtime bounds, target-compile obligations and the zero-full-app-delta isolation boundary.
+D040 is frozen in `docs/WP4_4_TRIANGLE_CONTRACT.md`: 4-byte phase-only state, exact quadrant/15-bit-offset Q15 mapping, canonical `0,+32767,0,-32767` quarter-cycle points, sample-before-advance ordering, direct D038 pitch reuse, exact half-cycle antisymmetry, deterministic vectors/hash and zero full-app delta while isolated.
 
 The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.4 primitive work. Do not pull WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
 
@@ -346,6 +346,7 @@ The Phase 3 proof sine remains the full-app production audio implementation duri
 - D037: Phase 4 engine ownership, eight-voice cap, Q7 pitch domain, event/effect adapter boundary, Q15/32-bit mix rules, realtime bounds and complete Phase 4 resource ceilings are frozen before oscillator source.
 - D038: WP4.2 PULSE is a 4-byte phase-only hard-edge oscillator with exact existing Q7 pitch integers, pulse width 32..224, sample-before-advance ordering and zero full-app delta while isolated.
 - D039: WP4.3 NOISE is an 8-byte deterministic clocked 15-bit LFSR seeded `0x5A3D`, with saturated D038 pitch clock x16 and a hard maximum of one LFSR step per audio frame while isolated.
+- D040: WP4.4 TRIANGLE is a 4-byte phase-only integer oscillator with exact zero/peak quarter-cycle points, 15-bit quarter-slope quantization, half-cycle antisymmetry and direct D038 pitch reuse while isolated.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -359,7 +360,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze D040 and the focused WP4.4 TRIANGLE test contract in the repository before creating TRIANGLE production source. Keep D038 PULSE and D039 NOISE isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical.
+Implement and verify isolated `fmt_osc_triangle.*` exactly under D040 with focused endpoint/symmetry/vector/hash host tests, static realtime audit and pinned PI32v2 target compilation. Keep PULSE/NOISE isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical; do not begin WP4.5 or full engine integration.
 
 ## Last relevant checkpoints
 
@@ -382,7 +383,8 @@ Freeze D040 and the focused WP4.4 TRIANGLE test contract in the repository befor
 - WP4.2 D038 verification/closeout: `776cbd47e55fc5da6f57e894325ba67d67a61f29` — run `40089122159`, job `120857992257`
 - WP4.3 D039 contract: `9cf3fd7d0a227c9555c34c98e37154ea038ff4cb`
 - WP4.3 D039 verification/closeout: `42cc5aa9cb8d48f76d66817bb4977315aa60f211` — run `40093740514`, job `120871569195`
+- WP4.4 D040 contract: `79167dd9e76fdac09801fe8fc59bb7c9bb94a72e`
 
 ## Last updated
 
-2026-10-24 - WP4.3 / #33 COMPLETE. D039 NOISE passed deterministic period/vector/hash verification, independent PI32v2 compilation and full-app closeout with zero linked delta; run `40093740514`, job `120871569195`. WP4.4 / #34 is now active. Exact next action: freeze D040 TRIANGLE contract/test plan before TRIANGLE production source.
+2026-10-24 - WP4.4 / #34 active. D040 is frozen in `WP4_4_TRIANGLE_CONTRACT.md` before TRIANGLE source. Exact next action: implement/test isolated `fmt_osc_triangle.*` with exhaustive bounds/symmetry vectors, deterministic hash and real PI32v2 compile while the full app remains byte-identical.

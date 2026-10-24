@@ -820,3 +820,26 @@ WP4.3 remains isolated, so full-app image/RAM/pool/WAV/BIN/FWSC delta must remai
 **Reason:** D037 requires fixed-size deterministic engine state and bounded per-sample work, while NOISE must still share the tracker Q7 pitch domain. A 15-bit maximal LFSR is recognizably chip-like and cheap; the saturated x16 clock makes ordinary musical pitches useful as noise rates without overflow wrap; and the one-wrap/one-step rule makes worst-case audio work independent of pitch.
 
 **Consequence:** Focused tests must prove the exact recurrence, 32,767-step period, reset/retrigger, clock vectors/saturation, zero/one-step render bound, short vectors, repeatability and long-run signature. `fmt_osc_noise.c` must compile with the real pinned PI32v2 compiler and pass the same no-float/no-int64/no-allocation/no-unbounded-loop audit. TRIANGLE, WAVETABLE-8, envelope, allocator, parameter pages and proof-sine migration remain later packages. Any alternate tap mode, whitening, seed, clock multiplier or multi-step catch-up rule requires a superseding decision and new deterministic evidence.
+
+## D040 — WP4.4 TRIANGLE is a 4-byte phase-only integer triangle with exact zero crossings and Q15 peaks
+
+Date: 2026-10-24
+Status: accepted — frozen before TRIANGLE production source
+
+**Decision:** WP4.4 implements one isolated deterministic TRIANGLE primitive exactly as frozen in `docs/WP4_4_TRIANGLE_CONTRACT.md`. It remains disconnected from `dinghy.c` and the running full app.
+
+`FmtTriangleOsc` contains exactly one `uint32_t phase` and is therefore exactly 4 B. Reset and D033 RETRIG both set phase to zero. Rendering samples current phase before advancing it by the already-frozen D038 phase increment.
+
+The exact phase-to-sample mapping derives `quadrant = phase >> 30` and `offset = (phase >> 15) & 0x7FFF`. Quadrants map to `offset`, `32767-offset`, `-offset`, and `-32767+offset`. Canonical quarter-cycle samples are therefore exactly `0, +32767, 0, -32767`, output is always inside D037 `-32767..32767`, and half-cycle antisymmetry is exact.
+
+The 15-bit quarter-slope quantization is intentional. It supplies every required integer Q15 amplitude without multiplication, division or `-32768`; phase cells around quadrant boundaries may hold an extremum/zero for adjacent phase values. WP4.4 adds no interpolation, smoothing, BLEP, oversampling or hidden filter.
+
+TRIANGLE reuses `fmt_engine_pitch_inc_q7()` directly and creates no engine-specific pitch math. The primitive has no parameter beyond phase increment, no waveform table and no static mutable state. One render is fixed O(1) integer work with no loop, allocation, tracker-store traversal, float or 64-bit arithmetic.
+
+Frozen deterministic vectors include quarter-cycle `0,+32767,0,-32767` and eighth-cycle `0,+16384,+32767,+16383,0,-16384,-32767,-16383`. The 65,536-sample A4 signature is final phase `0xDFB90000`, FNV-1a32 `0xBC0F75ED`.
+
+WP4.4 remains isolated, so full-app image/RAM/pool/WAV/BIN/FWSC delta must remain exactly zero versus WP4.3. The isolated mutable state cost is 4 B per TRIANGLE oscillator, 32 B for eight future instances.
+
+**Reason:** D037 already freezes a common 32-bit phase/Q7 pitch domain and nominal-Q15 range. The quadrant/15-bit-offset construction gives natural zero-crossing reset semantics, exact positive/negative full-scale peaks, exact half-cycle symmetry and trivially bounded target arithmetic without introducing a table, multiply/divide path or parallel tuning model.
+
+**Consequence:** Focused tests must prove exact canonical/boundary vectors, exhaustive high-16 range bounds and half-cycle antisymmetry, wrap/zero-increment/replay/guards, unchanged D038 pitch vectors and the frozen long-run signature. `fmt_osc_triangle.c` must compile with the real pinned PI32v2 compiler while the D038 pitch object stays byte-identical. WAVETABLE-8, envelope, allocator, parameter pages and proof-sine migration remain later packages. Any alternate phase orientation, amplitude rounding, interpolation or anti-aliasing requires a superseding decision and new deterministic evidence.
