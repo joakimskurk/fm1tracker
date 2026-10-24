@@ -1,0 +1,52 @@
+name: WP4.9 D045 Gate 6 inherited regressions
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_*.c
+      - firmware/src/fmt_*.h
+      - tests/host.c
+      - tests/run_wp4_9_inherited_regressions.sh
+      - tests/run_wp3_10_worst_case.sh
+      - tests/test_wp3_10_worst_case.c
+      - tests/run_wp3_10_timing_matrix.sh
+      - tests/test_wp3_10_timing_matrix.c
+      - .github/workflows/wp4_9_gate6_inherited_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inherited-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+      - name: Run D045 Gate 6 inherited regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          git diff --check
+          sh tests/run_wp4_9_inherited_regressions.sh | tee build/wp4_9_gate6.log
+          grep -F 'WP4_9_GATE6_REALTIME_AUDIT_OK=1' build/wp4_9_gate6.log
+          grep -F 'WP4_9_GATE6_INHERITED_REGRESSIONS_OK=1 obsolete_proof_sine_hashes_excluded=1' build/wp4_9_gate6.log
+      - name: Upload Gate 6 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate6-inherited-regressions
+          if-no-files-found: warn
+          path: |
+            build/wp4_9_gate6*.log
+            build/wp3_10_*.log
+            build/host/fm1tracker_wp3_3_lock_editor-*.ppm
+            build/host/fm1tracker_wp3_4_lock_delete-*.ppm
+            build/host/fm1tracker_wp3_9_visual-*.ppm
