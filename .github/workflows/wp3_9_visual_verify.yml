@@ -1,0 +1,32 @@
+name: WP3.9 visual feedback verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - firmware/src/fmt_tracker_screen.h
+      - firmware/src/fmt_tracker_screen.c
+      - firmware/src/fmt_lock_editor.h
+      - firmware/src/fmt_lock_editor.c
+      - tests/test_fmt_tracker_screen.c
+      - tests/test_wp3_9_visual.c
+      - tests/run_tracker_screen_tests.sh
+      - .github/workflows/wp3_9_visual_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-feedback-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Run D026 + D035 tracker screen tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_tracker_screen_tests.sh
