@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_wp4_10_realtime_audit.sh | tee build/wp4_10_realtime_audit_gate.log
           grep -F 'WP4_10_PRODUCTION_FREEZE_OK=1' build/wp4_10_realtime_audit_gate.log
           grep -F 'WP4_10_QUEUE_BOUND_OK=1 capacity=32 callback_cap=32 overflow_discard_o1=1 spin_retry=0 irq_masking=0' build/wp4_10_realtime_audit_gate.log
