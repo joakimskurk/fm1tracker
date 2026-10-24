@@ -23,77 +23,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('tests/run_wp3_5_closeout_ci.sh')
-          s = p.read_text()
-          def once(old, new):
-              global s
-              assert s.count(old) == 1, (old[:100], s.count(old))
-              s = s.replace(old, new, 1)
-
-          once("""image, image_limit, ram, pool = map(int, m.groups())
-assert pool == 113000, pool
-""",
-               """image, image_limit, ram, pool = map(int, m.groups())
-assert image == 64724, image
-assert ram == 12736, ram
-assert pool == 113000, pool
-""")
-
-          once("""cache_addr = int(cache[0], 16)
-assert cache_addr % 4 == 0, cache
-assert int(cache[-2], 16) == 256 and '.bss' in cache, cache
-assert int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store
-assert int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime
-assert int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store
-""",
-               """cache_addr = int(cache[0], 16)
-assert cache_addr == 0x01C0B074 and cache_addr % 4 == 0, cache
-assert int(cache[-2], 16) == 256 and '.bss' in cache, cache
-editor = one('fmt_lock_editor_runtime')
-assert int(editor[0], 16) == 0x01C0B178 and int(editor[-2], 16) == 10 and '.bss' in editor, editor
-assert int(lock_store[0], 16) == 0x01C30168 and int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store
-assert int(lock_runtime[0], 16) == 0x01C0B18C and int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime
-assert int(song_store[0], 16) == 0x01C20000 and int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store
-""")
-
-          once("""bin_sha = hashlib.sha256(Path('build/fm1tracker.bin').read_bytes()).hexdigest()
-fwsc_sha = hashlib.sha256(Path('build/fm1tracker-0.1.fwsc').read_bytes()).hexdigest()
-wav_sha = hashlib.sha256(Path('build/host/fm1tracker.wav').read_bytes()).hexdigest()
-locked_sha = hashlib.sha256(Path('build/host/fm1tracker_wp3_5_locked.wav').read_bytes()).hexdigest()
-assert wav_sha == '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440', wav_sha
-assert locked_sha == '8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8', locked_sha
-""",
-               """bin_sha = hashlib.sha256(Path('build/fm1tracker.bin').read_bytes()).hexdigest()
-fwsc_sha = hashlib.sha256(Path('build/fm1tracker-0.1.fwsc').read_bytes()).hexdigest()
-wav_sha = hashlib.sha256(Path('build/host/fm1tracker.wav').read_bytes()).hexdigest()
-locked_sha = hashlib.sha256(Path('build/host/fm1tracker_wp3_5_locked.wav').read_bytes()).hexdigest()
-assert bin_sha == 'd0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae', bin_sha
-assert fwsc_sha == '5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372', fwsc_sha
-assert wav_sha == '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440', wav_sha
-assert locked_sha == '8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8', locked_sha
-""")
-
-          once("""grep -F 'pool_delta_vs_wp3_4=0' build/wp3_5_metrics.txt
-grep -F 'param_cache_bytes=256' build/wp3_5_metrics.txt
-
-echo \"WP3_5_MEASURED_CLOSEOUT_GATE_OK=1\"
-""",
-               """grep -F 'image_delta_vs_wp3_4=496' build/wp3_5_metrics.txt
-grep -F 'normal_ram_delta_vs_wp3_4=256' build/wp3_5_metrics.txt
-grep -F 'pool_delta_vs_wp3_4=0' build/wp3_5_metrics.txt
-grep -F 'param_cache_address=0x01c0b074' build/wp3_5_metrics.txt
-grep -F 'param_cache_bytes=256' build/wp3_5_metrics.txt
-grep -F 'fm1tracker_bin_sha256=d0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae' build/wp3_5_metrics.txt
-grep -F 'fm1tracker_fwsc_sha256=5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372' build/wp3_5_metrics.txt
-
-echo \"WP3_5_FROZEN_CLOSEOUT_GATE_OK=1\"
-""")
-
-          p.write_text(s)
-          print('WP3_5_EXACT_METRICS_FROZEN=1')
-          PY
+          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnAgPSBQYXRoKCJ0ZXN0cy9ydW5fd3AzXzVfY2xvc2VvdXRfY2kuc2giKQpzID0gcC5yZWFkX3RleHQoKQpkZWYgb25jZShvbGQsIG5ldyk6CiAgICBnbG9iYWwgcyAgICA7IGM9cy5jb3VudChvbGQpCiAgICBhc3NlcnQgYyA9PSAxLCAob2xkWzoxMDBdLCBjKQogICAgcz1zLnJlcGxhY2Uob2xkLG5ldyw xKQoKb25jZSgiIiJpbWFnZSwgaW1hZ2VfbGltaXQsIHJhbSwgcG9vbCA9IG1hcChpbnQsIG0uZ3JvdXBzKCkpCmFzc2VydCBwb29sID09IDExMzAwMCwgcG9vbAoiIiIsIiIiaW1hZ2UsIGltYWdlX2xpbWl0LCByYW0sIHBvb2wgPSBtYXAoaW50LCBtLmdyb3VwcygpKQphc3NlcnQgaW1hZ2UgPT0gNjQ3MjQsIGltYWdlCmFzc2VydCByYW0gPT0gMTI3MzYsIHJhbQphc3NlcnQgcG9vbCA9PSAxMTMwMDAsIHBvb2wKIiIiKQoKb25jZSgiIiJjYWNoZV9hZGRyID0gaW50KGNhY2hlWzBdLCAxNikKYXNzZXJ0IGNhY2hlX2FkZHIgJSA0ID09IDAsIGNhY2hlCmFzc2VydCBpbnQoY2FjaGVbLTJdLCAxNik gPT0gMjU2IGFuZCAnLmJzcycgaW4gY2FjaGUsIGNhY2hlCmFzc2VydCBpbnQobG9ja19zdG9yZVstMl0sIDE2KSA9PSAxNjM4NCBhbmQgJy5wb29sJyBpbiBsb2NrX3N0b3JlLCBsb2NrX3N0b3JlCmFzc2VydCBpbnQobG9ja19ydW50aW1lWy0yXSwgMTYpID09IDQgYW5kICcuYnNzJyBpbiBsb2NrX3J1bnRpbWUsIGxvY2tfcnVudGltZQphc3NlcnQgaW50KHNvbmdfc3RvcmVbLTJdLCAxNikgPT0gNjU4OTYgYW5kICcucG9vbCcgaW4gc29uZ19zdG9yZSwgc29uZ19zdG9yZQoiIiIsIiIiY2FjaGVfYWRkciA9IGludChjYWNoZVswXSwgMTYpCmFzc2VydCBjYWNoZV9hZGRyID09IDB4MDFDMEIwNzQgYW5kIGNhY2hlX2FkZHIgJSA0ID09IDAsIGNhY2hlCmFzc2VydCBpbnQoY2FjaGVbLTJdLCAxNikgPT0gMjU2IGFuZCAnLmJzcycgaW4gY2FjaGUsIGNhY2hlCmVkaXRvciA9IG9uZSgnZm10X2xvY2tfZWRpdG9yX3J1bnRpbWUnKQphc3NlcnQgaW50KGVkaXRvclswXSwgMTYpID09IDB4MDFDMEIxNzggYW5kIGludChlZGl0b3JbLTJdLCAxNikgPT0gMTAgYW5kICcuYnNzJyBpbiBlZGl0b3IsIGVkaXRvcgphc3NlcnQgaW50KGxvY2tfc3RvcmVbMF0sIDE2KSA9PSAweDAxQzMwMTY4IGFuZCBpbnQobG9ja19zdG9yZVstMl0sIDE2KSA9PSAxNjM4NCBhbmQgJy5wb29sJyBpbiBsb2NrX3N0b3JlLCBsb2NrX3N0b3JlCmFzc2VydCBpbnQobG9ja19ydW50aW1lWzBdLCAxNikgPT0gMHgwMUMwQjE4QyBhbmQgaW50KGxvY2tfcnVudGltZVstMl0sIDE2KSA9PSA0IGFuZCAnLmJzcycgaW4gbG9ja19ydW50aW1lLCBsb2NrX3J1bnRpbWUKYXNzZXJ0IGludChzb25nX3N0b3JlWzBdLCAxNikgPT0gMHgwMUMyMDAwMCBhbmQgaW50KHNvbmdfc3RvcmVbLTJdLCAxNikgPT0gNjU4OTYgYW5kICcucG9vbCcgaW4gc29uZ19zdG9yZSwgc29uZ19zdG9yZQoiIiIpCgpvbmNlKCIiImJpbl9zaGEgPSBoYXNobGliLnNoYTI1NihQYXRoKCdidWlsZC9mbTF0cmFja2VyLmJpbicpLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCkKZndzY19zaGEgPSBoYXNobGliLnNoYTI1NihQYXRoKCdidWlsZC9mbTF0cmFja2VyLTAuMS5md3NjJykucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKQp3YXZfc2hhID0gaGFzaGxpYi5zaGEyNTYoUGF0aCgnYnVpbGQvaG9zdC9mbTF0cmFja2VyLndhdicpLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCkKbG9ja2VkX3NoYSA9IGhhc2hsaWIuc2hhMjU2KFBhdGgoJ2J1aWxkL2hvc3QvZm0xdHJhY2tlcl93cDNfNV9sb2NrZWQud2F2JykucmVhZF9ieXRlcygpKS5oZXhkaWdlc3QoKQphc3NlcnQgd2F2X3NoYSA9PSAnNDUzZGM2YjdhMmYwNmEyNGIxYTIzNmVjZDY5MmI5YmVjYTU5ZjhhMDcwZmRjOTU0YzRlYTFjNzljMGUxMzQ0MCcsIHdhdl9zaGEKYXNzZXJ0IGxvY2tlZF9zaGEgPT0gJzhkMmU0NzhlMzY2YzBhZjE4YjA2MzFkYTI2OGJhNzVjYzM1ODE1N2QwNDNjNTY3YmVlMmU3MzQ4NTJkMGU5YTgnLCBsb2NrZWRfc2hhCiIiIiwiIiJiaW5fc2hhID0gaGFzaGxpYi5zaGEyNTYoUGF0aCgnYnVpbGQvZm0xdHJhY2tlci5iaW4nKS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpCmZ3c2Nfc2hhID0gaGFzaGxpYi5zaGEyNTYoUGF0aCgnYnVpbGQvZm0xdHJhY2tlci0wLjEuZndzYycpLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCkKd2F2X3NoYSA9IGhhc2hsaWIuc2hhMjU2KFBhdGgoJ2J1aWxkL2hvc3QvZm0xdHJhY2tlci53YXYnKS5yZWFkX2J5dGVzKCkpLmhleGRpZ2VzdCgpCmxvY2tlZF9zaGEgPSBoYXNobGliLnNoYTI1NihQYXRoKCdidWlsZC9ob3N0L2ZtMXRyYWNrZXJfd3AzXzVfbG9ja2VkLndhdicpLnJlYWRfYnl0ZXMoKSkuaGV4ZGlnZXN0KCkKYXNzZXJ0IGJpbl9zaGEgPT0gJ2QwMzgwYWM2Y2QyZWUwZTVlZGIxZWFiM2U0ZDM5MzdiYjYyZWIwNzRkMjcyMTk5MjdiM2U4YjdlNTJhMjQ0YWUnLCBiaW5fc2hhCmFzc2VydCBmd3NjX3NoYSA9PSAnNWUxNGYyODk4NWZjZGE0YzNmNTRkYmU4YTQ1ZmYwMjBhYmE2NWE1NjU2OTY5NzJmZGUzMGQ0ZmEzNjZkMzM3MicsIGZ3c2Nfc2hhCmFzc2VydCB3YXZfc2hhID09ICc0NTNkYzZiN2EyZjA2YTI0YjFhMjM2ZWNkNjkyYjliZWNhNTlmOGEwNzBmZGM5NTRjNGVhMWM3OWMwZTEzNDQwJywgd2F2X3NoYQphc3NlcnQgbG9ja2VkX3NoYSA9PSAnOGQyZTQ3OGUzNjZjMGFmMThiMDYzMWRhMjY4YmE3NWNjMzU4MTU3ZDA0M2M1NjdiZWUyZTczNDg1MmQwZTlhOCcsIGxvY2tlZF9zaGEKIiIiKQoKb25jZSgiIiJncmVwIC1GICdwb29sX2RlbHRhX3ZzX3dwM180PTAnIGJ1aWxkL3dwM181X21ldHJpY3MudHh0CmdyZXAgLUYgJ3BhcmFtX2NhY2hlX2J5dGVzPTI1NicgYnVpbGQvd3AzXzVfbWV0cmljcy50eHQKCmVjaG8gXCJXUDNfNV9NRUFTVVJFRF9DTE9TRU9VVF9HQVRFX09LPTFcIgoiIiIsIiIiZ3JlcCAtRiAnaW1hZ2VfZGVsdGFfdnNfd3AzXzQ9NDk2JyBidWlsZC93cDNfNV9tZXRyaWNzLnR4dApncmVwIC1GICdub3JtYWxfcmFtX2RlbHRhX3ZzX3dwM180PTI1NicgYnVpbGQvd3AzXzVfbWV0cmljcy50eHQKZ3JlcCAtRiAncG9vbF9kZWx0YV92c193cDNfND0wJyBidWlsZC93cDNfNV9tZXRyaWNzLnR4dApncmVwIC1GICdwYXJhbV9jYWNoZV9hZGRyZXNzPTB4MDFjMGIwNzQnIGJ1aWxkL3dwM181X21ldHJpY3MudHh0CmdyZXAgLUYgJ3BhcmFtX2NhY2hlX2J5dGVzPTI1NicgYnVpbGQvd3AzXzVfbWV0cmljcy50eHQKZ3JlcCAtRiAnZm0xdHJhY2tlcl9iaW5fc2hhMjU2PWQwMzgwYWM2Y2QyZWUwZTVlZGIxZWFiM2U0ZDM5MzdiYjYyZWIwNzRkMjcyMTk5MjdiM2U4YjdlNTJhMjQ0YWUnIGJ1aWxkL3dwM181X21ldHJpY3MudHh0CmdyZXAgLUYgJ2ZtMXRyYWNrZXJfZndzY19zaGEyNTY9NWUxNGYyODk4NWZjZGE0YzNmNTRkYmU4YTQ1ZmYwMjBhYmE2NWE1NjU2OTY5NzJmZGUzMGQ0ZmEzNjZkMzM3MicgYnVpbGQvd3AzXzVfbWV0cmljcy50eHQKCmVjaG8gXCJXUDNfNV9GUk9aRU5fQ0xPU0VPVVRfR0FURV9PSz0xXCIKIiIiKQoKcC53cml0ZV90ZXh0KHMpCnByaW50KCJXUDNfNV9FWEFDVF9NRVRSSUNTX0ZST1pFTj0xIikK' | tr -d ' ' | base64 -d > /tmp/freeze.py
+          python3 /tmp/freeze.py
           git diff --check
 
       - name: Commit frozen closeout assertions
