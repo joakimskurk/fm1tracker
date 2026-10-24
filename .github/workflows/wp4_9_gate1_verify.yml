@@ -1,0 +1,90 @@
+name: WP4.9 D045 Gate 1 verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_playback.h
+      - firmware/src/fmt_playback.c
+      - firmware/src/fmt_playback_params.h
+      - firmware/src/fmt_playback_params.c
+      - firmware/src/fmt_tracker_effect.h
+      - firmware/src/fmt_tracker_effect.c
+      - tests/test_wp4_9_gate1.c
+      - tests/run_wp4_9_gate1.sh
+      - .github/workflows/wp4_9_gate1_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate1-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D045 Gate 1 host and boundary verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_9_gate1.sh | tee build/wp4_9_gate1_ci.log
+          grep -F 'WP4_9_GATE1_SOURCE_BOUNDARY_OK=1' build/wp4_9_gate1_ci.log
+          grep -F 'WP4_9_GATE1_TESTS_OK=1' build/wp4_9_gate1_ci.log
+          grep -F 'WP4_9_GATE1_INHERITED_COMPONENTS_OK=1' build/wp4_9_gate1_ci.log
+          grep -F 'WP4_9_GATE1_PROOF_AUDIO_UNCHANGED_OK=1' build/wp4_9_gate1_ci.log
+          grep -F 'WP4_9_GATE1_OK=1' build/wp4_9_gate1_ci.log
+
+      - name: Upload D045 Gate 1 host evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate1-host
+          if-no-files-found: error
+          path: |
+            build/wp4_9_gate1/
+            build/wp4_9_gate1_ci.log
+            build/host/fm1tracker.wav
+
+  gate1-pi32v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+
+      - name: Compile Gate 1 production modules for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_9_gate1_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          for src in fmt_playback fmt_playback_params fmt_tracker_effect; do
+            "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+              -Ifirmware/src -c "firmware/src/${src}.c" \
+              -o "build/wp4_9_gate1_target/${src}.o"
+            test -s "build/wp4_9_gate1_target/${src}.o"
+          done
+          sha256sum build/wp4_9_gate1_target/*.o \
+            | sort | tee build/wp4_9_gate1_target/object_sha256.txt
+          printf '%s\n' 'WP4_9_GATE1_PI32V2_OK=1 modules=3 dinghy_migration=0 engine_link=0' \
+            | tee build/wp4_9_gate1_target/summary.txt
+
+      - name: Upload D045 Gate 1 target evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate1-pi32v2
+          if-no-files-found: error
+          path: build/wp4_9_gate1_target/
