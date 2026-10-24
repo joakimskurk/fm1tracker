@@ -1,0 +1,176 @@
+name: WP3.6 closeout docs once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_closeout_docs_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Synchronize WP3.6 closeout docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # WORK_PACKAGES: replace only Phase 3 section.
+          p = Path('docs/WORK_PACKAGES.md')
+          s = p.read_text()
+          a = s.index('# Phase 3 — p-locks and tracker effects')
+          b = s.index('# Phase 4 — 8-BIT engine')
+          section = '''# Phase 3 — p-locks and tracker effects
+
+Status: **IN PROGRESS — WP3.1–WP3.6 complete; WP3.7 next**
+
+Parent issue: #20
+
+## Completed packages
+
+- **WP3.1 — stable parameter ID registry** — COMPLETE — issue #19
+  D027 freezes one-byte semantic parameter identity. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
+
+- **WP3.2 — sparse four-lock-per-step storage** — COMPLETE — issue #21
+  D028 freezes the owner-checked 2,048-record global sparse pool. Final run `40038453521`. Evidence: `WP3_2_VERIFICATION.md`.
+
+- **WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22
+  D029 freezes held-step target ownership and KNOB1..4 normalized editing. Final run `40054322180`. Evidence: `WP3_3_VERIFICATION.md`.
+
+- **WP3.4 — p-lock browse / single-lock delete UX** — COMPLETE — issue #23
+  D030 freezes sorted SELECT browse plus deliberate one-lock delete confirmation. Final run `40064122343`. Evidence: `WP3_4_VERIFICATION.md`.
+
+- **WP3.5 — basic pitch/volume p-lock playback** — COMPLETE — issue #24
+  D031 applies VOICE LEVEL, FINE PITCH and TRACK LEVEL through a fixed 256 B proof-lane row cache; TRACK PAN remains storage-only. Final run `40069110111`. Evidence: `WP3_5_VERIFICATION.md`.
+
+- **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects** — COMPLETE — issue #25
+  D032 assigns `NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO` in `FmtStep.effect/effect_value`, freezes an exact six-tick D020-derived row clock, persistent Q7 slide/porta pitch, transient ARP/vibrato, D031 FINE precedence, a 256 B effect-row cache and 12 B bounded runtime state. Final run `40073680548`. Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool. Evidence: `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
+
+Current verified baseline after WP3.6:
+
+- app image: 65,528 B / 581,564 B
+- normal RAM: 13,004 B / 98,304 B
+- pool RAM: 113,000 B / 344,064 B
+- D031 playback row cache: 256 B ordinary RAM
+- D032 effect row cache: 256 B ordinary RAM
+- D032 effect runtime: 12 B
+- default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
+- D031 locked WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
+- package identity: `FM-1_987`
+
+## Next package
+
+- **WP3.7 — retrig / note delay / note cut** — READY TO START — issue #26.
+  Freeze D033 before source: exact command encoding, sub-row timing, NOTE/TIE/OFF/EMPTY interaction, retrigger/delay/cut semantics, precedence with D031/D032 and fixed real-time bounds. Do not pull the general WP3.8 queue forward unless D033 explicitly proves a minimal prerequisite is unavoidable.
+
+Remaining Phase 3 order:
+
+- WP3.7 retrig/note delay/note cut
+- WP3.8 bounded event queue and overflow policy
+- WP3.9 lock/effect visual feedback
+- WP3.10 Phase 3 worst-case tests
+
+---
+
+'''
+          p.write_text(s[:a] + section + s[b:])
+
+          # ROADMAP: replace only Phase 3 section.
+          p = Path('docs/ROADMAP.md')
+          s = p.read_text()
+          a = s.index('## Phase 3 — parameter locks and tracker effects')
+          b = s.index('## Phase 4 — 8-BIT engine')
+          section = '''## Phase 3 — parameter locks and tracker effects
+
+Goal: make the sequencer genuinely tracker-like and hardware-native.
+
+Status: **IN PROGRESS — WP3.1–WP3.6 complete; WP3.7 next**
+
+Parent issue: #20
+
+Progress:
+
+1. ✅ **WP3.1 — stable parameter ID registry**. D027. Final run `40025790828`.
+2. ✅ **WP3.2 — sparse four-lock-per-step storage**. D028. Final run `40038453521`.
+3. ✅ **WP3.3 — hold-step + encoder p-lock editing**. D029. Final run `40054322180`.
+4. ✅ **WP3.4 — p-lock browse / single-lock delete UX**. D030. Final run `40064122343`.
+5. ✅ **WP3.5 — basic pitch/volume p-lock playback**. D031. Final run `40069110111`.
+6. ✅ **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects**. D032 freezes commands in `FmtStep.effect/effect_value`, exact six-tick D020 timing, Q7 persistent/transient pitch composition and bounded fixed caches/state. Final run `40073680548`; evidence `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
+7. ⬜ **WP3.7 — retrig / note delay / note cut**, issue #26, READY TO START.
+8. ⬜ WP3.8 — bounded event queue and overflow policy.
+9. ⬜ WP3.9 — lock/effect visual feedback.
+10. ⬜ WP3.10 — Phase 3 worst-case tests.
+
+Current verified Phase 3 footprint after WP3.6: 65,528 B image, 13,004 B normal RAM and 113,000 B pool. The historical no-effect WAV and D031 locked WAV remain byte-identical.
+
+Immediate next package: **WP3.7 / #26**. D033 must be frozen before source. WP3.8 remains a separate queue/overflow package and must not be pulled forward by convenience.
+
+Exit criteria remain:
+
+- worst-case lock/effect data inside budget;
+- no lock/effect edit corrupts audio/song state;
+- effect behavior host-tested and documented;
+- all event work bounded.
+
+---
+
+'''
+          p.write_text(s[:a] + section + s[b:])
+
+          # TEST_MATRIX: insert WP3.6 permanent regressions once.
+          p = Path('docs/TEST_MATRIX.md')
+          s = p.read_text()
+          marker = '| Queue overflow policy deterministic |'
+          if 'D032 effect command domain exactly NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO' not in s:
+              rows = '''| D032 effect command domain exactly NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO | required | compile | observable | ✅ WP3.6 |
+| D032 exact six-tick D020 grid and row-boundary precedence | required | compile | required | ✅ 919/1838/2757/3675/4594 -> row 5513 at 120 BPM |
+| D032 effect cache exactly 64×32-bit / 256 B aligned | required | required | n/a | ✅ `.bss` `0x01C0B074` |
+| `FmtTrackerEffectState` exact 12 B at verified checkpoint | required | required | n/a | ✅ WP3.6 |
+| ARP 0,X,Y,0,X,Y deterministic | required | compile | observable | ✅ frozen audio proof |
+| Slide up/down persistent Q7 motion and saturation deterministic | required | compile | observable | ✅ frozen audio proof |
+| Portamento target/resume/reach semantics deterministic | required | compile | observable | ✅ WP3.6 unit/audio proof |
+| Vibrato speed/depth/phase continuation deterministic | required | compile | observable | ✅ frozen audio proof |
+| D031 FINE composes additively without mutating D032 persistent pitch | required | compile | observable | ✅ ARP+FINE fixture |
+| Invalid tracker effect command falls back to NONE byte-identically | required | compile | observable | ✅ control == invalid WAV |
+| D032 playback does not mutate stored song/effect data | required | required | n/a | ✅ WP3.6 |
+| Default and D031 locked WAVs remain byte-identical through WP3.6 | required | required | n/a | ✅ `453dc6b7...` / `8d2e478e...` |
+| WP3.6 final resource delta measured/frozen | n/a | required | n/a | ✅ +804 B image / +268 B RAM / +0 B pool |
+| WP3.6 preserves all Phase 2 + WP3.1–WP3.5 regressions | required | required | later | ✅ run `40073680548` |
+'''
+              s = s.replace(marker, rows + marker, 1)
+          if '- `WP3_6_VERIFICATION.md`' not in s:
+              s = s.replace('- `WP3_5_VERIFICATION.md`\n', '- `WP3_5_VERIFICATION.md`\n- `WP3_6_VERIFICATION.md`\n', 1)
+          p.write_text(s)
+
+          # CHANGELOG: append once.
+          p = Path('CHANGELOG.md')
+          s = p.read_text()
+          if '## 2026-10-24 - WP3.6 tracker effects' not in s:
+              s += '''\n\n## 2026-10-24 - WP3.6 tracker effects\n\n- Froze D032 before production source and added `WP3_6_EFFECT_CONTRACT.md`.\n- Added NONE/ARPEGGIO/SLIDE_UP/SLIDE_DOWN/PORTAMENTO/VIBRATO in the existing `FmtStep.effect/effect_value` domain.\n- Added exact six-tick D020-derived effect timing, persistent Q7 slide/porta pitch and transient ARP/vibrato composition with D031 FINE.\n- Added one aligned 256 B proof-lane effect cache and 12 B bounded runtime state; `FmtStep` remains 8 B and `FmtPlaybackEvent` remains 4 B.\n- Added deterministic unit/tick/audio proof for ARP, both slides, portamento, vibrato, D031 FINE composition and invalid-command NONE fallback.\n- Preserved historical default WAV and D031 locked WAV byte-for-byte.\n- Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool; delta vs WP3.5 +804 / +268 / +0 B.\n- Final verification: run `40073680548`, job `120812368036`; evidence `docs/WP3_6_VERIFICATION.md`.\n- Next: WP3.7 / #26 retrig, note delay and note cut. D033 must freeze semantics before source.\n'''
+          p.write_text(s)
+          PY
+          git diff --check
+
+      - name: Commit synchronized docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/WORK_PACKAGES.md docs/ROADMAP.md docs/TEST_MATRIX.md CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo 'WP3_6_CLOSEOUT_DOCS_ALREADY_SYNCED=1'
+            exit 0
+          fi
+          git commit -m 'docs: synchronize WP3.6 closeout'
+          git push origin HEAD:phase3/plocks-effects
