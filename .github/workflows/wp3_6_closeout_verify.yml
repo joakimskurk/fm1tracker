@@ -1,0 +1,172 @@
+name: WP3.6 full closeout verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/wp3_6_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tracker-effects-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D032 core and full-app audio proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_tracker_effect_tests.sh | tee build/wp3_6_effect_tests.log
+          grep -F 'FMT_TRACKER_EFFECT_TESTS_OK=1' build/wp3_6_effect_tests.log
+          grep -F 'state_bytes=12 pitch_q7=1 fine_precedence=1 porta_memory=1 invalid_fallback=1 no_store_mutation=1' build/wp3_6_effect_tests.log
+          sh tests/run_wp3_6_effect_audio_host.sh | tee build/wp3_6_effect_audio_gate.log
+          grep -F 'WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1 arp_ticks=1 slide_up=1 porta_glide=1 vibrato=1 midi_events=0' build/wp3_6_effect_audio_gate.log
+
+      - name: Run complete inherited regressions and measured device build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp tests/run_wp3_5_closeout_ci.sh /tmp/wp3_6_measure.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/wp3_6_measure.sh')
+          s = p.read_text()
+
+          def once(old, new):
+              global s
+              assert s.count(old) == 1, (old[:120], s.count(old))
+              s = s.replace(old, new, 1)
+
+          once("assert image == 64724, image\nassert ram == 12736, ram\nassert pool == 113000, pool\n",
+               "assert pool == 113000, pool\n")
+          once("assert cache_addr == 0x01C0B074 and cache_addr % 4 == 0, cache\n",
+               "assert cache_addr % 4 == 0, cache\n")
+          once("assert int(editor[0], 16) == 0x01C0B178 and int(editor[-2], 16) == 10 and '.bss' in editor, editor\n",
+               "assert int(editor[-2], 16) == 10 and '.bss' in editor, editor\n")
+          once("assert int(lock_store[0], 16) == 0x01C30168 and int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store\n",
+               "assert int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store\n")
+          once("assert int(lock_runtime[0], 16) == 0x01C0B18C and int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime\n",
+               "assert int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime\n")
+          once("assert int(song_store[0], 16) == 0x01C20000 and int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store\n",
+               "assert int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store\n")
+          once("assert bin_sha == 'd0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae', bin_sha\nassert fwsc_sha == '5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372', fwsc_sha\n",
+               "")
+          once("base_image, base_ram, base_pool = 64228, 12480, 113000\nprint('WP3_5_METRICS')\n",
+               "base_image, base_ram, base_pool = 64724, 12736, 113000\nprint('WP3_6_METRICS')\n")
+          s = s.replace('image_delta_vs_wp3_4', 'image_delta_vs_wp3_5')
+          s = s.replace('normal_ram_delta_vs_wp3_4', 'normal_ram_delta_vs_wp3_5')
+          s = s.replace('pool_delta_vs_wp3_4', 'pool_delta_vs_wp3_5')
+
+          drop_prefixes = (
+              "grep -F 'image_delta_vs_wp3_5=496'",
+              "grep -F 'normal_ram_delta_vs_wp3_5=256'",
+              "grep -F 'param_cache_address=0x01c0b074'",
+              "grep -F 'fm1tracker_bin_sha256=d0380ac6",
+              "grep -F 'fm1tracker_fwsc_sha256=5e14f289",
+          )
+          lines = []
+          for line in s.splitlines():
+              if line.startswith(drop_prefixes):
+                  continue
+              if line == 'echo "WP3_5_FROZEN_CLOSEOUT_GATE_OK=1"':
+                  line = 'echo "WP3_6_INHERITED_AND_MEASURED_GATE_OK=1"'
+              lines.append(line)
+          p.write_text('\n'.join(lines) + '\n')
+          PY
+          sh /tmp/wp3_6_measure.sh | tee build/wp3_6_inherited_measure.log
+          grep -F 'WP3_6_INHERITED_AND_MEASURED_GATE_OK=1' build/wp3_6_inherited_measure.log
+
+      - name: Verify D032 target objects and linked symbols
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?RUNNER_TEMP required}"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall \
+              -Ifirmware/src -c firmware/src/fmt_tracker_effect.c -o build/wp3_6_fmt_tracker_effect.o
+          test -s build/wp3_6_fmt_tracker_effect.o
+          echo 'WP3_6_JIELI_EFFECT_COMPILE_OK=1'
+
+          SYMBOLS=build/wp3_5_symbols.txt
+          grep -E 'fmt_tracker_effect_cache$' "$SYMBOLS" | tee build/wp3_6_effect_cache_symbol.txt
+          grep -E 'fmt_tracker_effect_runtime$' "$SYMBOLS" | tee build/wp3_6_effect_runtime_symbol.txt
+
+          python3 - <<'PY' | tee build/wp3_6_measured_metrics.txt
+          import hashlib, re
+          from pathlib import Path
+
+          log = Path('build/wp3_5_device_build.log').read_text()
+          m = re.search(r"image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064", log)
+          assert m
+          image, image_limit, ram, pool = map(int, m.groups())
+          assert pool == 113000, pool
+
+          symbols = Path('build/wp3_5_symbols.txt').read_text().splitlines()
+          def one(name):
+              hits = [x.split() for x in symbols if x.rstrip().endswith(name)]
+              assert len(hits) == 1, (name, hits)
+              return hits[0]
+
+          effect_cache = one('fmt_tracker_effect_cache')
+          effect_state = one('fmt_tracker_effect_runtime')
+          param_cache = one('fmt_playback_param_cache')
+          assert int(effect_cache[-2], 16) == 256 and '.bss' in effect_cache, effect_cache
+          assert int(effect_cache[0], 16) % 4 == 0, effect_cache
+          assert int(effect_state[-2], 16) == 12 and '.bss' in effect_state, effect_state
+          assert int(param_cache[-2], 16) == 256 and '.bss' in param_cache, param_cache
+
+          def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          print('WP3_6_MEASURED_METRICS')
+          print(f'image_bytes={image}')
+          print(f'normal_ram_bytes={ram}')
+          print(f'pool_ram_bytes={pool}')
+          print(f'image_delta_vs_wp3_5={image-64724}')
+          print(f'normal_ram_delta_vs_wp3_5={ram-12736}')
+          print(f'pool_delta_vs_wp3_5={pool-113000}')
+          print(f'image_remaining_bytes={image_limit-image}')
+          print(f'normal_ram_remaining_bytes={98304-ram}')
+          print(f'pool_remaining_bytes={344064-pool}')
+          print(f'effect_cache_address=0x{int(effect_cache[0],16):08x}')
+          print('effect_cache_bytes=256')
+          print(f'effect_state_address=0x{int(effect_state[0],16):08x}')
+          print('effect_state_bytes=12')
+          print(f'param_cache_address=0x{int(param_cache[0],16):08x}')
+          print(f'fm1tracker_bin_sha256={sha("build/fm1tracker.bin")}')
+          print(f'fm1tracker_fwsc_sha256={sha("build/fm1tracker-0.1.fwsc")}')
+          print(f'default_wav_sha256={sha("build/host/fm1tracker.wav")}')
+          print(f'd031_locked_wav_sha256={sha("build/host/fm1tracker_wp3_5_locked.wav")}')
+          for name in ('control','arp','slide','porta','vibrato'):
+              print(f'wp3_6_{name}_wav_sha256={sha(f"build/host/fm1tracker_wp3_6_{name}.wav")}')
+          PY
+          grep -F 'pool_delta_vs_wp3_5=0' build/wp3_6_measured_metrics.txt
+          grep -F 'effect_cache_bytes=256' build/wp3_6_measured_metrics.txt
+          grep -F 'effect_state_bytes=12' build/wp3_6_measured_metrics.txt
+          echo 'WP3_6_MEASURED_CLOSEOUT_GATE_OK=1'
+
+      - name: Upload WP3.6 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-6-tracker-effects-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp3_6_*.log
+            build/wp3_6_*.txt
+            build/wp3_6_*.o
+            build/wp3_5_device_build.log
+            build/wp3_5_symbols.txt
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
+            build/host/fm1tracker_wp3_5_locked.wav
+            build/host/fm1tracker_wp3_6_*.wav
