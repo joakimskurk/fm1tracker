@@ -8,6 +8,8 @@ on:
       - firmware/src/dinghy.c
       - firmware/src/fmt_8bit_engine.c
       - firmware/src/fmt_8bit_linked_params.c
+      - firmware/src/fmt_playback_params.c
+      - firmware/src/fmt_tracker_effect.c
       - .github/workflows/wp4_9_gate4_device_smoke.yml
   workflow_dispatch:
 
