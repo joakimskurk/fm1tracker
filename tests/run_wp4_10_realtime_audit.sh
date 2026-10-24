@@ -114,9 +114,6 @@ print('WP4_10_QUEUE_BOUND_OK=1 capacity=32 callback_cap=32 overflow_discard_o1=1
 
 # The linked renderer scans the exact eight fixed slots and never reaches back
 # into mutable song/lock/cache/editor state.
-engine_h = sources['firmware/src/fmt_8bit_engine.h']
-# The allocator contract owns the slot count; accept either a literal define in
-# this header or the included allocator header, but prove the authoritative one.
 allocator_h = Path('firmware/src/fmt_voice_allocator.h').read_text()
 m = re.search(r'^#define\s+FMT_VOICE_ALLOCATOR_SLOTS\s+(\d+)u\s*$', allocator_h, re.M)
 assert m and int(m.group(1)) == 8
@@ -140,13 +137,29 @@ for token in (
 assert 'fmt_lock_count(' in screen
 print('WP4_10_SCREEN_OWNERSHIP_OK=1 main_presentation_only=1 bounded_lock_reads=1')
 
-# Final realtime components stay integer-only and do not gain runtime 64-bit
-# arithmetic/division. dinghy.c is included because D046 audits the final linked
-# app_audio path itself, not only leaf DSP units.
-for path, text in sources.items():
-    assert re.search(r'\bfloat\b|\bdouble\b', text) is None, path
+# D046 inherits the proven integer-only realtime leaf rule from WP3.10 and
+# extends it through the final 8-bit engine/link path. dinghy.c itself contains
+# documentation words such as "float" and unrelated non-callback helpers, so
+# audit the callback slice separately rather than treating comments as code.
+audio_code = re.sub(r'/\*.*?\*/|//[^\n]*', '', audio, flags=re.S)
+assert re.search(r'\bfloat\b|\bdouble\b', audio_code) is None
+assert 'uint64_t' not in audio_code and 'int64_t' not in audio_code
+integer_leaf_paths = (
+    'firmware/src/fmt_transport.c',
+    'firmware/src/fmt_tracker_effect.c',
+    'firmware/src/fmt_tracker_event.c',
+    'firmware/src/fmt_rt_queue.c',
+    'firmware/src/fmt_playback_params.c',
+    'firmware/src/fmt_8bit_engine.c',
+    'firmware/src/fmt_8bit_linked_params.c',
+    'firmware/src/fmt_envelope.c',
+    'firmware/src/fmt_voice_allocator.c',
+)
+for path in integer_leaf_paths:
+    text = Path(path).read_text()
     assert 'uint64_t' not in text and 'int64_t' not in text, path
-print('WP4_10_INTEGER_REALTIME_OK=1 runtime_64bit_types=0 float_double=0')
+    assert re.search(r'\bfloat\b|\bdouble\b', text) is None, path
+print('WP4_10_INTEGER_REALTIME_OK=1 callback_64bit_types=0 leaf_64bit_types=0 float_double=0')
 
 # D032 remains tied to the single exact D020 row phase.
 transport_h = Path('firmware/src/fmt_transport.h').read_text()
@@ -173,5 +186,6 @@ grep -F 'WP4_10_TRACKER_FRAME_BOUND_OK=1 row_tracks=8 tick_due_checks_max=8 row_
 grep -F 'WP4_10_ROW_HELPERS_BOUND_OK=1 variable_loops=0 queue_traversal=0 lock_store_traversal=0' build/wp4_10/realtime_audit.log
 grep -F 'WP4_10_QUEUE_BOUND_OK=1 capacity=32 callback_cap=32 overflow_discard_o1=1 spin_retry=0 irq_masking=0' build/wp4_10/realtime_audit.log
 grep -F 'WP4_10_ENGINE_BOUND_OK=1 render_slots=8 mutable_store_reads=0 lock_list_reads=0' build/wp4_10/realtime_audit.log
+grep -F 'WP4_10_INTEGER_REALTIME_OK=1 callback_64bit_types=0 leaf_64bit_types=0 float_double=0' build/wp4_10/realtime_audit.log
 grep -F 'WP4_10_SINGLE_CLOCK_OK=1 row_phase=661500 tick_phase=110250 ticks_per_row=6' build/wp4_10/realtime_audit.log
 grep -F 'WP4_10_REALTIME_AUDIT_OK=1' build/wp4_10/realtime_audit.log
