@@ -1,0 +1,101 @@
+name: WP4.3 NOISE verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_osc_noise.h
+      - firmware/src/fmt_osc_noise.c
+      - tests/test_wp4_3_noise.c
+      - tests/run_wp4_3_noise_tests.sh
+      - docs/WP4_3_NOISE_CONTRACT.md
+      - .github/workflows/wp4_3_noise_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  noise-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove isolated source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=eb396e0af0b53f44a99c06a44aa4f085e0a99f4e
+          actual="$(git diff --name-only "$BASE" -- firmware/src | sort)"
+          expected="$(printf '%s\n' \
+            firmware/src/fmt_osc_noise.c \
+            firmware/src/fmt_osc_noise.h | sort)"
+          test "$actual" = "$expected"
+          git diff --exit-code "$BASE" -- firmware/src/dinghy.c
+          git diff --exit-code "$BASE" -- firmware/src/fmt_engine_pitch.c firmware/src/fmt_engine_pitch.h firmware/src/fmt_osc_pulse.c firmware/src/fmt_osc_pulse.h
+          echo 'WP4_3_ISOLATED_SOURCE_BOUNDARY_OK=1 new_modules=2 dinghy_delta=0 pulse_pitch_delta=0'
+
+      - name: Run focused deterministic NOISE tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_3_noise_tests.sh
+
+      - name: Static realtime/source audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          files='firmware/src/fmt_osc_noise.h firmware/src/fmt_osc_noise.c'
+          ! grep -nE '\b(float|double|malloc|calloc|realloc|free)\b' $files
+          ! grep -nE '\b(uint64_t|int64_t|long[[:space:]]+long)\b' $files
+          ! grep -nE '\b(for|while|do)[[:space:]]*\(' firmware/src/fmt_osc_noise.c
+          ! grep -nE 'Fmt(Song|Step|Lock|Tracker|RtQueue)|fmt_lock_|fmt_store_' firmware/src/fmt_osc_noise.c
+          grep -F 'uint32_t phase;' firmware/src/fmt_osc_noise.h
+          grep -F 'uint32_t lfsr;' firmware/src/fmt_osc_noise.h
+          grep -F 'if (next_phase < phase)' firmware/src/fmt_osc_noise.c
+          grep -F 'osc->lfsr = fmt_noise_lfsr_step(osc->lfsr);' firmware/src/fmt_osc_noise.c
+          echo 'WP4_3_STATIC_AUDIT_OK=1 noise_loops=0 alloc=0 float=0 int64=0 store_traversal=0 max_lfsr_steps_per_frame=1'
+
+  noise-target-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Compile D039 module for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_3_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_engine_pitch.c \
+            -o build/wp4_3_target/fmt_engine_pitch.o
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_osc_noise.c \
+            -o build/wp4_3_target/fmt_osc_noise.o
+          test -s build/wp4_3_target/fmt_engine_pitch.o
+          test -s build/wp4_3_target/fmt_osc_noise.o
+          PITCH_SHA="$(sha256sum build/wp4_3_target/fmt_engine_pitch.o | awk '{print $1}')"
+          test "$PITCH_SHA" = '6203ee8b5ab68a1000066c25a52b674dbed9a61ff30eb7579bf29a07abe69f20'
+          sha256sum build/wp4_3_target/fmt_engine_pitch.o build/wp4_3_target/fmt_osc_noise.o \
+            | tee build/wp4_3_target/object_sha256.txt
+          echo 'WP4_3_PI32V2_COMPILE_OK=1 modules=2 pitch_object_unchanged=1' | tee build/wp4_3_target/summary.txt
+
+      - name: Upload target object evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-3-noise-target-objects
+          path: build/wp4_3_target/
