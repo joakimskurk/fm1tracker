@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 **Phase 3 — p-locks and tracker effects**
 
-State: **IN PROGRESS — WP3.3 complete; WP3.4 ready to start — 2026-10-24**
+State: **IN PROGRESS — WP3.4 active — 2026-10-24**
 
 Parent issue: #20
 
@@ -42,11 +42,7 @@ D028 freezes one owner-checked global sparse pool of 2,048 eight-byte lock recor
 
 **WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22
 
-WP3.3 start head:
-
-`361c5efa308ade56a35fd3b50e6a77c9e3ee41bb`
-
-Final verified source/workflow checkpoint:
+WP3.3 verified source/workflow checkpoint:
 
 `df5d7e07fc763909a141c99283cfd2be19cff847`
 
@@ -58,86 +54,101 @@ Final GitHub Actions:
 
 Durable evidence: `docs/WP3_3_VERIFICATION.md`
 
-### D029 editor contract
+D029 freezes ordinary-SEQ held-white-step target ownership, stale/begin/release KNOB1..4 delta discard, the four current D027 mappings and normalized `0..255` storage-only lock editing.
 
-In ordinary SEQ only, hold one white step key to snapshot pattern 0, selected track and global step. While that exact key remains held, KNOB1..4 write or replace locks on the fixed target. Other step keys, black track selectors and OCT page navigation cannot redirect the target. HOME or STEP REC entry cancels; PLAY may toggle while the hold remains active.
+Final WP3.3 resources:
 
-KNOB1..4 are drained every poll. Inactive, hold-start and release/cancel-poll deltas are discarded so stale encoder motion cannot leak into a new target.
+| Resource | Used | Limit | Free |
+|---|---:|---:|---:|
+| app image | 61,716 B | 581,564 B | 519,848 B |
+| normal RAM | 12,476 B | 98,304 B | 85,828 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B |
 
-Current mapping and editor references:
+Frozen default WAV remains:
 
-| Knob | Parameter | Reference |
-|---|---|---:|
-| KNOB1 | VOICE LEVEL | 255 |
-| KNOB2 | FINE PITCH | 128 |
-| KNOB3 | TRACK LEVEL | 255 |
-| KNOB4 | TRACK PAN | 128 |
+`453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 
-The editor domain is normalized `0..255`, one detent per unit with saturation. These values do not yet define dB, cents, pan law or engine coefficients.
-
-`FmtLockEditor` is exactly 8 B ordinary RAM and allocates no pool storage.
-
-Frozen unit marker:
-
-```text
-FMT_LOCK_EDITOR_TESTS_OK=1
-state_bytes=8 pattern=0 knobs=4 value_domain=0_255 references=255,128,255,128
-targets=64x8 snapshot=1 replace_in_place=1 pool_full=1 corrupt=1 range_reject=1
-```
-
-Full-app marker:
-
-```text
-WP3_3_LOCK_EDITOR_CONTEXT_HOST_OK=1 midi_events=0 stale_begin_release_deltas=fixture focus_suppression=fixture
-```
-
-Reviewed raw framebuffer hashes:
-
-- 1000 ms: `224c0c05bdc29360e8829fd6f69ea21b68d38dc3a369e33d1373e461ea678fd0`
-- 3000 ms: `95bbee218132222d18d4593d9e5427cc25c0efcd340ec768a3c9df2ec9751212`
-
-The reviewed screens keep `CUR19 / T2 / PG2` fixed through suppressed focus-stealing attempts, first showing `K1 VOICE 254 LOCK`, then an in-place replacement to `K1 VOICE 255 LOCK`.
-
-### Final WP3.3 resources
-
-| Resource | Used | Limit | Free | Delta vs WP3.2 |
-|---|---:|---:|---:|---:|
-| app image | 61,716 B | 581,564 B | 519,848 B | +2,328 B |
-| normal RAM | 12,476 B | 98,304 B | 85,828 B | +8 B |
-| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
-
-Final linked symbols:
-
-```text
-01c0b078 .bss  00000008 fmt_lock_editor_runtime
-01c0b088 .bss  00000004 fmt_lock_store_runtime
-01c20000 .pool 00010168 fmt_store_storage
-01c30168 .pool 00004000 fmt_lock_store_storage
-```
-
-Final artifacts:
-
-- `fm1tracker.bin`: `ee3daf66216e1f8ba4a04183bc36aca13236b693acd548a1dd8de90f48800d40`
-- `fm1tracker-0.1.fwsc`: `422e8283025419ec1991f0e13d52321e7dc837fab8218c80e969c69101e97922`
-- package identity: `FM-1_987`
-- frozen host WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
-
-Final evidence artifact:
-
-- ID `12544667629`
-- ZIP SHA-256 `06e00463f14d4d09cea2573cea55b37ed7ba6eee74eb64209f4c4b1efeb20516`
-
-## Next milestone
+## Current milestone
 
 **WP3.4 — p-lock replace/delete UX**
 
-State: **READY TO START — no WP3.4 implementation has begun**
+State: **IN PROGRESS — 2026-10-24**
 
 GitHub issue: #23
 
-Before source, WP3.4 must freeze a new decision covering lock selection/browse, delete-one versus clear-all, destructive-action safeguards, interaction with D029 hold, context/target ownership and minimal feedback. Full row lock visualization remains WP3.9.
+WP3.4 start head:
 
-WP3.4 may use the verified D028 remove/clear primitives but must not apply locks to playback/audio. Playback application remains WP3.5+.
+`8ffa2a3de00f89946aca37fa7015fd3940851c93`
+
+No WP3.4 production implementation existed at this checkpoint.
+
+### Exact objective
+
+Add deliberate browse/select/delete behavior on top of D029's fixed held-step target, using the already-verified D028 lookup/iteration/remove primitives, without applying locks to playback/audio and without changing lock storage format/capacity.
+
+D030 must be recorded in `DECISIONS.md` before WP3.4 source changes and must freeze:
+
+- exact existing-lock browse/selection behavior;
+- exact deliberate one-lock deletion gesture;
+- whether clear-all is exposed at all in this package;
+- destructive-action arming/confirmation/cancellation;
+- interaction with D029 held-white-step ownership and KNOB1..4 edits;
+- stale encoder protection for any newly consumed encoder stream;
+- zero-lock / missing-selection behavior;
+- D028 BAD_ADDRESS / CORRUPT / NOT_FOUND handling;
+- fixed input precedence against white/black keys, OCT, PLAY, REC and HOME;
+- bounded footer feedback only, leaving full lock visualization to WP3.9.
+
+### Reviewed D030 direction before source
+
+The intended prototype direction to freeze before implementation is:
+
+- WP3.4 remains ordinary-SEQ-only and requires an active D029 held-white-step target;
+- `ENC_SELECT` browses only the locks already present on that snapshotted target, in D028's strict ascending parameter-ID order;
+- browse is clamped, not wrapping, and max-four bounded;
+- the currently edited KNOB1..4 parameter becomes the selected lock after a successful D029 set/replace;
+- `BTN_EDIT` does not delete immediately; it arms deletion of the currently selected lock;
+- a later `BTN_SEL` press confirms deletion only while that arm is still valid;
+- releasing EDIT, target/context cancellation, unrelated focus-changing intent or a storage error cancels the destructive arm before mutation;
+- EDIT+SEL arriving together in the same poll may not delete: confirmation must occur after a previously armed stable poll;
+- no clear-all gesture is exposed in WP3.4. With at most four locks per step, deliberate one-by-one removal is the safer prototype; D028 `fmt_lock_clear()` remains available internally for later UX decisions/tests;
+- after a successful delete, the held-step target remains active and selection deterministically moves to the next remaining lock, otherwise the previous last lock, otherwise NONE;
+- deletion changes only D028 lock storage and the target step's `lock_head` as required; row note/instrument/volume/effect fields and playback/base parameters remain untouched;
+- SELECT encoder deltas are drained every poll and discarded while inactive and on begin/release/cancel polls, matching D029's stale-delta safety model;
+- full per-row lock markers remain WP3.9.
+
+### Required verification
+
+1. D030 is recorded before source implementation;
+2. browse order exactly matches D028 sorted parameter order and clamps at first/last lock;
+3. zero-lock browse is a safe no-op with explicit bounded feedback;
+4. a successful KNOB edit selects that parameter for later delete;
+5. EDIT alone never mutates storage;
+6. same-poll EDIT+SEL never deletes;
+7. only a later SEL confirm while an existing arm is valid removes exactly one selected lock;
+8. EDIT release/cancel/unrelated focus intent prevents latent deletion;
+9. selected-lock deletion restores exactly one free record and cannot mutate neighboring steps/locks;
+10. deleting first/middle/last/only lock leaves valid sorted storage and deterministic new selection;
+11. NOT_FOUND/CORRUPT/BAD_ADDRESS are safe and produce no partial mutation;
+12. SELECT encoder stale/begin/release deltas cannot browse a new target accidentally;
+13. all D029 target/focus/KNOB semantics remain green;
+14. no clear-all user gesture exists in WP3.4;
+15. no lock is applied to playback/audio;
+16. all Phase 2 + WP3.1 + WP3.2 + WP3.3 regressions and frozen WAV remain green;
+17. full JieLi device build/resource delta is recorded.
+
+### Strict non-goals
+
+- no playback/audio application of p-locks — WP3.5+;
+- no tracker-effect semantics;
+- no new parameter IDs unless separately justified;
+- no lock storage-layout/capacity change;
+- no clear-all user gesture in WP3.4;
+- no full row lock visualization — WP3.9;
+- no synth-engine work;
+- no live-performance capture/automation;
+- no persistence/file-format work;
+- no final hardware control-map freeze.
 
 ## Important decisions / do not regress
 
@@ -158,11 +169,11 @@ WP3.4 may use the verified D028 remove/clear primitives but must not apply locks
 
 ## Hardware limitation still open
 
-No physical FM-1 is currently available. Host/device-build verification does not claim physical encoder/white-key comfort, actual panel scan feel, display update feel, physical install/boot/audio behavior or measured AC791N execution timing.
+No physical FM-1 is currently available. Host/device-build verification does not claim physical hold/browse/delete comfort, actual panel scan feel, display update feel, physical install/boot/audio behavior or measured AC791N execution timing.
 
 ## Exact next action
 
-Start WP3.4 / issue #23 as its own package. Verify actual branch HEAD, mark WP3.4 IN PROGRESS with that start head, freeze D030 for delete/clear/browse UX before source, and do not begin WP3.5.
+Freeze D030 in `docs/DECISIONS.md`, align `docs/CONTROL_MAP_V0.1.md`, then implement the smallest bounded WP3.4 extension. Do not begin WP3.5.
 
 ## Last relevant checkpoints
 
@@ -171,8 +182,8 @@ Start WP3.4 / issue #23 as its own package. Verify actual branch HEAD, mark WP3.
 - WP3.1 verified: `5af8065a9c98884d22682075b600d9790cfa7940`
 - WP3.2 verified: `da2f5afe9b1da6defc3857b91f52b40d7525f33b`
 - WP3.3 verified: `df5d7e07fc763909a141c99283cfd2be19cff847`
-- WP3.3 final run: `40054322180`
+- WP3.4 start head: `8ffa2a3de00f89946aca37fa7015fd3940851c93`
 
 ## Last updated
 
-2026-10-24 — WP3.3 verified complete. WP3.4 / #23 is READY TO START; no WP3.4 source exists.
+2026-10-24 — WP3.4 / issue #23 marked IN PROGRESS at `8ffa2a3d...`. D030 must be frozen before source implementation.
