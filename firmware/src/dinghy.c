@@ -19,6 +19,7 @@
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_playback_params.c"               /* WP3.5: D031 fixed row-local p-lock snapshots */
+#include "fmt_tracker_effect.c"                /* WP3.6: D032 bounded tracker-effect snapshots/state */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
 #include "fmt_step_record.c"                   /* WP2.7/2.8: stopped STEP REC note/special entry */
 #include "fmt_tracker_screen.c"                /* WP2.9: bounded read-only tracker presentation */
@@ -31,6 +32,7 @@ FmtPatternInput fmt_pattern_input_runtime;
 FmtStepRecord fmt_step_record_runtime;
 FmtTrackerScreen fmt_tracker_screen_runtime;
 FmtLockEditor fmt_lock_editor_runtime;
+FmtTrackerEffectState fmt_tracker_effect_runtime;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -62,6 +64,7 @@ static struct {
     int32_t gate;
 } tracker_voice;
 static FmtPlaybackParamVoice tracker_param_voice;
+static uint8_t tracker_effect_row_fine = FMT_PLAYBACK_PARAM_FINE_DEFAULT;
 
 static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
     815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
@@ -92,16 +95,35 @@ static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32
     return y > 32767 ? 32767 : y < -32767 ? -32767 : y;
 }
 
+static void tracker_apply_effect_pitch(void)
+{
+    uint16_t pitch_q7;
+
+    if (!tracker_param_voice.active || !fmt_tracker_effect_runtime.pitch_valid)
+        return;
+    pitch_q7 = fmt_tracker_effect_final_pitch_q7(&fmt_tracker_effect_runtime,
+                                                  tracker_effect_row_fine);
+    tracker_voice.inc = tracker_pitch_inc_q7(pitch_q7);
+}
+
 static void tracker_apply_event(const FmtPlaybackEvent *event)
 {
-    uint32_t row_word;
+    uint32_t row_word, effect_word;
 
     if (!event)
         return;
 
-    /* D031 audio ownership: one aligned 32-bit snapshot read at row dispatch.
-     * The ISR never traverses D028's mutable linked list. */
+    /* D031/D032 ownership: one aligned 32-bit parameter word and one aligned
+     * 32-bit effect word are consumed only at row dispatch. The ISR never
+     * traverses editor-owned storage. */
     row_word = fmt_playback_params_read(event->step);
+    effect_word = fmt_tracker_effect_cache_read(event->step);
+    tracker_effect_row_fine = fmt_playback_params_fine(row_word);
+
+    fmt_tracker_effect_begin_row(&fmt_tracker_effect_runtime,
+                                 event->kind,
+                                 event->note,
+                                 effect_word);
     fmt_playback_param_voice_apply(&tracker_param_voice,
                                    event->kind,
                                    event->note,
@@ -114,7 +136,7 @@ static void tracker_apply_event(const FmtPlaybackEvent *event)
     }
 
     if (tracker_param_voice.active) {
-        tracker_voice.inc = tracker_pitch_inc_q7(tracker_param_voice.pitch_q7);
+        tracker_apply_effect_pitch();
         tracker_voice.gate = tracker_param_voice.level_target;
     }
 }
@@ -183,8 +205,14 @@ static void app_audio(int32_t *out, uint32_t n)
     if (fmt_playback_runtime.started) {
         for (i = 0u; i < n; i++) {
             tracker_render_frame(out + 2u * i);
-            if (fmt_playback_end_frame(&fmt_playback_runtime, &fmt_transport_runtime, &event))
+            if (fmt_playback_end_frame(&fmt_playback_runtime, &fmt_transport_runtime, &event)) {
                 tracker_apply_event(&event);
+            } else if (fmt_transport_runtime.running &&
+                       fmt_tracker_effect_tick_due(&fmt_tracker_effect_runtime,
+                                                   fmt_transport_runtime.phase)) {
+                (void)fmt_tracker_effect_advance_tick(&fmt_tracker_effect_runtime);
+                tracker_apply_effect_pitch();
+            }
         }
     }
 
@@ -388,8 +416,12 @@ static void app_main(void)
     fmt_lock_store_reset();
     fmt_playback_params_reset();
     fmt_playback_param_voice_reset(&tracker_param_voice);
+    fmt_tracker_effect_cache_reset();
+    fmt_tracker_effect_state_reset(&fmt_tracker_effect_runtime);
+    tracker_effect_row_fine = FMT_PLAYBACK_PARAM_FINE_DEFAULT;
     fmt_playback_seed_proof_pattern();
     fmt_playback_params_rebuild();
+    fmt_tracker_effect_cache_rebuild();
     fmt_transport_reset(&fmt_transport_runtime);
     fmt_playback_reset(&fmt_playback_runtime);
     fmt_pattern_input_reset(&fmt_pattern_input_runtime);
