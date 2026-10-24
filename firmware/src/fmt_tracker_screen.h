@@ -4,9 +4,11 @@
 
 #include <stdint.h>
 
+#include "fmt_lock_editor.h"
 #include "fmt_pattern_input.h"
 #include "fmt_step_record.h"
 #include "fmt_store.h"
+#include "fmt_tracker_effect.h"
 #include "fmt_transport.h"
 
 #define FMT_TRACKER_SCREEN_PATTERN              0u
@@ -16,10 +18,12 @@
 #define FMT_TRACKER_SCREEN_REGION_ROW0          2u
 #define FMT_TRACKER_SCREEN_REGION_COUNT        10u
 #define FMT_TRACKER_SCREEN_MAX_REGIONS_PER_POLL 2u
+#define FMT_TRACKER_SCREEN_LOCK_ERROR           0xFFu
 #define FMT_TRACKER_SCREEN_ALL_DIRTY ((uint16_t)((1u << FMT_TRACKER_SCREEN_REGION_COUNT) - 1u))
 
-/* D026 presentation cache. It is deliberately small ordinary-RAM state and
- * stores only values that can affect the current eight-row visual surface. */
+/* D026 + D035 presentation cache. It stores only values that can affect the
+ * current eight-row visual surface. D035 uses the final 18 B left inside the
+ * original <=64 B presentation-state budget. */
 typedef struct {
     uint16_t dirty;
     uint16_t bpm;
@@ -35,8 +39,14 @@ typedef struct {
     uint8_t row_instrument[FMT_TRACKER_SCREEN_ROWS];
     uint8_t row_volume[FMT_TRACKER_SCREEN_ROWS];
     uint8_t row_effect[FMT_TRACKER_SCREEN_ROWS];
+    uint8_t row_effect_value[FMT_TRACKER_SCREEN_ROWS];
+    uint8_t row_lock_info[FMT_TRACKER_SCREEN_ROWS];
+    uint8_t lock_target_active;
+    uint8_t lock_target_step;
 } FmtTrackerScreen;
 
+FMT_STATIC_ASSERT(tracker_screen_state_is_62_bytes,
+                  sizeof(FmtTrackerScreen) == 62u);
 FMT_STATIC_ASSERT(tracker_screen_state_fits_64_bytes,
                   sizeof(FmtTrackerScreen) <= 64u);
 
@@ -47,12 +57,14 @@ void fmt_tracker_screen_reset(FmtTrackerScreen *screen);
 uint8_t fmt_tracker_screen_window_start(const FmtPatternInput *input);
 
 /* Synchronize the presentation cache from the existing read-only editor,
- * transport and pattern store state. Returns 1 while tracker context is active.
- * Dirty bits accumulate until the renderer consumes them. */
+ * transport, pattern store and D028 lock-store state. D035 may snapshot the
+ * current D029/D030 lock-editor target but never mutates it. Returns 1 while
+ * tracker context is active. Dirty bits accumulate until rendered. */
 int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
                             const FmtPatternInput *input,
                             const FmtStepRecord *record,
-                            const FmtTransport *transport);
+                            const FmtTransport *transport,
+                            const FmtLockEditor *lock_editor);
 
 uint16_t fmt_tracker_screen_dirty(const FmtTrackerScreen *screen);
 
@@ -70,11 +82,16 @@ void fmt_tracker_screen_markers(const FmtTrackerScreen *screen,
                                 uint32_t visible_row,
                                 char out[3]);
 
-/* Deterministic fixed-width D026 text helpers. */
+/* Deterministic fixed-width D026/D035 text helpers. */
 void fmt_tracker_screen_note_text(uint32_t note, char out[5]);
 void fmt_tracker_screen_instrument_text(uint32_t instrument, char out[3]);
 void fmt_tracker_screen_volume_text(uint32_t volume, char out[4]);
-void fmt_tracker_screen_effect_text(uint32_t effect, char out[4]);
+void fmt_tracker_screen_lock_text(const FmtTrackerScreen *screen,
+                                  uint32_t visible_row,
+                                  char out[3]);
+void fmt_tracker_screen_effect_text(uint32_t effect,
+                                    uint32_t effect_value,
+                                    char out[5]);
 void fmt_tracker_screen_row_text(const FmtTrackerScreen *screen,
                                  uint32_t visible_row,
                                  char out[32]);
