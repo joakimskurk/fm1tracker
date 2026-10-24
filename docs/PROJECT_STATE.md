@@ -2,132 +2,140 @@
 
 This is the **single source of truth for current execution state**.
 
-A new chat/session should read `START_HERE.md`, then this file, `WP5_1_VERIFICATION.md`, `WP5_1_FM_OPERATOR_CONTRACT.md`, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
+A new chat/session should read `START_HERE.md`, then this file, `WP5_2_FM_ALGORITHM_CONTRACT.md`, `WP5_1_VERIFICATION.md`, `WP5_1_FM_OPERATOR_CONTRACT.md`, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
 
 ## Current phase
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 and WP5.1 complete, WP5.2 contract-first work active - 2026-10-24**
+State: **IN PROGRESS - WP5.0/WP5.1 complete, WP5.2 D050 contract frozen, source-absent gate pending - 2026-10-24**
 
 Current work package: **WP5.2 - curated FM4 algorithm routing**  
 Parent issue: **#42**  
 Work-package issue: **#45**  
 Current branch: `phase5/fm4-algorithms`  
-WP5.1 canonical verification head: `52df09bf363ad5a9ad2d722a38734eaa580ecb90`  
-WP5.1 canonical run: `40134823600`  
-WP5.1 evidence: `docs/WP5_1_VERIFICATION.md`
+WP5.1 closeout checkpoint: `bc71289690c8f9bd36e9cbbb378e0df3de1b9f25`  
+WP5.1 canonical run: `40134823600`
 
-Do not begin WP5.3 ratio/tuning work, WP5.4 final level/mod-index mapping, WP5.5 feedback, WP5.6 envelopes, WP5.7 voice integration, WP5.8 parameter pages or WP5.9 mixed audible integration while WP5.2 is active.
+Do not begin WP5.3 ratio/tuning work, WP5.4 final level/mod-index mapping, WP5.5 feedback, WP5.6 envelopes, WP5.7 voice integration, WP5.8 parameter pages or WP5.9 audible mixed integration while WP5.2 is active.
 
-## Completed foundation
+## Completed baseline
 
-- Phase 1 clean Dinghy baseline: COMPLETE.
-- Phase 2 tracker core: COMPLETE, 8 tracks x 64 steps x 16 patterns, exact 8 B `FmtStep`, integer transport and STEP REC.
-- Phase 3 p-locks/effects/runtime ingress: COMPLETE, D027-D036.
+- Phase 1 platform baseline: COMPLETE.
+- Phase 2 tracker core: COMPLETE.
+- Phase 3 p-locks/effects/runtime ingress: COMPLETE.
 - Phase 4 first complete 8-BIT family: COMPLETE, D037-D046.
-- WP5.0 mixed-engine routing migration: COMPLETE, D047/D048.
+- WP5.0 mixed-engine routing: COMPLETE, D047/D048.
 - WP5.1 fixed-point FM operator primitive: COMPLETE, D049.
 
-Canonical D046 exit: run `40124536375`, job `120963022289`, target 72,504 B image / 19,604 B RAM / 113,000 B pool.
+Canonical D046 exit: run `40124536375`, job `120963022289`.
 
 Canonical WP5.0 exit: run `40129822006`, job `120978955451`, target 72,792 B image / 19,676 B RAM / 113,000 B pool.
 
-Canonical WP5.1 exit: run `40134823600`, host job `120994003059`, target job `120994002842`.
+Canonical WP5.1 exit: run `40134823600`, host job `120994003059`, target job `120994002842`, evidence `WP5_1_VERIFICATION.md`.
 
-## Accepted mixed-engine model
+## D049 operator compatibility baseline
+
+WP5.2 must not alter D049 semantics:
+
+- `FmtFmOperator` exactly 4 B, one uint32 phase;
+- 2^32 phase cycle with natural wrap;
+- signed int32 phase modulation;
+- Q15 level 0..32767;
+- generated 257-entry quarter-wave table, 514 B payload;
+- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
+- 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
+- isolated PI32v2 object text+rodata 692 B.
+
+The running application remains exact WP5.0 because FM DSP is still isolated.
+
+## Active package - WP5.2 / D050 / issue #45
+
+Normative contract: `docs/WP5_2_FM_ALGORITHM_CONTRACT.md`.
+
+**D050 is frozen before production FM algorithm-routing source.**
+
+### Frozen algorithm set
 
 ```text
-tracker row/track
-    -> instrument reference
-    -> published instrument family + engine identity
-    -> fixed per-track family router
-    -> family-local engine/allocator
+ID 0 STACK4:    OP4 -> OP3 -> OP2 -> OP1 -> OUT
+ID 1 FAN3:      OP2 + OP3 + OP4 -> OP1 -> OUT
+ID 2 DUAL2:     OP4 -> OP3 plus OP2 -> OP1, two carriers
+ID 3 PARALLEL4: OP1 + OP2 + OP3 + OP4, four carriers
 ```
 
-D048 remains authoritative:
+Frozen routing rules:
 
-- `FmtStep` remains 8 B;
-- `FmtInstrumentHeader` remains 4 B;
-- family compatibility values remain `0 = 8-BIT/chip`, `1 = FM/digital`;
-- `FmtSongMeta.mode` is compatibility/default metadata, not a playback gate;
-- instrument identity publication is 64 B;
-- global family routing is exactly 8 B;
-- static bounded dispatch only;
-- one shared 2,048 B row-page cache remains;
-- malformed/unsupported family or engine fails toward silence;
-- non-applicable family-specific p-lock IDs are ignored, never reinterpreted.
+- operator array index 0..3 = OP1..OP4;
+- every algorithm evaluates OP4 -> OP3 -> OP2 -> OP1;
+- all four operators render exactly once per sample;
+- routing state is exactly four D049 operators, 16 B total, no extra mutable history;
+- algorithm changes do not reset/pause phase;
+- invalid algorithm IDs sanitize to STACK4;
+- phase increments and operator levels are already-resolved inputs;
+- internal mod depth clamps to 0..16383;
+- edge phase offset is exactly `sample * depth * 4`;
+- multi-modulator phase offsets accumulate modulo 2^32;
+- carrier counts are only 1, 2 or 4;
+- multi-carrier output normalization uses sign-safe power-of-two truncation toward zero;
+- routing uses an explicit four-case static dispatch, not runtime graph traversal;
+- feedback state is absent until WP5.5;
+- isolated router object `.text + .rodata` ceiling is 2,048 B;
+- full app must remain exact WP5.0 while WP5.2 stays isolated.
 
-## Completed WP5.1 / D049 operator baseline
+Frozen 4,096-render hashes:
 
-Normative contract: `docs/WP5_1_FM_OPERATOR_CONTRACT.md`.  
-Verification: `docs/WP5_1_VERIFICATION.md`.
+- STACK4 `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd`
+- FAN3 `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653`
+- DUAL2 `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269`
+- PARALLEL4 `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882`
 
-Frozen and verified:
+All four algorithms finish the frozen 4,096-sample fixture with identical phases:
 
-- `FmtFmOperator` = one `uint32_t phase`, exactly 4 B;
-- one cycle = 2^32 phase units with natural unsigned wrap;
-- sample-before-advance ordering;
-- signed `int32_t` phase modulation in the same phase-unit scale;
-- Q15 operator level `0..32767`;
-- output `-32767..32767`;
-- generated 257-entry positive quarter-wave Q15 table;
-- table payload 514 B;
-- table SHA-256 `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
-- 4,096-render SHA-256 `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
-- 65,536 half-cycle sign-symmetry probes;
-- no loop/heap/float/64-bit/divide/modulo/store/router traversal in the primitive;
-- pinned PI32v2 object text+rodata = 692 B;
-- object SHA-256 `46868461ac6910d499975dbd93d06ee0af9db905d01c32583321eeaea0e33fad`.
+```text
+OP1 0x4476A040
+OP2 0x95C7F080
+OP3 0xE71940C0
+OP4 0x386A9000
+```
 
-WP5.1 remains intentionally isolated from `dinghy.c`. The running full application is therefore still exact WP5.0:
+### Exact next action
 
-- image 72,792 B;
-- normal RAM 19,676 B;
-- pool 113,000 B;
-- normal WAV `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`;
-- representative WAV `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`;
-- BIN `a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125`;
-- FWSC `cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073`.
+Run the committed D050 source-absent CI gate and require it to prove:
 
-## Active package - WP5.2 / issue #45
+1. `fmt_fm_algorithm.h/.c` are absent;
+2. D049 operator source/data are unchanged from WP5.1 closeout;
+3. all four stable IDs/topologies/evaluation order reproduce the contract;
+4. mod-depth anchors and exact sign mirrors pass;
+5. modulo-2^32 phase-offset accumulation anchors pass;
+6. carrier normalization anchors pass;
+7. all frozen first-12 output vectors pass;
+8. all four 4,096-render hashes/final phases pass;
+9. 65,536 renders per algorithm keep output bounded and phase advancement exact;
+10. invalid IDs reproduce STACK4 exactly;
+11. D049 production vectors remain exact;
+12. normal WP5.0 WAV and inherited representative baseline remain exact.
 
-Goal: freeze and implement the smallest musically useful deterministic four-operator algorithm-routing layer on top of D049.
+Only after this gate is green may `fmt_fm_algorithm.*` production source be added.
 
-WP5.2 is **contract-first**. No production algorithm-routing source may be added until the D050 contract and reference vectors are committed.
+## WP5.2 explicitly out of scope
 
-### Exact next actions
-
-1. inspect D049 operator semantics and the Phase 5 FM4 constraints;
-2. define a small curated algorithm set rather than an unrestricted routing matrix;
-3. freeze stable internal algorithm IDs and exact graph topology;
-4. freeze exact per-sample operator evaluation order;
-5. freeze the signed modulation accumulation/scaling boundary and overflow/saturation rules;
-6. freeze carrier summing/output-normalization semantics;
-7. freeze whether the routing layer needs any mutable state at all before feedback exists;
-8. define deterministic graph fixtures and long-run hashes;
-9. define target object/realtime ceilings;
-10. write `docs/WP5_2_FM_ALGORITHM_CONTRACT.md` as D050 and a source-absent CI gate before production routing code.
-
-### WP5.2 non-goals
-
-- frequency ratio/tuning policy, WP5.3;
-- final operator-level/modulation-index UX mapping, WP5.4;
+- ratio/tuning policy, WP5.3;
+- final level/mod-index mapping, WP5.4;
 - feedback, WP5.5;
 - envelope strategy, WP5.6;
 - FM voice allocation/D048 integration, WP5.7;
 - FM parameter pages/p-lock IDs, WP5.8;
-- simultaneous audible 8-BIT + FM4 integration, WP5.9.
+- simultaneous audible 8-BIT + FM4, WP5.9.
 
 ## Important invariants
 
 - eight logical tracks are never silently reduced;
-- exact transport/effect timing remains authoritative;
-- D034 remains an exact 32-entry SPSC queue;
-- still-owned active cross-track primaries may not be stolen;
-- D044 8-BIT parameter IDs remain stable;
-- D048 per-instrument family/engine routing remains authoritative;
-- D049 operator semantics remain the FM primitive compatibility baseline;
+- tracker timing/p-lock timing remain deterministic;
+- D034 remains an exact 32-entry queue;
+- no active cross-track primary stealing;
+- D048 remains authoritative for family routing/ownership;
+- D049 remains authoritative for each operator;
 - no float in firmware DSP and no runtime 64-bit division.
 
 ## Hardware limitation
@@ -138,4 +146,4 @@ No physical FM-1 is available. Host/device-build evidence does not prove physica
 
 ## Last updated
 
-2026-10-24 - WP5.1/D049 closed green. WP5.2/#45 is the only active package and begins with D050 algorithm-contract design, not production routing code.
+2026-10-24 - D050 algorithm-routing contract and source-absent reference gate prepared. The contract gate is the only next action before production WP5.2 routing implementation.

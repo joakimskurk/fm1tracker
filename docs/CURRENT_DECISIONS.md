@@ -4,7 +4,7 @@ Date: 2026-10-24
 
 `DECISIONS.md` remains the append-only historical decision log through D046. Historical entries are not rewritten when later decisions supersede constraints.
 
-D047, D048 and D049 are the accepted Phase 5 architecture/implementation decisions currently in force. D047/D048 are implemented through WP5.0. D049 is implemented and verified through WP5.1. D050 does not exist yet and must be frozen by WP5.2 before production FM algorithm-routing source.
+D047-D050 are the current accepted Phase 5 architecture/implementation decisions. D047/D048 are implemented through WP5.0. D049 is implemented and verified through WP5.1. D050 is frozen before WP5.2 production algorithm-routing source.
 
 ## D047 - mixed-engine instrument architecture
 
@@ -47,58 +47,85 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Package: WP5.1 / issue #44.  
 Verification: `WP5_1_VERIFICATION.md`, run `40134823600`, host job `120994003059`, target job `120994002842`.
 
-D049 freezes the isolated single-operator primitive:
+D049 freezes:
 
-- `FmtFmOperator` is exactly one `uint32_t phase`, 4 B;
-- phase convention is one cycle = 2^32, natural unsigned wrap, sample-current-before-advance;
-- phase modulation input is signed `int32_t` in the same phase-unit domain, added modulo 2^32;
-- level input clamps to Q15 `0..32767`;
-- carrier sine uses a generated 257-entry positive quarter-wave Q15 table;
-- table interpolation uses 22 fractional phase bits and non-negative unsigned multiply/shift arithmetic;
-- output is bounded to `-32767..32767`, never `-32768`;
-- table binary SHA-256 is `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
-- frozen 4,096-render output SHA-256 is `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
-- render is O(1), with no loop/search/allocation/divide/modulo/float/64-bit arithmetic;
-- isolated pinned PI32v2 object text+rodata is 692 B;
-- production module remains isolated from `dinghy.c` through WP5.1;
-- full app remains byte-identical to canonical WP5.0;
-- physical timing/audio quality claims remain unavailable without hardware.
+- `FmtFmOperator` exactly one `uint32_t phase`, 4 B;
+- one phase cycle = 2^32 with natural unsigned wrap;
+- sample-current-before-advance;
+- signed `int32_t` phase modulation in the same phase-unit domain;
+- Q15 level `0..32767`;
+- generated 257-entry positive quarter-wave Q15 carrier table;
+- 22-bit interpolation;
+- output `-32767..32767`;
+- table SHA-256 `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
+- 4,096-render SHA-256 `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
+- no loop/search/allocation/divide/modulo/float/64-bit arithmetic in the primitive;
+- pinned PI32v2 object text+rodata 692 B;
+- full application remains exact WP5.0 because the operator is isolated.
 
-D049 does **not** decide:
+## D050 - curated four-operator FM routing
 
-- FM algorithm routing, WP5.2;
-- ratio/pitch policy, WP5.3;
-- final level/modulation-index controls, WP5.4;
+Normative document: `WP5_2_FM_ALGORITHM_CONTRACT.md`
+
+Status: **ACCEPTED / FROZEN BEFORE PRODUCTION FM ALGORITHM SOURCE**
+
+Package: WP5.2 / issue #45.
+
+D050 freezes a fixed four-algorithm subset rather than an unrestricted routing matrix:
+
+```text
+ID 0 STACK4:    OP4 -> OP3 -> OP2 -> OP1 -> OUT
+ID 1 FAN3:      OP2 + OP3 + OP4 -> OP1 -> OUT
+ID 2 DUAL2:     OP4 -> OP3 plus OP2 -> OP1, two carriers
+ID 3 PARALLEL4: OP1 + OP2 + OP3 + OP4, four carriers
+```
+
+Frozen routing semantics:
+
+- operator array index 0..3 means OP1..OP4;
+- every algorithm evaluates exactly OP4 -> OP3 -> OP2 -> OP1;
+- all four D049 operators render exactly once per sample in every algorithm;
+- routing state is exactly four `FmtFmOperator` states, 16 B, with no extra mutable history;
+- algorithm change itself never resets or pauses phase;
+- invalid algorithm IDs sanitize to STACK4;
+- caller supplies already-resolved operator phase increments and D049 levels;
+- WP5.3 later owns ratio/tuning mapping;
+- WP5.4 later owns user-facing level/mod-index mapping;
+- internal routing depth is `0..16383`, exact edge formula `sample * depth * 4`;
+- edge conversion stays inside signed 32-bit by construction;
+- multiple phase offsets accumulate modulo 2^32, never by signed saturation;
+- carrier counts are deliberately only 1, 2 or 4;
+- two/four-carrier normalization uses sign-safe power-of-two truncation toward zero;
+- algorithm dispatch is an explicit bounded four-case implementation, not graph traversal;
+- no feedback state exists before WP5.5;
+- router-only target object `.text + .rodata` ceiling is 2,048 B;
+- WP5.2 remains isolated from `dinghy.c`, so full WP5.0 target/audio identity must remain exact.
+
+Frozen 4,096-render hashes:
+
+- STACK4 `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd`
+- FAN3 `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653`
+- DUAL2 `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269`
+- PARALLEL4 `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882`
+
+D050 does **not** decide:
+
+- frequency ratios/tuning, WP5.3;
+- final level/mod-index controls, WP5.4;
 - feedback, WP5.5;
-- FM envelopes, WP5.6;
-- voice allocation/router integration, WP5.7;
+- envelope strategy, WP5.6;
+- FM voice allocation/router integration, WP5.7;
 - FM parameter pages/p-lock IDs, WP5.8;
 - simultaneous production mixed-family FM playback, WP5.9.
-
-## Pending D050 boundary
-
-WP5.2 / issue #45 must create D050 before any production FM algorithm-routing source.
-
-D050 is expected to freeze only the curated four-operator routing layer:
-
-- algorithm count and stable internal IDs;
-- exact graph topology;
-- exact per-sample evaluation order;
-- modulation accumulation/scaling and overflow policy;
-- carrier sum/output normalization;
-- routing-layer state requirement before feedback;
-- deterministic graph vectors/hashes;
-- source/realtime/target object bounds.
-
-Until D050 is accepted, no algorithm topology or numeric routing convention is authoritative.
 
 ## Current interpretation
 
 - FM1Tracker is one engine-agnostic tracker/sequencer.
 - Instruments own family + engine identity.
-- D048 common routing remains authoritative while new family DSP is built in isolated packages.
-- D049 is the FM operator compatibility baseline and does not yet make FM audible in the running firmware.
-- WP5.2 must remain isolated and contract-first until D050 is frozen.
+- D048 remains authoritative for common family routing.
+- D049 is the exact FM single-operator primitive compatibility baseline.
+- D050 is the exact isolated four-operator connection/evaluation baseline.
+- WP5.2 production routing code is forbidden until the D050 source-absent reference gate is green.
 - The complete D046 8-BIT family remains the sound/regression baseline.
 - No physical timing-margin claim is permitted without physical FM-1 evidence.
 
@@ -106,4 +133,4 @@ Until D050 is accepted, no algorithm topology or numeric routing convention is a
 
 For historical checkpoints, use the decision/contract that governed that checkpoint.
 
-For future sound-engine architecture after Phase 4, D047 supersedes D004. D048 is authoritative for common family routing. D049 is authoritative only for the isolated FM operator primitive and cannot override D047/D048 routing/ownership semantics. Future D050 may define algorithm routing only after explicit acceptance.
+For future sound-engine architecture after Phase 4, D047 supersedes D004. D048 governs common family routing/ownership. D049 governs individual FM operator semantics. D050 governs only the isolated four-operator routing layer and cannot override D047-D049 or pull later FM packages forward.

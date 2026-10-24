@@ -8,14 +8,7 @@ FM1Tracker is a hardware-first tracker/sequencer firmware for the M-VAVE FM-1.
 
 **Tracker depth underneath, immediate capture on top.**
 
-The instrument should feel playable before it feels editable:
-
-- play first;
-- capture when inspiration happens;
-- tracker data remains the source of truth;
-- editing remains deterministic and compact;
-- engine complexity must never destabilize transport, p-lock timing or live capture;
-- eight logical tracker tracks remain the baseline unless an explicit future product decision changes it.
+The instrument should feel playable before it feels editable. Tracker data remains the source of truth, editing remains deterministic, engine complexity must never destabilize transport/p-lock/live-capture timing, and eight logical tracker tracks remain the baseline unless an explicit future decision changes it.
 
 A reference performance setup should eventually accommodate drums, bass, one polyphonic synth role, one lead role and four additional flexible tracks. Roles are not fixed track types.
 
@@ -29,35 +22,23 @@ If measured CPU/RAM permits, target roughly 3-6 voices for at least one polyphon
 - Phase 4 first complete 8-BIT engine family: COMPLETE
 - Phase 5 mixed-engine routing + FM4: IN PROGRESS
   - WP5.0 mixed-engine routing: COMPLETE
-  - WP5.1 fixed-point FM operator primitive: COMPLETE
-  - WP5.2 curated FM4 algorithm routing: ACTIVE
+  - WP5.1 fixed-point FM operator: COMPLETE
+  - WP5.2 curated FM4 algorithms: ACTIVE, D050 frozen, source-absent gate pending
 - mandatory live performance capture milestone: PLANNED after engine foundations
 - Phase 6 song/order/persistence: PLANNED
 - Phase 7 physical hardware UX freeze: BLOCKED until physical FM-1 is available
 - Phase 8 interoperability: PLANNED
 - Phase 9 optional extensions: DEFERRED
 
-Canonical WP5.0 closeout: `docs/WP5_0_VERIFICATION.md`, run `40129822006`, job `120978955451`.
+Canonical WP5.0 closeout: `WP5_0_VERIFICATION.md`, run `40129822006`, job `120978955451`.
 
-Canonical WP5.1 closeout: `docs/WP5_1_VERIFICATION.md`, run `40134823600`, host job `120994003059`, target job `120994002842`.
+Canonical WP5.1 closeout: `WP5_1_VERIFICATION.md`, run `40134823600`, host job `120994003059`, target job `120994002842`.
 
 ## Architecture direction after D047/D048
 
-FM1Tracker is **one engine-agnostic tracker/sequencer**.
+FM1Tracker is one engine-agnostic tracker/sequencer. Instrument identity owns family + engine, and tracker rows/tracks reference instruments.
 
-Engine family is not a project-wide mode. Instrument identity owns family + engine, and tracker rows/tracks reference instruments.
-
-D048 production migration is complete:
-
-- `FmtSongMeta.mode` no longer gates valid playback;
-- instrument identity is published through a fixed 64 B bank;
-- global family route state is fixed at 8 B;
-- dispatch is static/bounded;
-- same-track cross-family replacement has explicit fail-safe semantics;
-- family-local engines retain their own allocation/state;
-- the all-8-BIT D046 configuration remains byte-identical regression evidence.
-
-The architecture can support later explicitly approved families such as FM4, VA, supersaw, modern wavetable or drums, but each family requires its own bounded CPU/RAM/parameter/licensing work package. D047 does not promise unlimited simultaneous polyphony.
+D048 common routing is complete. Family dispatch is static/bounded, song mode is non-gating, the 8-BIT D046 configuration remains exact regression evidence, and future families require explicit bounded work packages.
 
 ## Phase 1 - foundation - COMPLETE
 
@@ -65,7 +46,7 @@ Pinned upstream provenance, fixed `FM-1_987` identity, JieLi/AC79 toolchain path
 
 ## Phase 2 - tracker core - COMPLETE
 
-8 tracks x 64 steps x 16 patterns, exact 8 B `FmtStep`, integer transport, stopped STEP REC, NOTE/REST/TIE/OFF semantics, provisional hardware controls and bounded tracker display.
+8 tracks x 64 steps x 16 patterns, exact 8 B `FmtStep`, integer transport, stopped STEP REC, NOTE/REST/TIE/OFF semantics, provisional controls and bounded tracker display.
 
 ## Phase 3 - p-locks/effects/runtime ingress - COMPLETE
 
@@ -81,42 +62,26 @@ Canonical D046 run `40124536375`, job `120963022289`.
 
 ### WP5.0 - mixed-engine routing - COMPLETE
 
-D047/D048 are implemented and verified. Final target is 72,792 B image / 19,676 B RAM / 113,000 B pool, only +288 B / +72 B / +0 B versus D046.
+D047/D048 implemented and verified. Final target 72,792 B image / 19,676 B RAM / 113,000 B pool. No FM DSP entered this package.
 
-No FM4 DSP was introduced in WP5.0.
+### WP5.1 - fixed-point FM operator - COMPLETE
 
-### WP5.1 - fixed-point FM operator primitive - COMPLETE
-
-D049 established the isolated deterministic FM primitive:
-
-- one 4 B uint32 phase state;
-- signed int32 phase modulation;
-- Q15 level/output conventions;
-- generated 257-entry quarter-wave carrier table;
-- exact interpolation and deterministic long-vector identity;
-- no loop/heap/float/int64/divide/modulo in the primitive;
-- pinned PI32v2 object text+rodata 692 B;
-- exact WP5.0 full-app identity retained because the operator remains isolated.
-
-This package intentionally does not make FM audible yet.
+D049 provides the exact isolated FM operator primitive: 4 B phase state, signed phase modulation, generated Q15 sine table, deterministic vectors/hashes and pinned PI32v2 object text+rodata 692 B. Full app remains exact WP5.0.
 
 ### WP5.2 - curated algorithm routing - ACTIVE
 
-Issue #45. Contract-first D050 work.
+D050 freezes four static topologies:
 
-Goals:
+```text
+STACK4    OP4 -> OP3 -> OP2 -> OP1
+FAN3      OP2 + OP3 + OP4 -> OP1
+DUAL2     OP4 -> OP3 plus OP2 -> OP1
+PARALLEL4 OP1 + OP2 + OP3 + OP4
+```
 
-- select a small musically useful four-operator algorithm set, not an unrestricted matrix;
-- freeze stable internal algorithm IDs;
-- freeze exact topology and per-sample evaluation order;
-- freeze modulation accumulation/scaling and overflow rules;
-- freeze carrier summing/output normalization;
-- keep routing static and bounded;
-- define exact graph fixtures and long-run hashes before implementation;
-- compile and measure the isolated routing object with pinned PI32v2;
-- preserve D049 and exact WP5.0 full-app identity while routing remains isolated.
+All four operators run once per sample in fixed OP4 -> OP3 -> OP2 -> OP1 evaluation order. Internal modulation uses bounded signed 32-bit phase math, multiple offsets add modulo one phase cycle, and multi-carrier outputs use power-of-two normalization.
 
-WP5.2 excludes ratios, final level/mod-index UX, feedback, envelopes, voice integration, p-lock pages and mixed audible playback.
+The next gate is source-absent D050 reference CI. Production routing may only follow a green gate.
 
 ### WP5.3 - ratio table
 
@@ -152,44 +117,25 @@ Representative mixed workload, realtime audit, inherited regressions and exact t
 
 ## Mandatory core milestone - live performance capture + performance FX
 
-This remains core product work after engine foundations.
-
-Target behavior:
-
-- PLAY continues while performing;
-- REC arms/disarms capture without stopping transport;
-- captured notes map deterministically to tracker time;
-- fast track switching cannot misroute writes or cut unrelated tracks;
-- drums support live performance and deterministic capture;
-- metronome is transport-locked and does not consume a logical track by default;
-- CHANNEL and GLOBAL performance FX/automation remain bounded and tracker-editable;
-- raw unbounded ADC streams are never recorded as automation.
-
-Open decisions remain quantization/timestamp policy, overdub policy, automation thinning, drum representation, count-in, global automation storage, FX layout and actual polyphony from measured budgets.
+This remains core product work after engine foundations. PLAY continues while performing, REC arms/disarms capture without stopping transport, track switching cannot misroute writes, drums are playable/capturable, metronome is transport-locked, and CHANNEL/GLOBAL automation remains bounded and tracker-editable.
 
 Reference: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
 ## Phase 6 - song/order/persistence - PLANNED
 
-Order list, pattern switching, repeats/loop ranges, versioned binary format, flash audit, save/load/CRC, corruption recovery and migration harness.
-
-Persistence must encode D047/D048 per-instrument engine identity, not obsolete project-wide family assumptions.
+Order list, pattern switching, repeats/loop ranges, versioned binary format, flash audit, save/load/CRC, corruption recovery and migration harness. Persistence must encode D047/D048 per-instrument engine identity.
 
 ## Phase 7 - physical hardware UX freeze - BLOCKED
 
-Requires physical FM-1 for STEP REC/control ergonomics, screen readability, live capture feel, install/boot/audio behavior and measured AC791N execution margin.
+Requires physical FM-1 for control ergonomics, install/boot/audio behavior and measured AC791N execution margin.
 
 ## Phase 8 - interoperability - PLANNED
 
-Internal interchange specification, MIDI transfer investigation, Furnace import/export audit and converter prototype if technically and legally justified.
-
-D003 remains authoritative: Furnace is a workflow/interoperability reference, not a full engine port.
+Internal interchange, MIDI transfer investigation, Furnace import/export audit and converter prototype if technically and legally justified. D003 remains authoritative: Furnace is a workflow/interoperability reference, not a full engine port.
 
 ## Phase 9 - optional extensions - DEFERRED
 
-Possible later additions include WAVETABLE-16, approved PCM/sample paths, swing, microtiming, polymeter, additional VA/supersaw/wavetable families, extra DSP effects and licensed chip cores.
-
-Every additional engine remains a bounded family package with CPU/RAM/parameter/licensing gates.
+Possible later additions include approved PCM/sample paths, swing, microtiming, polymeter, additional VA/supersaw/wavetable families, extra DSP effects and licensed chip cores. Every engine remains a bounded CPU/RAM/parameter/licensing package.
 
 ## Illustrative release progression
 

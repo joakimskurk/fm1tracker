@@ -29,123 +29,79 @@ WP3.1-WP3.10 complete, D027-D036. Final target: 66,960 B image / 13,296 B RAM / 
 
 ## Phase 4 - first engine family: 8-BIT/chip - COMPLETE
 
-WP4.1-WP4.10 complete, D037-D046. PULSE, NOISE, TRIANGLE, WAVETABLE-8, common ADSR, deterministic eight-slot allocation, parameter pages and linked all-eight-track playback are verified.
-
-Canonical Phase 4 exit: run `40124536375`, job `120963022289`, evidence `WP4_10_VERIFICATION.md`.
-
-Final D046 target: 72,504 B image / 19,604 B RAM / 113,000 B pool.
+WP4.1-WP4.10 complete, D037-D046. Canonical exit: run `40124536375`, job `120963022289`, evidence `WP4_10_VERIFICATION.md`.
 
 ## Phase 5 - mixed-engine routing + FM4 - IN PROGRESS
 
 Parent issue: #42.
 
-### WP5.0 - mixed-engine routing contract + migration - COMPLETE - issue #43 - D048
+### WP5.0 - mixed-engine routing - COMPLETE - issue #43 - D048
 
-D047/D048 migrated future sound architecture from project-wide engine family to per-instrument family + engine routing.
+Per-instrument family/engine routing is implemented and verified. Canonical run `40129822006`, job `120978955451`. Final target 72,792 B image / 19,676 B RAM / 113,000 B pool. Evidence `WP5_0_VERIFICATION.md`.
 
-Frozen result:
+### WP5.1 - fixed-point FM operator - COMPLETE - issue #44 - D049
 
-- `FmtStep` 8 B and `FmtInstrumentHeader` 4 B unchanged;
-- `FmtSongMeta.mode` is non-gating compatibility/default metadata;
-- 64 B instrument identity publication;
-- 8 B global per-track family route;
-- static bounded dispatch;
-- deterministic same-track cross-family replacement;
-- unsupported/malformed family/engine fails toward silence;
-- non-applicable p-locks ignored, never reinterpreted;
-- one shared 2,048 B row-page cache;
-- no FM DSP in WP5.0;
-- D046 all-8-BIT output remains exact.
+D049 isolated operator is implemented and verified:
 
-Canonical exit: run `40129822006`, job `120978955451`, head `813792fb25632b4d7acda787422e51f713fad21e`.
+- 4 B uint32 phase state;
+- signed int32 phase modulation;
+- generated 257-entry / 514 B quarter-wave;
+- exact deterministic vectors/hashes;
+- no forbidden realtime arithmetic/allocation;
+- pinned PI32v2 object text+rodata 692 B;
+- full app exact WP5.0.
 
-Final target: 72,792 B image / 19,676 B RAM / 113,000 B pool.
+Canonical run `40134823600`, host job `120994003059`, target job `120994002842`. Evidence `WP5_1_VERIFICATION.md`.
 
-Evidence: `WP5_0_VERIFICATION.md`.
+### WP5.2 - curated FM algorithm routing - ACTIVE - issue #45 - D050
 
-### WP5.1 - fixed-point FM operator primitive - COMPLETE - issue #44 - D049
+D050 is frozen before production routing source.
 
-Goal achieved: smallest deterministic fixed-point operator primitive required by later FM4 work, still isolated from the running application.
+Stable algorithm IDs:
 
-Frozen/verified result:
+```text
+0 STACK4    OP4 -> OP3 -> OP2 -> OP1
+1 FAN3      OP2 + OP3 + OP4 -> OP1
+2 DUAL2     OP4 -> OP3 plus OP2 -> OP1
+3 PARALLEL4 OP1 + OP2 + OP3 + OP4
+```
 
-- exactly 4 B operator state: one `uint32_t phase`;
-- 2^32 phase cycle with natural wrap;
-- sample-before-advance ordering;
-- signed `int32_t` phase modulation;
-- Q15 level `0..32767`;
-- generated 257-entry positive quarter-wave table, 514 B payload;
-- exact 22-bit interpolation;
-- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
-- 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
-- 65,536 symmetry probes;
-- no loop/heap/float/int64/divide/modulo/store/router traversal in primitive;
-- pinned PI32v2 object text+rodata 692 B against 4,096 B ceiling;
-- full app remains exact WP5.0 in WAV, resources, BIN and FWSC.
+Frozen execution model:
 
-Canonical exit:
+- operator index 0..3 = OP1..OP4;
+- evaluation always OP4 -> OP3 -> OP2 -> OP1;
+- every operator renders exactly once per sample;
+- state exactly four D049 operators / 16 B, no extra history;
+- invalid algorithm -> STACK4;
+- internal mod depth 0..16383;
+- edge mapping `sample * depth * 4`;
+- multiple phase offsets accumulate modulo 2^32;
+- carrier counts only 1/2/4 with power-of-two normalization toward zero;
+- explicit four-case dispatch, no runtime graph traversal;
+- router-only PI32v2 object ceiling 2,048 B;
+- full app remains exact WP5.0 while isolated.
 
-- head `52df09bf363ad5a9ad2d722a38734eaa580ecb90`
-- run `40134823600`
-- host job `120994003059`
-- target job `120994002842`
-- evidence `WP5_1_VERIFICATION.md`
+Required execution order from current checkpoint:
 
-WP5.1 deliberately did not add algorithms, ratios, feedback, envelopes, voice integration, p-lock pages or audible FM production playback.
-
-### WP5.2 - curated FM algorithm routing - ACTIVE - issue #45
-
-This is the only active package.
-
-Goal: define and implement a small musically useful static four-operator routing layer on top of D049 without pulling later FM features forward.
-
-Required execution order:
-
-1. inspect D049 operator semantics and accepted Phase 5 FM constraints;
-2. select a small curated algorithm set, not an unrestricted routing matrix;
-3. freeze stable internal algorithm IDs and exact graph topology;
-4. freeze exact per-sample operator evaluation order;
-5. freeze signed modulation accumulation/scaling and overflow/saturation policy;
-6. freeze carrier summing/output normalization;
-7. decide whether routing needs any mutable state before feedback exists;
-8. freeze deterministic graph fixtures and long-run hashes;
-9. define realtime/source and pinned-target object ceilings;
-10. write/freeze D050 `WP5_2_FM_ALGORITHM_CONTRACT.md` before production routing source;
-11. run a source-absent pre-implementation reference gate;
-12. only then implement routing and verify it;
-13. write `WP5_2_VERIFICATION.md` before WP5.3 starts.
-
-Allowed scope:
-
-- static four-operator routing/evaluation order;
-- bounded switch/descriptor dispatch;
-- signed modulation accumulation/scaling;
-- carrier sum/output normalization required by routing;
-- deterministic graph vectors/hashes;
-- target compile/object measurement;
-- inherited D049 and WP5.0 regression gates.
+1. run the committed source-absent D050 reference gate;
+2. require all topology, depth, wrap, normalization, first-12 and long-hash vectors green;
+3. require 65,536 renders per algorithm stress green;
+4. re-prove D049 and WP5.0 host baseline;
+5. only after green gate add `fmt_fm_algorithm.h/.c`;
+6. implement exactly D050 with no later-package features;
+7. run focused production vectors, static audit and pinned PI32v2 object measurement;
+8. prove full target remains exact WP5.0;
+9. write `WP5_2_VERIFICATION.md` before WP5.3 begins.
 
 Explicitly out of scope:
 
-- frequency ratios/tuning, WP5.3;
-- final level/mod-index UX mappings, WP5.4;
+- ratio/tuning policy, WP5.3;
+- final level/mod-index UI mapping, WP5.4;
 - feedback, WP5.5;
 - envelopes, WP5.6;
-- FM voice/D048 router integration, WP5.7;
+- FM voice/D048 integration, WP5.7;
 - FM pages/p-lock IDs, WP5.8;
-- simultaneous audible 8-BIT + FM4, WP5.9.
-
-Exit criteria:
-
-- D050 contract frozen before production source;
-- algorithm IDs/topologies/evaluation order exact;
-- deterministic modulation accumulation and carrier sum semantics proven;
-- graph vectors and long hashes repeat-identical;
-- no heap/float/runtime 64-bit division/unbounded traversal;
-- pinned PI32v2 compile and object measurement accepted;
-- D049 operator vectors remain exact;
-- full app remains exact WP5.0 while routing stays isolated;
-- durable `WP5_2_VERIFICATION.md` written.
+- audible mixed 8-BIT + FM4, WP5.9.
 
 ### WP5.3 - ratio table - PLANNED
 
@@ -181,7 +137,7 @@ Representative mixed workload, realtime audit, inherited regressions and exact t
 
 ## Mandatory core milestone - live performance capture + performance FX
 
-PLANNED after engine foundations. Must retain continuous PLAY during performance/capture, deterministic capture mapping, safe track switching, drums, transport-locked metronome, bounded CHANNEL/GLOBAL automation and performance FX, and measured polyphony without silently reducing eight logical tracks.
+PLANNED after engine foundations. Must retain continuous PLAY during performance/capture, deterministic capture mapping, safe track switching, drums, transport-locked metronome, bounded CHANNEL/GLOBAL automation/performance FX and measured polyphony without silently reducing eight logical tracks.
 
 Reference: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
@@ -191,7 +147,7 @@ Order list, safe pattern switching, repeats/loops, versioned binary format, flas
 
 ## Phase 7 - physical hardware UX freeze - BLOCKED
 
-Requires physical FM-1 for control feel, install/boot/audio, display and measured callback margin.
+Requires physical FM-1.
 
 ## Phase 8 - interoperability - PLANNED
 

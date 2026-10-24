@@ -5,11 +5,11 @@ Repository state is authoritative. Do not reconstruct the plan from old chat con
 Read in this order:
 
 1. `docs/PROJECT_STATE.md`
-2. `docs/WP5_1_VERIFICATION.md`
-3. `docs/WP5_1_FM_OPERATOR_CONTRACT.md`
-4. `docs/WP5_0_VERIFICATION.md`
-5. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-6. `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`
+2. `docs/WP5_2_FM_ALGORITHM_CONTRACT.md`
+3. `docs/WP5_1_VERIFICATION.md`
+4. `docs/WP5_1_FM_OPERATOR_CONTRACT.md`
+5. `docs/WP5_0_VERIFICATION.md`
+6. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
 7. `docs/CURRENT_DECISIONS.md`
 8. `docs/WORK_PACKAGES.md`
 9. `docs/EXECUTION_PROTOCOL.md`
@@ -22,58 +22,60 @@ Read in this order:
 
 WP5.0 / D048 and WP5.1 / D049 are COMPLETE.
 
-Canonical WP5.0 exit:
-
-- production verification head `813792fb25632b4d7acda787422e51f713fad21e`
-- run `40129822006`
-- job `120978955451`
-- target 72,792 B image / 19,676 B RAM / 113,000 B pool
-- evidence `docs/WP5_0_VERIFICATION.md`
-
 Canonical WP5.1 exit:
 
 - verification head `52df09bf363ad5a9ad2d722a38734eaa580ecb90`
+- closeout checkpoint `bc71289690c8f9bd36e9cbbb378e0df3de1b9f25`
 - run `40134823600`
 - host job `120994003059`
 - target job `120994002842`
 - evidence `docs/WP5_1_VERIFICATION.md`
 - isolated D049 operator object text+rodata 692 B
-- operator object SHA `46868461ac6910d499975dbd93d06ee0af9db905d01c32583321eeaea0e33fad`
 - full application remains exact WP5.0
-
-D049 operator compatibility identifiers:
-
-- state exactly 4 B, one uint32 phase;
-- table 257 int16 entries / 514 B payload;
-- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
-- 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
-- no audible FM production integration yet.
 
 ## Active package
 
 **WP5.2 - curated FM4 algorithm routing**, issue #45, branch `phase5/fm4-algorithms`.
 
-WP5.2 begins contract-first. There is no accepted D050 algorithm contract yet.
+D050 is already frozen in `docs/WP5_2_FM_ALGORITHM_CONTRACT.md`.
+
+The four stable algorithms are:
+
+```text
+0 STACK4:    OP4 -> OP3 -> OP2 -> OP1 -> OUT
+1 FAN3:      OP2 + OP3 + OP4 -> OP1 -> OUT
+2 DUAL2:     OP4 -> OP3 plus OP2 -> OP1, two carriers
+3 PARALLEL4: OP1 + OP2 + OP3 + OP4, four carriers
+```
+
+Every algorithm evaluates OP4 -> OP3 -> OP2 -> OP1 and advances all four D049 operators exactly once per sample.
 
 ## Exact next action
 
-Do not start production FM algorithm-routing code yet.
+Do **not** add `fmt_fm_algorithm.*` production source yet.
 
-Proceed in this order:
+Run the committed D050 source-absent contract gate and require it to prove:
 
-1. inspect D049 operator semantics and existing FM4 scope constraints;
-2. choose a small curated four-operator algorithm set rather than an unrestricted matrix;
-3. freeze stable internal algorithm IDs and exact graph topology;
-4. freeze exact per-sample operator evaluation order;
-5. freeze modulation accumulation/scaling and overflow/saturation semantics;
-6. freeze carrier summing/output normalization;
-7. decide whether the pre-feedback routing layer needs mutable state;
-8. define deterministic graph fixtures, long-run hashes and target/realtime ceilings;
-9. write `docs/WP5_2_FM_ALGORITHM_CONTRACT.md` as D050;
-10. add a source-absent reference CI gate and require green evidence before implementation.
+1. algorithm source/header absent;
+2. D049 source/data unchanged from WP5.1 closeout;
+3. all four topology/evaluation fixtures exact;
+4. internal mod-depth and modulo phase-accumulation anchors exact;
+5. carrier normalization exact;
+6. all first-12 vectors exact;
+7. all four 4,096-render hashes/final phases exact;
+8. 65,536 renders per algorithm keep Q15 output bounded and phase advancement exact;
+9. invalid IDs are exact STACK4 fallback;
+10. D049 production vectors and full WP5.0 host baseline remain green.
+
+Only after that gate is green may the production algorithm-routing primitive be implemented.
+
+D050 frozen long hashes:
+
+- STACK4 `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd`
+- FAN3 `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653`
+- DUAL2 `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269`
+- PARALLEL4 `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882`
 
 Do not include ratios, final level/mod-index UX, feedback, FM envelopes, voice allocation, p-lock pages or audible mixed FM playback in WP5.2.
-
-`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains core product direction after engine foundations.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

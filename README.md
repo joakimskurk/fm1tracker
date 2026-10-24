@@ -8,22 +8,17 @@ License: GPL-3.0-only unless otherwise noted. See `THIRD_PARTY.md`.
 
 ## Current status
 
-**Phase 5 is in progress. WP5.0 mixed-engine routing and WP5.1 fixed-point FM operator are complete. WP5.2 curated FM4 algorithm routing is active contract-first.**
+**Phase 5 is in progress. WP5.0 mixed-engine routing and WP5.1 fixed-point FM operator are complete. WP5.2 curated FM4 algorithm routing is active, with D050 frozen before production routing source.**
 
 Completed foundation includes:
 
 - pinned Dinghy/Felucca/SLOOP platform baseline;
 - 8 logical tracks x 64 steps x 16 patterns;
-- exact integer transport;
-- stopped STEP REC with NOTE / REST / TIE / OFF;
-- compact tracker display;
-- 2,048-record sparse p-lock pool;
-- exact six-tick tracker effects;
-- bounded 32-entry main-to-audio queue;
+- exact integer transport and stopped STEP REC;
+- 2,048 sparse p-locks and exact six-tick tracker effects;
+- bounded 32-entry realtime queue;
 - complete PULSE, NOISE, TRIANGLE and WAVETABLE-8 family;
-- common integer ADSR;
-- deterministic eight-slot 8-BIT allocation;
-- D046 full representative/realtime/target closeout;
+- common integer ADSR and deterministic eight-slot allocation;
 - D047/D048 per-instrument mixed-engine routing;
 - D049 deterministic fixed-point FM operator primitive.
 
@@ -33,50 +28,45 @@ FM1Tracker is **one engine-agnostic tracker/sequencer**.
 
 Tracker rows/tracks reference instruments, and each instrument owns engine family + engine identity. A project is not globally locked to one sound family.
 
-WP5.0 proved:
-
-- `FmtSongMeta.mode` no longer gates valid playback;
-- 64 B instrument family/engine publication;
-- 8 B global family route state;
-- static bounded family dispatch;
-- deterministic fail-safe same-track cross-family replacement;
-- non-applicable family-specific p-locks are ignored, never reinterpreted;
-- D046 all-8-BIT output remains byte-identical.
+WP5.0 proved the bounded common router while keeping D046 8-BIT audio byte-identical.
 
 Canonical WP5.0 exit: run `40129822006`, job `120978955451`, evidence `docs/WP5_0_VERIFICATION.md`.
 
-## Fixed-point FM operator baseline
+## D049 FM operator baseline
 
-WP5.1 / D049 is complete and remains intentionally isolated from the running application.
+WP5.1 is complete and intentionally isolated from the running application.
 
 Verified operator facts:
 
-- 4 B state, one `uint32_t phase`;
-- one cycle = 2^32 phase units;
-- signed `int32_t` phase modulation;
-- Q15 level `0..32767`;
-- 257-entry generated positive quarter-wave table, 514 B payload;
-- 65,536 exact half-cycle symmetry probes;
-- deterministic 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
-- no loop, heap, float, int64, divide or modulo in the primitive;
-- pinned PI32v2 object text+rodata only 692 B;
+- 4 B state, one uint32 phase;
+- signed int32 phase modulation;
+- Q15 level 0..32767;
+- generated 257-entry quarter-wave table, 514 B payload;
+- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
+- 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
+- pinned PI32v2 object text+rodata 692 B;
 - full application remains exact WP5.0.
 
-Canonical WP5.1 exit:
+Canonical WP5.1 exit: run `40134823600`, host job `120994003059`, target job `120994002842`, evidence `docs/WP5_1_VERIFICATION.md`.
 
-- head `52df09bf363ad5a9ad2d722a38734eaa580ecb90`
-- run `40134823600`
-- host job `120994003059`
-- target job `120994002842`
-- evidence `docs/WP5_1_VERIFICATION.md`
+## Active work package - WP5.2 / D050
 
-## Active work package
+Issue #45, branch `phase5/fm4-algorithms`.
 
-**WP5.2 - curated FM4 algorithm routing**, issue #45, branch `phase5/fm4-algorithms`.
+D050 freezes a four-algorithm subset:
 
-WP5.2 must freeze D050 before production routing code. It will define a small curated four-operator algorithm set, exact graph topology/evaluation order, modulation accumulation, carrier summing and deterministic graph vectors.
+```text
+0 STACK4:    OP4 -> OP3 -> OP2 -> OP1 -> OUT
+1 FAN3:      OP2 + OP3 + OP4 -> OP1 -> OUT
+2 DUAL2:     OP4 -> OP3 plus OP2 -> OP1, two carriers
+3 PARALLEL4: OP1 + OP2 + OP3 + OP4, four carriers
+```
 
-It does **not** include ratios, final level/mod-index UX, feedback, envelopes, voice integration, p-lock pages or audible mixed FM playback.
+All algorithms evaluate OP4 -> OP3 -> OP2 -> OP1 and advance all four operators once per sample. Routing is a fixed four-case dispatch, not a runtime graph.
+
+Production `fmt_fm_algorithm.*` is still forbidden until the committed source-absent D050 reference gate is green.
+
+WP5.2 does not include ratios, final level/mod-index UX, feedback, envelopes, voice integration, p-lock pages or audible mixed FM playback.
 
 ## Planned FM4 sequence
 
@@ -97,27 +87,11 @@ It does **not** include ratios, final level/mod-index UX, feedback, envelopes, v
 
 The finished instrument should support precise stopped STEP REC and live capture while playback continues. Tracker data remains the source of truth.
 
-Core future work includes seamless track switching during capture, drums, transport-locked metronome, CHANNEL/GLOBAL performance FX/automation, bounded tracker-editable capture, song/order/save/load and physical hardware UX freeze.
+Live performance capture, drums, transport-locked metronome, CHANNEL/GLOBAL performance FX/automation, song/order/save/load and physical hardware UX freeze remain core future work.
 
 ## Start here
 
-For a new session, read `START_HERE.md` first.
-
-Authoritative execution files include:
-
-- `docs/PROJECT_STATE.md`
-- `docs/WP5_1_VERIFICATION.md`
-- `docs/WP5_1_FM_OPERATOR_CONTRACT.md`
-- `docs/WP5_0_VERIFICATION.md`
-- `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-- `docs/CURRENT_DECISIONS.md`
-- `docs/WORK_PACKAGES.md`
-- `docs/EXECUTION_PROTOCOL.md`
-- `docs/CURRENT_TEST_STATE.md`
-- `docs/TEST_MATRIX.md`
-- `docs/ROADMAP.md`
-
-Repository state wins over old chat context.
+For a new session, read `START_HERE.md` first. Repository state wins over old chat context.
 
 No physical FM-1 is currently available, so physical install/boot/audio/control/screen feel and measured AC791N execution margin remain later explicit gates.
 

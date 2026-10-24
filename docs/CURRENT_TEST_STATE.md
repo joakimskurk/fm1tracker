@@ -3,7 +3,7 @@
 Date: 2026-10-24  
 Purpose: **current verification overlay**
 
-Legend: ✅ verified/frozen, ⬜ active/future, ⛔ physical gate unavailable.
+Legend: ✅ verified/frozen, 🟨 frozen/committed with CI evidence pending, ⬜ active/future, ⛔ physical gate unavailable.
 
 ## Stable completed baseline
 
@@ -21,85 +21,65 @@ WP5.0 / D048 mixed-engine routing:
 - per-instrument family + engine authoritative ✅
 - song mode non-gating ✅
 - 8 B router / 64 B publication ✅
-- deterministic immediate/delayed cross-family routing ✅
-- malformed/unsupported family/engine fail-safe ✅
-- non-applicable family p-locks ignored, never reinterpreted ✅
-- zero active cross-track primary steals ✅
+- deterministic family switching/fail-safe behavior ✅
 - D046 representative/normal WAV byte-identical ✅
-- inherited/realtime gates ✅
 - target 72,792 B image / 19,676 B RAM / 113,000 B pool ✅
 - run `40129822006`, job `120978955451` ✅
 
-## WP5.1 / D049 fixed-point FM operator - COMPLETE
+WP5.1 / D049 fixed-point FM operator:
 
-Normative contract: `WP5_1_FM_OPERATOR_CONTRACT.md`.  
-Pre-implementation evidence: `WP5_1_PREIMPLEMENTATION_EVIDENCE.md`.  
-Final evidence: `WP5_1_VERIFICATION.md`.
+- D049 source-absent contract gate ✅
+- 4 B operator state / uint32 phase ✅
+- signed int32 phase modulation ✅
+- Q15 level/output convention ✅
+- generated 257-entry / 514 B quarter-wave ✅
+- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68` ✅
+- 65,536 symmetry probes ✅
+- long SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66` ✅
+- no loop/heap/float/int64/divide/modulo/store/router access in primitive ✅
+- pinned PI32v2 object 692 B text+rodata ✅
+- full target/audio identity exact WP5.0 ✅
+- run `40134823600`, host `120994003059`, target `120994002842` ✅
+- evidence `WP5_1_VERIFICATION.md` ✅
 
-Canonical implementation verification:
+## WP5.2 / D050 current state
 
-- run `40134823600` ✅
-- host job `120994003059` ✅
-- target job `120994002842` ✅
-- verification head `52df09bf363ad5a9ad2d722a38734eaa580ecb90` ✅
-
-| Check | Status |
-|---|---|
-| D049 frozen before production source | ✅ |
-| source-absent contract/reference gate | ✅ run `40131135259` |
-| operator state one uint32 phase, 4 B | ✅ |
-| uint32 phase / natural 2^32 wrap | ✅ |
-| sample-before-advance | ✅ |
-| signed int32 phase modulation | ✅ |
-| Q15 level 0..32767 | ✅ |
-| output -32767..32767 | ✅ |
-| generated 257-entry quarter-wave | ✅ |
-| table payload 514 B | ✅ |
-| table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68` | ✅ |
-| generator output byte-identical to checked-in table | ✅ |
-| exact sine/interpolation vectors | ✅ |
-| 65,536 sign-symmetry probes | ✅ |
-| positive/negative/INT32 modulation edges | ✅ |
-| reset/retrigger/null safety | ✅ |
-| phase wrap / zero-increment hold | ✅ |
-| 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66` | ✅ |
-| final phase `f1532bdf` | ✅ |
-| no loop/heap/float/int64/divide/modulo/store/router access in primitive | ✅ |
-| pinned PI32v2 module compile | ✅ |
-| object text+rodata | ✅ 692 B / 4,096 B ceiling |
-| object SHA `46868461ac6910d499975dbd93d06ee0af9db905d01c32583321eeaea0e33fad` | ✅ |
-| normal WP5.0 WAV unchanged | ✅ |
-| D046 representative WAV unchanged | ✅ |
-| WP5.0 router regression | ✅ |
-| full target image/RAM/pool unchanged | ✅ 72,792 / 19,676 / 113,000 B |
-| full BIN/FWSC unchanged | ✅ |
-| `WP5_1_VERIFICATION.md` | ✅ |
-
-WP5.1 remains isolated from `dinghy.c`; FM is not yet audible in the production app.
-
-## WP5.2 current state - ACTIVE CONTRACT-FIRST
-
-Issue #45. Planned branch `phase5/fm4-algorithms`.
-
-Required before production algorithm code:
+Normative contract: `WP5_2_FM_ALGORITHM_CONTRACT.md`.
 
 | Check | Status |
 |---|---|
-| inspect D049 and FM4 routing constraints | ⬜ |
-| curated algorithm count and stable internal IDs | ⬜ |
-| exact graph topology per algorithm | ⬜ |
-| exact per-sample evaluation order | ⬜ |
-| signed modulation accumulation/scaling boundary | ⬜ |
-| overflow/saturation policy | ⬜ |
-| carrier sum/output normalization | ⬜ |
-| routing-layer mutable-state requirement | ⬜ |
-| deterministic graph fixtures | ⬜ |
-| long-run graph hashes | ⬜ |
-| target object/realtime ceiling | ⬜ |
-| D050 contract committed before production routing source | ⬜ |
-| source-absent pre-implementation CI | ⬜ |
+| D050 frozen before production algorithm source | ✅ frozen |
+| production `fmt_fm_algorithm.*` absent | 🟨 source-absent CI pending |
+| algorithm count exactly 4 | ✅ frozen |
+| ID 0 STACK4 | ✅ frozen |
+| ID 1 FAN3 | ✅ frozen |
+| ID 2 DUAL2 | ✅ frozen |
+| ID 3 PARALLEL4 | ✅ frozen |
+| evaluation order OP4 -> OP3 -> OP2 -> OP1 | ✅ frozen |
+| every operator renders exactly once per sample | ✅ frozen |
+| routing state exactly 4 D049 operators / 16 B | ✅ frozen |
+| invalid algorithm fallback STACK4 | ✅ frozen |
+| mod depth clamp 0..16383 | ✅ frozen |
+| edge mapping `sample * depth * 4` | ✅ frozen |
+| phase-offset accumulation modulo 2^32 | ✅ frozen |
+| carrier counts 1/2/4 only | ✅ frozen |
+| carrier normalization power-of-two toward zero | ✅ frozen |
+| router object ceiling <= 2,048 B text+rodata | ✅ frozen |
+| STACK4 4,096 hash `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd` | ✅ frozen |
+| FAN3 4,096 hash `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653` | ✅ frozen |
+| DUAL2 4,096 hash `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269` | ✅ frozen |
+| PARALLEL4 4,096 hash `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882` | ✅ frozen |
+| source-absent topology/reference CI | 🟨 pending |
+| 65,536-render-per-algorithm reference stress | 🟨 pending |
+| D049 regression through gate | 🟨 pending |
+| full normal WP5.0 WAV through gate | 🟨 pending |
+| production routing implementation | ⬜ blocked until source-absent gate green |
+| pinned PI32v2 routing object compile | ⬜ after implementation |
+| `WP5_2_VERIFICATION.md` | ⬜ |
 
-WP5.2 explicitly excludes ratios, final level/mod-index UX, feedback, envelopes, voice/router integration, p-lock pages and audible mixed FM integration.
+## Explicit WP5.2 non-goals
+
+No ratio/tuning mapping, final level/mod-index UX, feedback, envelopes, FM voice allocation, FM parameter pages/p-lock IDs or audible mixed FM production integration belong to WP5.2.
 
 ## Physical hardware boundary
 
