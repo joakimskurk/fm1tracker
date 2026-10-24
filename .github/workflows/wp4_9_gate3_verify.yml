@@ -77,18 +77,27 @@ jobs:
           set -euo pipefail
           mkdir -p build/wp4_9_gate3_target
           CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          EXPECTED_LINKED='3188576bf205d4ea013d9b8bccf76471ab9c2732c9f09e0c7295c2be52eaa45c'
+          EXPECTED_EDITOR='69adabd71f4bf0ec972bcda4c8edd926741c59e2b2bbbedace7a9e83c92858bd'
+          EXPECTED_REGISTRY='dc84feac8e0ad745d8e28514ed99c7256caf95655ddd3375580bfda122c86d48'
           for src in fmt_8bit_linked_params fmt_lock_editor fmt_param_registry; do
             "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
               -Ifirmware/src -c "firmware/src/$src.c" \
               -o "build/wp4_9_gate3_target/$src.o"
             test -s "build/wp4_9_gate3_target/$src.o"
           done
+          LINKED_SHA="$(sha256sum build/wp4_9_gate3_target/fmt_8bit_linked_params.o | awk '{print $1}')"
+          EDITOR_SHA="$(sha256sum build/wp4_9_gate3_target/fmt_lock_editor.o | awk '{print $1}')"
+          REGISTRY_SHA="$(sha256sum build/wp4_9_gate3_target/fmt_param_registry.o | awk '{print $1}')"
+          test "$LINKED_SHA" = "$EXPECTED_LINKED"
+          test "$EDITOR_SHA" = "$EXPECTED_EDITOR"
+          test "$REGISTRY_SHA" = "$EXPECTED_REGISTRY"
           sha256sum \
             build/wp4_9_gate3_target/fmt_8bit_linked_params.o \
             build/wp4_9_gate3_target/fmt_lock_editor.o \
             build/wp4_9_gate3_target/fmt_param_registry.o \
             | tee build/wp4_9_gate3_target/object_sha256.txt
-          printf '%s\n' 'WP4_9_GATE3_PI32V2_OK=1 modules=3 base_bank_bytes=96 row_cache_bytes=2048 dinghy_migration=0 object_hashes=frozen_pending' \
+          printf '%s\n' "WP4_9_GATE3_PI32V2_OK=1 modules=3 base_bank_bytes=96 row_cache_bytes=2048 dinghy_migration=0 object_hashes=frozen linked=$LINKED_SHA editor=$EDITOR_SHA registry=$REGISTRY_SHA" \
             | tee build/wp4_9_gate3_target/summary.txt
 
       - name: Upload D045 Gate 3 target evidence
