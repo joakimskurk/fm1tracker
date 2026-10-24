@@ -271,7 +271,7 @@ Phase 3 evidence so far:
 | D040 TRIANGLE primitive/test contract frozen before source | required | compile | n/a | ✅ `WP4_4_TRIANGLE_CONTRACT.md` / `79167dd9...` |
 | TRIANGLE deterministic vectors + JieLi target compile | required | required | optional later | ✅ run `40094383287` / closeout `40094496353` |
 | WP4.4 full app remains exact WP4.3 baseline while TRIANGLE is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
-| D041 WAVETABLE-8 primitive/test contract frozen before source | required | compile | n/a | ⬜ WP4.5 active |
+| D041 WAVETABLE-8 primitive/test contract frozen before source | required | compile | n/a | ✅ `WP4_5_WAVETABLE8_CONTRACT.md` / `c543c99d...` |
 | WAVETABLE-8 deterministic tables/vectors + JieLi target compile | required | required | optional later | ⬜ WP4.5 next |
 | Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
 | P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |

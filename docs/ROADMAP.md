@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Phase 4 is active. **WP4.1 / #31 through WP4.4 / #34 are COMPLETE**; **WP4.5 / #35 WAVETABLE-8 is active**, with D041 required before source.
+Phase 4 is active. **WP4.1 / #31 through WP4.4 / #34 are COMPLETE**; **WP4.5 / #35 WAVETABLE-8 is active and D041 is FROZEN**, with isolated deterministic implementation/testing next.
 
 ---
 
@@ -143,10 +143,10 @@ Phase 4 is active. **WP4.1 / #31 through WP4.4 / #34 are COMPLETE**; **WP4.5 / #
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/D040 COMPLETE; WP4.5 / #35 WAVETABLE-8 active; D041 before source**
+Status: **IN PROGRESS — WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/D040 COMPLETE; WP4.5 / #35 WAVETABLE-8 active; D041 FROZEN; isolated implementation/tests next**
 
 Parent issue: #30
-Active package: WP4.5 / #35 — freeze D041 WAVETABLE-8 table/count/sample/index/interpolation/test contract before production source. WP4.1 / #31 through WP4.4 / #34 are complete; PULSE, NOISE and TRIANGLE remain isolated. Branch: `phase4/8bit-engine`.
+Active package: WP4.5 / #35 — D041 is frozen in `WP4_5_WAVETABLE8_CONTRACT.md`; implement/test isolated eight-table zero-order-hold WAVETABLE-8 without full-app integration. WP4.1 / #31 through WP4.4 / #34 are complete; PULSE, NOISE and TRIANGLE remain isolated. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 

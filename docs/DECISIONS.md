@@ -843,3 +843,26 @@ WP4.4 remains isolated, so full-app image/RAM/pool/WAV/BIN/FWSC delta must remai
 **Reason:** D037 already freezes a common 32-bit phase/Q7 pitch domain and nominal-Q15 range. The quadrant/15-bit-offset construction gives natural zero-crossing reset semantics, exact positive/negative full-scale peaks, exact half-cycle symmetry and trivially bounded target arithmetic without introducing a table, multiply/divide path or parallel tuning model.
 
 **Consequence:** Focused tests must prove exact canonical/boundary vectors, exhaustive high-16 range bounds and half-cycle antisymmetry, wrap/zero-increment/replay/guards, unchanged D038 pitch vectors and the frozen long-run signature. `fmt_osc_triangle.c` must compile with the real pinned PI32v2 compiler while the D038 pitch object stays byte-identical. WAVETABLE-8, envelope, allocator, parameter pages and proof-sine migration remain later packages. Any alternate phase orientation, amplitude rounding, interpolation or anti-aliasing requires a superseding decision and new deterministic evidence.
+
+## D041 — WP4.5 WAVETABLE-8 is eight immutable 32-sample signed-8-bit tables with zero-order-hold lookup
+
+Date: 2026-10-24
+Status: accepted — frozen before WAVETABLE-8 production source
+
+**Decision:** WP4.5 implements one isolated deterministic WAVETABLE-8 primitive exactly as frozen in `docs/WP4_5_WAVETABLE8_CONTRACT.md`. It remains disconnected from `dinghy.c` and the running full app.
+
+WAVETABLE-8 means exactly eight curated immutable tables of 32 signed 8-bit samples each: SINE, SAW8, SQUARE8, ORGAN, HOLLOW, NASAL, METAL and DIGI. The 256 table bytes are frozen in the contract with row-major SHA-256 `f95b092a5106a8b05acb57d2960b0162b48ea42e2f8217b8923b0b7346046aee`. No runtime table generation or editable table memory belongs to WP4.5.
+
+`FmtWavetable8Osc` contains exactly one `uint32_t phase` and is therefore exactly 4 B. Reset and D033 RETRIG set phase to zero. The top five phase bits select table index `phase >> 27`; there is no interpolation. Current phase/sample is read before the common D038 phase increment advances the oscillator.
+
+Table selectors `0..7` select the eight exact identities. Every malformed selector `>=8` falls back to table 0 / SINE rather than wrapping modulo 8. The table bytes are restricted to `-127..127`; `-128` is deliberately unused. Each raw byte expands to nominal Q15 by exact integer multiplication `raw * 258`, yielding full table range `-32766..32766` without a clamp/divide/asymmetric endpoint case.
+
+The primitive has fixed O(1) render work: one selector comparison, one phase shift, one immutable lookup, one constant signed multiply and one phase add/store. It has no loop, allocation, float, 64-bit arithmetic, tracker-store traversal or hidden smoothing. The 32-sample zero-order-hold steps, aliasing and imaging are intentional Phase 4 8-BIT character; later interpolation/anti-aliasing requires an explicit superseding decision.
+
+Frozen 65,536-sample A4 FNV-1a32 signatures are: SINE `40a7ddab`, SAW8 `7c509a67`, SQUARE8 `a573d449`, ORGAN `1d6f9fcb`, HOLLOW `b8048a69`, NASAL `a3661307`, METAL `27204689`, DIGI `48f2989f`, each ending at phase `0xDFB90000`.
+
+The isolated immutable image-data cost is exactly 256 B and mutable oscillator-state cost is 4 B per instance / 32 B for eight future instances. Because WAVETABLE-8 remains unlinked in WP4.5, full-app image/RAM/pool/WAV/BIN/FWSC delta must remain exactly zero versus WP4.4.
+
+**Reason:** the fourth 8-BIT engine needs a broader tonal palette without introducing unbounded DSP, extra tuning math or large RAM. Eight small 32-step signed-byte waves give a deliberately lo-fi tracker palette for only 256 immutable bytes, while direct D038 phase ownership and no interpolation keep render cost trivial to bound.
+
+**Consequence:** focused tests must prove all 256 frozen samples, selector fallback, `raw*258` expansion, zero/wrap/replay/guards, unchanged D038 pitch vectors, table-data SHA and all eight long-run signatures. `fmt_osc_wavetable8.c` must compile with the real pinned PI32v2 compiler while the D038 pitch object stays byte-identical. Envelope, allocator, parameter pages and proof-sine migration remain later packages. Any table-byte, interpolation, selector, expansion or table-count change requires a superseding decision and new deterministic evidence.
