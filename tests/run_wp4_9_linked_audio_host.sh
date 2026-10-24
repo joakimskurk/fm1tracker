@@ -18,7 +18,9 @@ run_fixture() {
   "$BIN" "build/host/wp4_9_$name" "build/wp4_9_fixtures/$name.txt" \
     > "build/wp4_9_${name}.log"
   test -s "build/host/wp4_9_$name.wav"
-  sha256sum "build/host/wp4_9_$name.wav" | awk -v n="$name" '{print "WP4_9_" toupper(n) "_WAV_SHA256=" $1}' toupper="$name"
+  hash="$(sha256sum "build/host/wp4_9_$name.wav" | awk '{print $1}')"
+  upper="$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]')"
+  printf 'WP4_9_%s_WAV_SHA256=%s\n' "$upper" "$hash"
 }
 
 # A. One deterministic fixture per linked engine. Attack/decay are immediate,
