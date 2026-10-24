@@ -14,21 +14,21 @@ The panel labels remain useful where possible. Context-sensitive repurposing is 
 | REC | enter/leave STEP REC while stopped; future live-record arm during playback |
 | SEQ | pattern/tracker page |
 | HOME | performance/overview page |
-| EDIT | focused step/instrument edit |
+| EDIT | focused step/instrument edit; delete-arm modifier during a held p-lock target |
 | SAVE | explicit save flow; only writes when safe |
 | GLO | project/global settings |
 | ENV | envelope page for current instrument |
 | LFO | modulation page |
 | FX | effects page; becomes REST/modifier in STEP REC |
 | ARP | arpeggio page / tracker arpeggio helper |
-| SEL | select/focus; becomes TIE / OFF modifier target in STEP REC |
+| SEL | select/focus; becomes TIE / OFF modifier target in STEP REC and delete confirm during an armed p-lock hold |
 | OCT- / OCT+ | keyboard octave while playing/recording; page navigation where screen context explicitly takes over |
 
 Encoders:
 
 | Encoder | Default tracker role |
 | --- | --- |
-| SELECT | cursor/value navigation |
+| SELECT | cursor/value navigation; browses existing locks while a step is held |
 | ALGORITHM | track / engine / effect-type context selector |
 | KNOB1..4 | current page parameters; become p-lock writers while a step is held/selected |
 | PRESETS | instrument/pattern selection depending on page |
@@ -204,7 +204,7 @@ A project setting may later choose STOP AT END, but no such setting exists yet.
 
 ## 5. Parameter locks
 
-D029/WP3.3 freezes the first real p-lock editor prototype.
+D029/WP3.3 freezes the first real p-lock editor prototype. D030/WP3.4 adds deliberate browsing and one-lock deletion without changing playback.
 
 ### Hold-step gesture
 
@@ -218,7 +218,7 @@ P-lock editing is available only in ordinary SEQ/pattern mode. It is deliberatel
 
 A quick white-key tap with no later encoder movement therefore behaves like ordinary step selection and creates no lock.
 
-While the p-lock hold is active, other step keys, black track selectors and OCT page navigation cannot retarget the editor. The cursor/header remain on the snapshotted target. HOME or entering STEP REC cancels the hold without an extra write. PLAY is allowed to start/stop while the hold remains active because WP3.3 only edits storage; locks are not applied to playback yet.
+While the p-lock hold is active, other step keys, black track selectors and OCT page navigation cannot retarget the editor. The cursor/header remain on the snapshotted target. HOME or entering STEP REC cancels the hold without an extra write. PLAY is allowed to start/stop while the hold remains active because current Phase 3 editing is storage-only; locks are not applied to playback yet.
 
 If several white step keys go down in one input poll, the lowest physical white key owns the gesture. If a black track key and white step key arrive together, the hold uses the track that was selected before that poll and the simultaneous black-key change is suppressed.
 
@@ -226,9 +226,9 @@ If several white step keys go down in one input poll, the lowest physical white 
 
 The FM-1 HAL already reports signed relative detent steps. One physical encoder click is one relative step.
 
-KNOB1..4 are drained every main-loop poll, even when no p-lock hold is active. Encoder deltas observed while inactive are discarded. Deltas from the same poll that starts, releases or cancels a hold are also discarded.
+SELECT and KNOB1..4 are drained every main-loop poll. Encoder deltas observed while inactive are discarded. Deltas from the same poll that starts, releases or cancels a hold are also discarded.
 
-This means a knob movement made before the step is held can never leak into the new lock target. Only movement observed on later polls while the same white key remains held can write.
+This means encoder movement made before the step is held can never leak into the new lock target. Only movement observed on later polls while the same white key remains held can browse or write.
 
 ### Current four-parameter mapping
 
@@ -256,22 +256,66 @@ These values do **not** yet define dB, cents, a pan law or engine coefficient sc
 
 If several KNOB1..4 deltas are available in one poll, they are handled in fixed KNOB1 -> KNOB4 order as separate bounded storage edits.
 
+### Existing-lock browse
+
+D030 uses the SELECT encoder only while a white-step p-lock hold is active.
+
+- the existing locks on the snapshotted step are visited in D028's strict ascending parameter-ID order;
+- a hold begins with the first existing lock selected when one exists;
+- SELECT movement is clamped at the first/last lock rather than wrapping;
+- a successful KNOB1..4 set/replace makes that parameter the selected lock;
+- if no locks exist, browse is a safe no-op and the footer says so;
+- browse never changes the held step, selected track or lock values.
+
+Because a step can hold at most four locks, browse work is always bounded.
+
+### Deliberate one-lock deletion
+
+Deletion requires a stable held-step target and an existing selected lock.
+
+1. press `EDIT` to arm deletion of the currently selected semantic parameter;
+2. the footer names the armed target;
+3. on a **later input poll**, press `SEL` to confirm;
+4. the selected lock is removed once and the arm is consumed.
+
+Important safeguards:
+
+- `EDIT` alone never deletes;
+- `EDIT+SEL` arriving together in one poll never deletes;
+- releasing EDIT before SEL cancels;
+- owner-key release, HOME, successful STEP REC entry or invalid/corrupt target data cancels;
+- PLAY may still toggle transport, but cancels a pending delete arm first;
+- unrelated note/OCT focus intent cancels a pending delete arm even though D029 continues to suppress retargeting;
+- while delete is armed, SELECT and KNOB1..4 deltas are drained but discarded, so the confirmation target cannot move;
+- one successful delete cannot cascade into another without a fresh EDIT arm.
+
+After deletion, the white-step hold remains active. Selection moves to the lock now occupying the deleted ordinal, otherwise clamps to the new last lock, or becomes NONE when the step has no locks left.
+
+D028 storage is revalidated before deletion. NOT FOUND, BAD ADDRESS or CORRUPT produce feedback and no partial mutation.
+
+### No clear-all shortcut in WP3.4
+
+WP3.4 intentionally exposes **no clear-all panel gesture**. D028 has an internal verified `fmt_lock_clear()` primitive, but a step can hold at most four locks, so deliberate one-by-one deletion is fast and considerably safer while physical ergonomics are still unknown. A later focused editor or Phase 7 decision may add a protected clear-all action.
+
 ### Feedback
 
-WP3.3 uses only the existing tracker footer for immediate feedback while the key is held:
+Current p-lock feedback stays in the existing tracker footer only:
 
-- hold context shows target step/track;
-- a successful encoder action shows the knob/parameter and stored normalized value;
-- storage failures such as STEP FULL, POOL FULL or CORRUPT are shown explicitly;
+- hold context identifies target step/track;
+- an existing selected lock can show ordinal/count, parameter and value;
+- a successful encoder action shows the parameter and stored normalized value;
+- an armed delete names the semantic target and SEL confirmation;
+- zero-lock, successful delete and storage failures are explicit;
+- stored values above the current D029 `0..255` editor domain may be browsed as RANGE and are still removable because delete does not reinterpret the value;
 - releasing/cancelling the key restores the ordinary SEQ footer.
 
-Full row lock markers, lock browsing and detailed visual treatment remain WP3.9. Lock delete/clear gestures remain WP3.4.
+Full row lock markers and detailed lock visualization remain WP3.9.
 
 ### Storage-only rule
 
-WP3.3 p-lock editing changes lock storage only. It does not alter the note, instrument, volume or tracker-effect fields, does not change a base instrument/track parameter and does not alter the proof/audition voice. Playback does not consume p-locks yet.
+WP3.3/WP3.4 p-lock editing changes lock storage only. It does not alter note, instrument, volume or tracker-effect fields, does not change a base instrument/track parameter and does not alter the proof/audition voice. Playback does not consume p-locks yet.
 
-Physical comfort of holding a white key while turning encoders remains provisional until Phase 7 hardware testing.
+Physical comfort of holding a white key while browsing/arming/confirming deletion remains provisional until Phase 7 hardware testing.
 
 ## 6. Focused step edit
 
@@ -283,7 +327,7 @@ During playback:
 
 - D026 keeps playhead and selected edit row visually separate;
 - the playhead does not steal/scroll the cursor-owned edit viewport;
-- D029 allows storage-only p-lock editing during playback because the current audio path does not read lock storage;
+- D029/D030 allow storage-only p-lock edit/browse/delete during playback because the current audio path does not read lock storage;
 - future lock application must preserve atomic/bounded shared-state handoff before p-locks are consumed by audio;
 - pattern/song structure edits that could invalidate currently executing data may be deferred until a safe boundary in early versions;
 - flash save remains unavailable while audio is active if the platform write path causes dropouts.
@@ -296,6 +340,7 @@ The following must be explicitly evaluated before V1 control freeze:
 - whether FX-as-REST is discoverable enough;
 - whether SELECT-as-TIE and FX+SELECT-as-OFF are comfortable and understandable;
 - whether holding a white key while turning encoders is physically comfortable;
+- whether SELECT-browse plus EDIT -> SEL delete confirmation is comfortable and discoverable;
 - whether the D029 focus latch feels natural or a later latch/toggle mode is needed;
 - whether page switching should remain on OCT buttons;
 - whether live parameter locking needs latch mode so the user does not need three hands;
