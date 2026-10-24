@@ -1,0 +1,31 @@
+name: WP4.9 Gate 5 discovery runner shell fix once
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - .github/tmp/wp4_9_gate5_runner_fix.py
+      - .github/workflows/_wp4_9_gate5_runner_fix_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix discovery runner hash output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tmp/wp4_9_gate5_runner_fix.py
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/run_wp4_9_linked_audio_host.sh
+          git commit -m 'test: fix D045 discovery hash output'
+          git push origin HEAD:phase4/8bit-engine
