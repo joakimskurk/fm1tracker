@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WP5_1_FM_OPERAT
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 complete, WP5.1 active, D049 frozen and pre-implementation gate GREEN - 2026-10-24**
+State: **IN PROGRESS - WP5.0 complete, WP5.1 D049 operator implementation committed, verification pending - 2026-10-24**
 
 Current work package: **WP5.1 - fixed-point FM operator primitive**  
 Parent issue: **#42**  
@@ -16,7 +16,8 @@ Work-package issue: **#44**
 Current branch: `phase5/fm4-operator`  
 WP5.0 closeout/handoff: `6c0add8828474e9308710e02957231e7225eb121`  
 D049 contract commit: `f9b97edeb66483199fdf5bbfc964839f31841dc0`  
-D049 canonical pre-implementation head: `010d1dff2f74e27450edc6784ae7792eca358e59`
+D049 canonical pre-implementation head: `010d1dff2f74e27450edc6784ae7792eca358e59`  
+D049 green evidence checkpoint: `b01a70f94b91dcc4d7afffaff7c30b4d4486eb2a`
 
 Do not begin WP5.2 algorithm routing, feedback, envelopes, voice allocation, parameter pages or mixed FM playback while WP5.1 is active.
 
@@ -70,16 +71,30 @@ Canonical run `40131135259`, job `120982895786`, artifact `12574973209`, artifac
 
 The gate proved the production operator was absent, zero firmware/gen delta versus WP5.0, the frozen table hash, all sine/interpolation/modulation/level vectors, 65,536 sign-symmetry probes, the 4,096-render hash/final phase and byte-identical WP5.0 normal WAV.
 
+### Isolated production implementation
+
+The D049 implementation now consists only of:
+
+- `tools/gen_wp5_1_fm_sine.py` - deterministic offline generator with frozen table hash;
+- `firmware/gen/fmt_fm_sine_q15.inc` - checked-in 257-entry generated quarter-wave table;
+- `firmware/src/fmt_fm_operator.h/.c` - 4 B state and exact D049 render primitive;
+- `tests/test_wp5_1_fm_operator.c` - deterministic C vectors and long-vector emitter;
+- `tests/run_wp5_1_fm_operator_tests.sh` - generator identity, host vectors, static audit and inherited WP5.0 gates;
+- `.github/workflows/wp5_1_fm_operator_verify.yml` - isolated PI32v2 compile, object measurement and exact full-app target identity gate.
+
+`firmware/src/dinghy.c` is intentionally unchanged and does not include the FM operator. FM remains inaudible in the production application until WP5.7+ integration work.
+
 ### Exact next action
 
-Production implementation is now allowed, but remains isolated:
+Run the committed WP5.1 operator verification workflow and require both host and target jobs to pass. It must prove:
 
-1. add deterministic generator and checked-in quarter-wave table;
-2. add `fmt_fm_operator.h/.c` matching D049 exactly;
-3. add focused C host vectors and source audit;
-4. independently compile the module with the pinned JieLi PI32v2 toolchain and measure object sections;
-5. prove full WP5.0 WAV/resources/BIN/FWSC remain exact because `dinghy.c` is unchanged;
-6. write `WP5_1_VERIFICATION.md` before WP5.2 begins.
+1. generator output is byte-identical to the checked-in table and reproduces the frozen table SHA-256;
+2. all D049 C vectors, 65,536 symmetry probes and the 4,096-render SHA-256 pass;
+3. source audit proves no loop/allocation/float/64-bit/divide/modulo/store/router access in the primitive;
+4. WP5.0 router and representative D046 workload remain green;
+5. the isolated operator compiles with pinned JieLi PI32v2 and text+rodata remains <= 4,096 B;
+6. full target remains exactly 72,792 B image / 19,676 B RAM / 113,000 B pool with WP5.0 BIN/FWSC hashes;
+7. only after green host+target evidence, write `docs/WP5_1_VERIFICATION.md` and close WP5.1 before WP5.2 begins.
 
 ## WP5.1 explicitly out of scope
 
@@ -108,4 +123,4 @@ No physical FM-1 is available. Host/device-build evidence does not prove physica
 
 ## Last updated
 
-2026-10-24 - D049 pre-implementation gate is canonically green. The isolated FM operator implementation is the only next action.
+2026-10-24 - isolated D049 production primitive and verification gates prepared. Host + PI32v2/full-target CI is the only next action; WP5.2 remains blocked.
