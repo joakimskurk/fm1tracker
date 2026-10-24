@@ -1,4 +1,6 @@
 name: WP4.9 D045 Gate 6 inherited regressions
+# Rerun after replacing obsolete pre-D044 screenshot hashes with the D044-aware
+# WP4.9 UI regression adapter while preserving the original context scripts.
 
 on:
   push:
@@ -10,6 +12,7 @@ on:
       - firmware/src/fmt_*.h
       - tests/host.c
       - tests/run_wp4_9_inherited_regressions.sh
+      - tests/run_wp4_9_ui_regressions_host.sh
       - tests/run_wp3_10_worst_case.sh
       - tests/test_wp3_10_worst_case.c
       - tests/run_wp3_10_timing_matrix.sh
@@ -47,6 +50,9 @@ jobs:
           path: |
             build/wp4_9_gate6*.log
             build/wp3_10_*.log
-            build/host/fm1tracker_wp3_3_lock_editor-*.ppm
-            build/host/fm1tracker_wp3_4_lock_delete-*.ppm
-            build/host/fm1tracker_wp3_9_visual-*.ppm
+            build/wp4_9_ui_*.log
+            build/host/wp4_9_lock_editor-*.ppm
+            build/host/wp4_9_lock_delete-*.ppm
+            build/host/wp4_9_visual-*.ppm
+            build/host/wp4_9_home_return-*.ppm
+            build/host/wp4_9_home_control-*.ppm
