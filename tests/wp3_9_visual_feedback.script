@@ -1,0 +1,33 @@
+# WP3.9 D035 full-app visual fixture.
+# Button ids: SEQ=11. Encoder ids: K1=2 K2=3 K3=4 K4=5.
+# Host-only `effect STEP CMD VALUE` writes the stored FmtStep command/value and
+# refreshes the already-verified D032 effect cache; it is not a firmware UI.
+
+# Enter ordinary tracker view on pattern 0 / track 0.
+100 btn 11
+
+# Populate all eight visible rows with representative D032/D033 stored effects.
+200 effect 0 1 55
+210 effect 1 6 2
+220 effect 2 7 3
+230 effect 3 8 0
+240 effect 4 5 47
+250 effect 5 2 4
+260 effect 6 3 165
+270 effect 7 4 16
+
+# Hold step 1 and create two locks. K4/PAN is last so the 1000 ms screenshot
+# must show P2 on row 01 and storage-only detail in the footer.
+300 keys 1
+400 enc 2 -1
+500 enc 5 1
+
+# Release, then add one TRACK LEVEL lock on step 2 and release again.
+1100 keys 0
+1200 keys 4
+1300 enc 4 -1
+1400 keys 0
+
+# By the 3000 ms screenshot no editor is active: row 01 must show L2, row 02
+# L1, while all eight stored effect mnemonics remain visible.
+3300 end
