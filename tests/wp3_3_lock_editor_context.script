@@ -1,0 +1,57 @@
+# WP3.3 D029 full-app host gesture fixture.
+# Button ids: OCT-=0 OCT+=1 SEQ=11 PLAY=12.
+# Encoder ids: KNOB1=2 KNOB2=3 KNOB3=4 KNOB4=5.
+# Note masks are physical FM-1 key bits.
+
+# Stale encoder movement before the hold must be drained/discarded.
+50 enc 2 -20
+
+# Enter ordinary SEQ, choose logical track 2 with black key index 3, then page 2.
+100 btn 11
+200 keys 8
+210 keys 0
+300 btn 1
+
+# Hold white key index 4 = local step 3 / global step 19 UI. Same-poll delta must be discarded.
+400 keys 16
+400 enc 2 -7
+
+# First eligible later-poll delta: VOICE LEVEL reference 255 -> 254.
+500 enc 2 -1
+
+# While held, black track key and OCT+ must not move the snapshotted target/cursor.
+600 keys 48
+650 btn 1
+
+# PLAY may toggle while the p-lock hold remains active.
+700 btn 12
+
+# The first automatic screenshot at 1000 ms should still show T2 / PG2 / CUR19
+# with K1 VOICE 254 LOCK in the footer.
+
+# Release and a same-poll encoder movement: release wins and the -10 is discarded.
+1100 keys 0
+1100 enc 2 -10
+
+# After release ordinary track/page navigation works again. Move away and back.
+1150 keys 32
+1160 keys 0
+1200 keys 8
+1210 keys 0
+1250 btn 1
+1300 btn 0
+
+# Re-hold the same target. Same-poll +20 is discarded, then +1 replaces 254 -> 255.
+1600 keys 16
+1600 enc 2 20
+1700 enc 2 1
+
+# Suppression remains active during this second hold too.
+1800 keys 48
+1850 btn 1
+1900 btn 12
+
+# The automatic screenshot at 3000 ms should show the same target with
+# K1 VOICE 255 LOCK, proving release-poll and begin-poll deltas did not leak.
+3100 keys 0
+3300 end
