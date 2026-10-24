@@ -14,6 +14,7 @@ on:
       - tests/test_fmt_lock_editor.c
       - tests/run_tracker_screen_tests.sh
       - tests/run_lock_editor_tests.sh
+      - tests/run_phase2_integration_tests.sh
       - tests/run_wp3_9_visual_host.sh
       - tests/wp3_9_visual_feedback.script
       - tests/run_wp3_9_closeout_ci.sh
