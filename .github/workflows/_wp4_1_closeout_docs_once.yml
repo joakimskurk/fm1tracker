@@ -1,0 +1,32 @@
+name: WP4.1 closeout handoff docs once
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - .github/workflows/_wp4_1_closeout_docs_once.yml
+      - .github/tmp/wp4_1_closeout_docs.py
+
+permissions:
+  contents: write
+
+jobs:
+  closeout-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Close WP4.1 docs and activate WP4.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tmp/wp4_1_closeout_docs.py
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/PROJECT_STATE.md docs/WORK_PACKAGES.md docs/ROADMAP.md docs/TEST_MATRIX.md
+          git commit -m 'docs: close WP4.1 and activate WP4.2'
+          git push origin HEAD:phase4/8bit-engine
