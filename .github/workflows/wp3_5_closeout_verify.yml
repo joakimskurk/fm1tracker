@@ -1,0 +1,45 @@
+name: WP3.5 full closeout verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/wp3_5_closeout_verify.yml
+      - tests/run_wp3_5_closeout_ci.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playback-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run complete WP3.5 closeout gate
+        shell: bash
+        run: sh tests/run_wp3_5_closeout_ci.sh
+
+      - name: Upload WP3.5 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-5-playback-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp3_5_*.log
+            build/wp3_5_*.txt
+            build/wp3_5_*.o
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
+            build/host/fm1tracker_wp3_5_control.wav
+            build/host/fm1tracker_wp3_5_locked.wav
