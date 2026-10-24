@@ -1,0 +1,42 @@
+name: WP5.3 D051 ratio contract freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-ratios
+    paths:
+      - docs/WP5_3_FM_RATIO_CONTRACT.md
+      - tests/run_wp5_3_contract_freeze.sh
+      - .github/workflows/wp5_3_contract_freeze.yml
+      - docs/PROJECT_STATE.md
+      - docs/CURRENT_DECISIONS.md
+      - START_HERE.md
+
+permissions:
+  contents: read
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Verify D051 source-absent ratio contract
+        run: sh tests/run_wp5_3_contract_freeze.sh
+
+      - name: Upload D051 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-3-d051-contract-freeze
+          path: |
+            docs/WP5_3_FM_RATIO_CONTRACT.md
+            build/wp5_3_contract/
+          if-no-files-found: warn

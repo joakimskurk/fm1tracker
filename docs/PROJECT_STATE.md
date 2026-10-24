@@ -2,21 +2,23 @@
 
 This is the **single source of truth for current execution state**.
 
-A new chat/session should read `START_HERE.md`, then this file, `WP5_2_VERIFICATION.md`, `WP5_2_FM_ALGORITHM_CONTRACT.md`, `WP5_1_VERIFICATION.md`, `WP5_1_FM_OPERATOR_CONTRACT.md`, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
+A new chat/session should read `START_HERE.md`, then this file, `WP5_3_FM_RATIO_CONTRACT.md`, `WP5_2_VERIFICATION.md`, `WP5_2_FM_ALGORITHM_CONTRACT.md`, `WP5_1_VERIFICATION.md`, `WP5_1_FM_OPERATOR_CONTRACT.md`, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
 
 ## Current phase
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0, WP5.1 and WP5.2 complete; WP5.3 contract-first work active - 2026-10-24**
+State: **IN PROGRESS - WP5.0, WP5.1 and WP5.2 complete; WP5.3 D051 contract frozen, source-absent CI pending - 2026-10-25**
 
 Current work package: **WP5.3 - FM4 integer ratio table and pitch mapping**  
 Parent issue: **#42**  
 Work-package issue: **#46**  
 Current branch: `phase5/fm4-ratios`  
+WP5.2 closeout baseline / current WP5.3 parent: `826a7dca7394d6e2c13f79fafa97bd05fb1986c8`  
 WP5.2 canonical implementation head: `bc054bc697304afe94fe18b2990396e6a1667dbf`  
 WP5.2 canonical run: `40136425976`  
-WP5.2 evidence: `docs/WP5_2_VERIFICATION.md`
+WP5.2 evidence: `docs/WP5_2_VERIFICATION.md`  
+WP5.3 normative contract: `docs/WP5_3_FM_RATIO_CONTRACT.md`
 
 Do not begin WP5.4 final level/mod-index mapping, WP5.5 feedback, WP5.6 envelopes, WP5.7 voice integration, WP5.8 parameter pages or WP5.9 audible mixed integration while WP5.3 is active.
 
@@ -74,33 +76,76 @@ Frozen/verified:
 
 The running application remains exact WP5.0 because D049/D050 are still isolated from `dinghy.c`.
 
+## D051 ratio contract - frozen, not implemented
+
+D051 now freezes the V1 ratio layer before production source exists.
+
+Stable ratio IDs 0..15:
+
+```text
+0  0.5
+1  1.0    UNITY / invalid-ID fallback
+2  1.25
+3  1.4140625 exact Q8 value 362/256
+4  1.5
+5  2.0
+6  2.5
+7  3.0
+8  3.5
+9  4.0
+10 5.0
+11 6.0
+12 7.0
+13 8.0
+14 12.0
+15 16.0
+```
+
+Frozen numeric policy:
+
+- ratio representation unsigned Q8;
+- canonical base-increment maximum `1293741834` from D038 at `pitch_q7=16383`;
+- malformed larger base values clamp to that canonical maximum first;
+- operator increment ceiling `0x7fffffff`;
+- ratio scaling uses precomputed per-ID base boundaries plus 32-bit split Q8 round-half-up arithmetic;
+- no runtime division/modulo, no 64-bit integer types, no float/double;
+- invalid ratio ID -> UNITY;
+- mapping is stateless;
+- `map4` performs exactly four bounded mappings;
+- exhaustive legal-pitch reference covers 16,384 pitches x 16 ratios = 262,144 outputs;
+- frozen exhaustive SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
+- 27,615 exhaustive outputs intentionally saturate at the D051 ceiling;
+- future PI32v2 `fmt_fm_ratio.o` text+rodata ceiling is 1,024 B.
+
+D051 explicitly does **not** claim bandlimited FM. The ceiling prevents accidental oscillator-increment fold/wrap; later measured audio-quality policy remains separate.
+
 ## Active package - WP5.3 / issue #46
 
-Goal: freeze and implement the bounded integer mapping from one canonical base phase increment to four operator phase increments through stable musically useful ratio IDs.
-
-WP5.3 is **contract-first**. No production ratio source may be added until D051 and a source-absent reference gate are committed and green.
+Current gate state: **D051 contract/test/workflow prepared for contract-first checkpoint. Production `fmt_fm_ratio.*` remains forbidden until the source-absent CI gate is green.**
 
 ### Exact next actions
 
-1. inspect `fmt_engine_pitch.*`, D049 phase/increment conventions and D050 input requirements;
-2. choose a compact musically useful ratio set, not arbitrary rational runtime math;
-3. freeze stable internal ratio IDs and exact mathematical meaning;
-4. freeze integer transform arithmetic, rounding and clamp/overflow behavior;
-5. freeze the supported base-increment domain and high-register edge policy;
-6. decide explicitly whether sub-unity/fractional ratios belong in V1 FM4;
-7. freeze deterministic low/mid/high pitch fixtures and boundary vectors;
-8. freeze one-base-increment to four-operator mapping API/state requirements;
-9. define source/realtime and pinned PI32v2 object ceilings;
-10. write `docs/WP5_3_FM_RATIO_CONTRACT.md` as D051 and a source-absent CI gate before implementation.
+1. commit the D051 contract, source-absent reference gate and handoff updates without production firmware changes;
+2. verify the commit diff contains no `firmware/`, `firmware/gen` or production tool changes;
+3. run `.github/workflows/wp5_3_contract_freeze.yml`;
+4. require exact green exhaustive/hash/inherited results;
+5. freeze that pre-implementation evidence in the repo;
+6. only then create isolated `firmware/src/fmt_fm_ratio.h/.c`;
+7. verify C behavior against the same D051 exhaustive reference and inherited D050/D049/WP5.0 baselines;
+8. compile with pinned PI32v2 and require object text+rodata <= 1,024 B;
+9. keep `dinghy.c` unchanged and full target application exact WP5.0;
+10. write `docs/WP5_3_VERIFICATION.md` before WP5.4 begins.
 
 ## WP5.3 explicitly out of scope
 
+- Yamaha-style free coarse/fine ratio editing or fixed-frequency mode;
 - final operator level/mod-index UX mapping, WP5.4;
 - feedback, WP5.5;
 - envelope strategy, WP5.6;
 - FM voice allocation/D048 integration, WP5.7;
 - FM parameter pages/p-lock IDs, WP5.8;
-- simultaneous audible 8-BIT + FM4, WP5.9.
+- simultaneous audible 8-BIT + FM4, WP5.9;
+- oversampling/bandlimiting decisions before measured need.
 
 ## Important invariants
 
@@ -112,4 +157,4 @@ No physical FM-1 is available. `hardware_margin_claim=none`.
 
 ## Last updated
 
-2026-10-24 - WP5.2/D050 closed green. WP5.3/#46 is the only active package and begins with D051 ratio-contract design, not production ratio code.
+2026-10-25 - D051 ratio/pitch mapping contract frozen contract-first. Production ratio source remains absent and unauthorized until the D051 source-absent CI gate is green.

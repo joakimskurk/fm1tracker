@@ -1,8 +1,8 @@
 # FM1Tracker Current Decision Index
 
-Date: 2026-10-24
+Date: 2026-10-25
 
-`DECISIONS.md` remains the append-only historical decision log through D046. D047-D050 are accepted Phase 5 decisions. D051 does not exist yet and must be frozen by WP5.3 before production ratio source.
+`DECISIONS.md` remains the append-only historical decision log through D046. D047-D051 are accepted Phase 5 decisions.
 
 ## D047 - mixed-engine instrument architecture
 
@@ -70,25 +70,56 @@ Frozen compatibility:
 
 Canonical D050 run `40136425976`, host `120998804031`, target `120998804175`.
 
-## Pending D051 boundary
+## D051 - curated FM4 ratio/pitch mapping
 
-WP5.3 / issue #46 must create D051 before any production ratio/pitch-mapping source.
+Status: **ACCEPTED, CONTRACT FROZEN, IMPLEMENTATION NOT YET AUTHORIZED**  
+Normative: `WP5_3_FM_RATIO_CONTRACT.md`
 
-D051 may define only:
+D051 freezes one stateless integer mapping from the existing D038 base phase increment to four D050 operator increments.
 
-- compact ratio set and stable ratio IDs;
-- exact mathematical ratio meanings;
-- integer base-phase-increment -> operator-phase-increment arithmetic;
-- exact rounding and overflow/clamp behavior;
-- supported base-increment domain;
-- sub-unity/fractional ratio scope;
-- deterministic pitch/ratio fixtures;
-- mapping API/state requirement;
-- source/realtime/PI32v2 object bounds.
+Stable ratio IDs:
 
-Until D051 is accepted, no ratio list or arithmetic is authoritative.
+```text
+0  = 0.5
+1  = 1.0          UNITY / invalid-ID fallback
+2  = 1.25
+3  = 1.4140625    exact Q8 362/256
+4  = 1.5
+5  = 2.0
+6  = 2.5
+7  = 3.0
+8  = 3.5
+9  = 4.0
+10 = 5.0
+11 = 6.0
+12 = 7.0
+13 = 8.0
+14 = 12.0
+15 = 16.0
+```
 
-D051 may not decide final level/mod-index UX, feedback, envelopes, voice allocation, parameter pages/p-lock IDs or audible mixed FM integration.
+Frozen compatibility:
+
+- exactly 16 V1 ratio IDs;
+- unsigned Q8 ratio values;
+- canonical base-increment domain `0..1293741834`;
+- malformed larger base values clamp to `1293741834` before ratio scaling;
+- output increment ceiling `0x7fffffff`;
+- precomputed per-ratio base thresholds prevent accidental wrapped/folded operator increments;
+- exact 32-bit split-Q8 round-half-up transform;
+- no runtime division/modulo;
+- no 64-bit integer arithmetic;
+- invalid ratio ID -> UNITY;
+- no persistent ratio state;
+- `map4` performs exactly four mappings;
+- exhaustive 16,384 pitch x 16 ratio reference SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
+- 27,615 legal pitch/ratio pairs intentionally saturate at the D051 ceiling;
+- future PI32v2 ratio object ceiling 1,024 B;
+- D051 ceiling is not an anti-aliasing or bandlimiting claim.
+
+Production `fmt_fm_ratio.*` remains forbidden until the D051 source-absent reference workflow is green and its evidence is frozen in the repo.
+
+D051 does not define free Yamaha-style coarse/fine editing, fixed-frequency mode, final operator levels/mod-index, feedback, envelopes, voice allocation, parameter pages/p-lock IDs or audible mixed-engine integration.
 
 ## Current precedence
 
@@ -96,6 +127,7 @@ D051 may not decide final level/mod-index UX, feedback, envelopes, voice allocat
 - D048 governs common family routing/ownership.
 - D049 governs one FM operator.
 - D050 governs four-operator connection/evaluation.
-- WP5.3 must preserve D047-D050 and add only the ratio/pitch layer.
+- D051 governs base-pitch to operator-ratio mapping only.
+- WP5.4 must preserve D047-D051 and add only final level/mod-index mapping after WP5.3 is fully verified and closed.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.
