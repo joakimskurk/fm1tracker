@@ -30,6 +30,21 @@ static void reset_all(FmtPatternInput *input, FmtLockEditor *editor)
     fmt_lock_editor_reset(editor);
 }
 
+static void add_lock(uint32_t track, uint32_t step, FmtParamId param, uint16_t value)
+{
+    uint8_t replaced = 0u;
+    assert(fmt_lock_set(0u, track, step, param, value, &replaced) == FMT_LOCK_STATUS_OK);
+    assert(replaced == 0u);
+}
+
+static void add_four_unsorted(uint32_t track, uint32_t step)
+{
+    add_lock(track, step, (FmtParamId)FMT_PARAM_TRACK_PAN, 40u);
+    add_lock(track, step, (FmtParamId)FMT_PARAM_VOICE_LEVEL, 10u);
+    add_lock(track, step, (FmtParamId)FMT_PARAM_TRACK_LEVEL, 30u);
+    add_lock(track, step, (FmtParamId)FMT_PARAM_PITCH_FINE, 20u);
+}
+
 static void test_layout_mapping_and_footer(void)
 {
     FmtPatternInput input;
@@ -39,9 +54,11 @@ static void test_layout_mapping_and_footer(void)
     const uint16_t reference[4] = {255u, 128u, 255u, 128u};
 
     reset_all(&input, &editor);
-    assert(sizeof(FmtLockEditor) == 8u);
+    assert(sizeof(FmtLockEditor) == 10u);
     assert(!fmt_lock_editor_is_active(&editor));
     assert(editor.held_key == FMT_LOCK_EDITOR_NO_KEY);
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_NONE);
+    assert(!editor.delete_armed);
 
     for (k = 0u; k < 4u; k++) {
         FmtParamId id = (FmtParamId)FMT_PARAM_INVALID;
@@ -64,11 +81,14 @@ static void test_layout_mapping_and_footer(void)
     assert(strcmp(text, "PLOCK S05 T1 K1-4") == 0);
 
     assert(fmt_lock_editor_apply_delta(&editor, 1u, -3));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_PITCH_FINE);
     fmt_lock_editor_footer(&editor, text);
     assert(strcmp(text, "K2 FINE 125 LOCK") == 0);
 
     fmt_lock_editor_cancel(&editor);
     assert(!fmt_lock_editor_is_active(&editor));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_NONE);
+    assert(!editor.delete_armed);
     fmt_lock_editor_footer(&editor, text);
     assert(text[0] == 0);
 }
@@ -139,6 +159,7 @@ static void test_first_write_replace_clamp_and_isolation(void)
     assert(fmt_lock_editor_apply_delta(&editor, 0u, -1));
     assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_OK);
     assert(editor.last_value == 254u);
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_VOICE_LEVEL);
     assert(fmt_lock_get(0u, 3u, 18u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, &value) == FMT_LOCK_STATUS_OK);
     assert(value == 254u);
     assert(fmt_lock_store_used_count() == 1u);
@@ -161,6 +182,7 @@ static void test_first_write_replace_clamp_and_isolation(void)
     assert(fmt_lock_get(0u, 3u, 18u, (FmtParamId)FMT_PARAM_TRACK_PAN, &value) == FMT_LOCK_STATUS_OK);
     assert(value == 255u);
     assert(fmt_lock_store_used_count() == 4u);
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_PAN);
 
     used = fmt_lock_store_used_count();
     assert(target->note == before.note);
@@ -208,6 +230,7 @@ static void test_range_rejection(void)
     assert(fmt_lock_set(0u, 0u, 0u, (FmtParamId)FMT_PARAM_PITCH_FINE, 500u, &replaced) == FMT_LOCK_STATUS_OK);
     used = fmt_lock_store_used_count();
     assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_PITCH_FINE);
     assert(fmt_lock_editor_apply_delta(&editor, 1u, 1));
     assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_RANGE);
     assert(editor.last_value == 500u);
@@ -223,7 +246,6 @@ static void fill_pool_except_target_pan(void)
     uint32_t pattern, track, step, p;
     uint8_t replaced;
 
-    /* Target 0/0/0 has three records, leaving PAN absent for the editor. */
     for (p = 0u; p < 3u; p++)
         assert(fmt_lock_set(0u, 0u, 0u, PARAMS[p], (uint16_t)(10u + p), &replaced) == FMT_LOCK_STATUS_OK);
 
@@ -268,6 +290,7 @@ static void test_pool_full_and_corruption_propagation(void)
     corrupt_before = fmt_lock_store_storage[idx];
     used = fmt_lock_store_used_count();
     assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_CORRUPT);
     assert(fmt_lock_editor_apply_delta(&editor, 0u, 1));
     assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_CORRUPT);
     assert(fmt_lock_store_used_count() == used);
@@ -290,6 +313,192 @@ static void test_reference_boundary_still_creates_lock(void)
     assert(fmt_lock_store_used_count() == 1u);
 }
 
+static void test_browse_sorted_clamped_and_zero_lock(void)
+{
+    FmtPatternInput input;
+    FmtLockEditor editor;
+    char text[32];
+
+    reset_all(&input, &editor);
+    add_four_unsorted(0u, 0u);
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_VOICE_LEVEL);
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_BROWSE);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "P1/4 K1 VOICE 10") == 0);
+
+    assert(fmt_lock_editor_browse(&editor, 1));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_PITCH_FINE);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "P2/4 K2 FINE 20") == 0);
+
+    assert(fmt_lock_editor_browse(&editor, INT32_MAX));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_PAN);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "P4/4 K4 PAN 40") == 0);
+
+    assert(fmt_lock_editor_browse(&editor, 1));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_PAN);
+    assert(fmt_lock_editor_browse(&editor, INT32_MIN));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_VOICE_LEVEL);
+    assert(fmt_lock_editor_browse(&editor, -1));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_VOICE_LEVEL);
+
+    reset_all(&input, &editor);
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(fmt_lock_editor_browse(&editor, 1));
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_NOT_FOUND);
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_NONE);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "PLOCK NO LOCKS") == 0);
+}
+
+static void test_knob_write_selects_and_arm_cancel_is_non_destructive(void)
+{
+    FmtPatternInput input;
+    FmtLockEditor editor;
+    uint16_t used, value;
+    char text[32];
+
+    reset_all(&input, &editor);
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(fmt_lock_editor_apply_delta(&editor, 2u, -1));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_LEVEL);
+    used = fmt_lock_store_used_count();
+
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(editor.delete_armed);
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_DELETE_ARMED);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "DEL K3 TRKLEV? SEL YES") == 0);
+    assert(fmt_lock_store_used_count() == used);
+    assert(!fmt_lock_editor_apply_delta(&editor, 2u, -20));
+    assert(!fmt_lock_editor_browse(&editor, 1));
+    assert(fmt_lock_get(0u, 0u, 0u, (FmtParamId)FMT_PARAM_TRACK_LEVEL, &value) == FMT_LOCK_STATUS_OK);
+    assert(value == 254u);
+
+    assert(fmt_lock_editor_cancel_delete(&editor));
+    assert(!editor.delete_armed);
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_BROWSE);
+    assert(fmt_lock_store_used_count() == used);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "P1/1 K3 TRKLEV 254") == 0);
+}
+
+static void test_delete_first_middle_last_only_and_recovery(void)
+{
+    FmtPatternInput input;
+    FmtLockEditor editor;
+    FmtStep neighbor_before;
+    const FmtStep *neighbor;
+    uint16_t value;
+    uint16_t free_before;
+    char text[32];
+
+    reset_all(&input, &editor);
+    add_four_unsorted(0u, 0u);
+    add_lock(0u, 1u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, 99u);
+    neighbor = fmt_store_step_const(0u, 0u, 1u);
+    assert(neighbor);
+    neighbor_before = *neighbor;
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+
+    free_before = fmt_lock_store_free_count();
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_VOICE_LEVEL);
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(fmt_lock_editor_confirm_delete(&editor));
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_DELETED);
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_PITCH_FINE);
+    assert(fmt_lock_store_free_count() == (uint16_t)(free_before + 1u));
+    assert(fmt_lock_get(0u, 0u, 0u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, &value) == FMT_LOCK_STATUS_NOT_FOUND);
+    assert(memcmp(neighbor, &neighbor_before, sizeof neighbor_before) == 0);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "DELETED K1 VOICE") == 0);
+
+    assert(fmt_lock_editor_browse(&editor, 1));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_LEVEL);
+    free_before = fmt_lock_store_free_count();
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(fmt_lock_editor_confirm_delete(&editor));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_PAN);
+    assert(fmt_lock_store_free_count() == (uint16_t)(free_before + 1u));
+    assert(fmt_lock_get(0u, 0u, 0u, (FmtParamId)FMT_PARAM_TRACK_LEVEL, &value) == FMT_LOCK_STATUS_NOT_FOUND);
+
+    free_before = fmt_lock_store_free_count();
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(fmt_lock_editor_confirm_delete(&editor));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_PITCH_FINE);
+    assert(fmt_lock_store_free_count() == (uint16_t)(free_before + 1u));
+    assert(fmt_lock_get(0u, 0u, 0u, (FmtParamId)FMT_PARAM_TRACK_PAN, &value) == FMT_LOCK_STATUS_NOT_FOUND);
+
+    free_before = fmt_lock_store_free_count();
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(fmt_lock_editor_confirm_delete(&editor));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_NONE);
+    assert(fmt_lock_store_free_count() == (uint16_t)(free_before + 1u));
+    assert(fmt_lock_count(0u, 0u, 0u, (uint8_t *)&value) == FMT_LOCK_STATUS_OK);
+    assert((uint8_t)value == 0u);
+    assert(memcmp(neighbor, &neighbor_before, sizeof neighbor_before) == 0);
+}
+
+static void test_range_lock_can_be_browsed_and_deleted(void)
+{
+    FmtPatternInput input;
+    FmtLockEditor editor;
+    uint16_t value;
+    char text[32];
+
+    reset_all(&input, &editor);
+    add_lock(0u, 0u, (FmtParamId)FMT_PARAM_PITCH_FINE, 500u);
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(editor.selected_param == (FmtParamId)FMT_PARAM_PITCH_FINE);
+    fmt_lock_editor_footer(&editor, text);
+    assert(strcmp(text, "P1/1 K2 FINE RANGE") == 0);
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(fmt_lock_editor_confirm_delete(&editor));
+    assert(fmt_lock_get(0u, 0u, 0u, (FmtParamId)FMT_PARAM_PITCH_FINE, &value) == FMT_LOCK_STATUS_NOT_FOUND);
+}
+
+static void test_delete_not_found_bad_address_and_corrupt_are_safe(void)
+{
+    FmtPatternInput input;
+    FmtLockEditor editor;
+    uint16_t idx, used, value;
+    FmtLock before;
+
+    reset_all(&input, &editor);
+    add_lock(0u, 0u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, 100u);
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(fmt_lock_remove(0u, 0u, 0u, (FmtParamId)FMT_PARAM_VOICE_LEVEL) == FMT_LOCK_STATUS_OK);
+    used = fmt_lock_store_used_count();
+    assert(fmt_lock_editor_confirm_delete(&editor));
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_NOT_FOUND);
+    assert(!editor.delete_armed);
+    assert(fmt_lock_store_used_count() == used);
+
+    reset_all(&input, &editor);
+    add_lock(0u, 0u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, 100u);
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    editor.track = FMT_TRACKS;
+    assert(fmt_lock_editor_arm_delete(&editor));
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_BAD_ADDRESS);
+    assert(!editor.delete_armed);
+    assert(fmt_lock_get(0u, 0u, 0u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, &value) == FMT_LOCK_STATUS_OK);
+
+    reset_all(&input, &editor);
+    add_lock(0u, 0u, (FmtParamId)FMT_PARAM_VOICE_LEVEL, 100u);
+    idx = fmt_store_step(0u, 0u, 0u)->lock_head;
+    assert(idx < FMT_LOCK_POOL_MAX);
+    fmt_lock_store_storage[idx].owner = 1u;
+    before = fmt_lock_store_storage[idx];
+    used = fmt_lock_store_used_count();
+    assert(fmt_lock_editor_begin(&editor, &input, WHITE_KEYS[0]));
+    assert(editor.last_status == FMT_LOCK_EDITOR_STATUS_CORRUPT);
+    assert(fmt_lock_store_used_count() == used);
+    assert(memcmp(&fmt_lock_store_storage[idx], &before, sizeof before) == 0);
+}
+
 int main(void)
 {
     test_layout_mapping_and_footer();
@@ -299,10 +508,15 @@ int main(void)
     test_range_rejection();
     test_pool_full_and_corruption_propagation();
     test_reference_boundary_still_creates_lock();
+    test_browse_sorted_clamped_and_zero_lock();
+    test_knob_write_selects_and_arm_cancel_is_non_destructive();
+    test_delete_first_middle_last_only_and_recovery();
+    test_range_lock_can_be_browsed_and_deleted();
+    test_delete_not_found_bad_address_and_corrupt_are_safe();
 
     printf("FMT_LOCK_EDITOR_TESTS_OK=1\n");
-    printf("state_bytes=%zu pattern=0 knobs=4 value_domain=0_255 references=255,128,255,128\n",
+    printf("state_bytes=%zu pattern=0 knobs=4 browse=select_sorted_clamped delete=edit_arm_then_sel_confirm clear_all=0\n",
            sizeof(FmtLockEditor));
-    printf("targets=64x8 snapshot=1 replace_in_place=1 pool_full=1 corrupt=1 range_reject=1\n");
+    printf("targets=64x8 snapshot=1 replace_in_place=1 delete_first_middle_last_only=1 free_recovery=1 neighbor_isolation=1 range_delete=1\n");
     return 0;
 }
