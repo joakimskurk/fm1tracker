@@ -22,6 +22,30 @@ jobs:
       - name: Synchronize final Phase 3 state
         run: python3 .github/tmp/phase3_final_handoff.py
 
+      - name: Normalize generated handoff whitespace
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          fixes = {
+              'docs/PROJECT_STATE.md': {
+                  'Parent issue: #20 — CLOSED / completed  \n': 'Parent issue: #20 — CLOSED / completed\n',
+                  'Evidence: `docs/WP3_10_VERIFICATION.md`  \n': 'Evidence: `docs/WP3_10_VERIFICATION.md`\n',
+                  'Phase 4 parent issue: #30  \n': 'Phase 4 parent issue: #30\n',
+              },
+              'docs/ROADMAP.md': {
+                  'Parent issue: #30  \n': 'Parent issue: #30\n',
+              },
+          }
+          for name, replacements in fixes.items():
+              p = Path(name)
+              s = p.read_text()
+              for old, new in replacements.items():
+                  assert s.count(old) == 1, (name, old, s.count(old))
+                  s = s.replace(old, new, 1)
+              p.write_text(s)
+          PY
+
       - name: Validate and commit handoff
         shell: bash
         run: |
