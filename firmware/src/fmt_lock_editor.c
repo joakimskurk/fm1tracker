@@ -71,6 +71,18 @@ static const char *fmt_lock_editor_param_short(FmtParamId param_id)
         return "TRKLEV";
     case FMT_PARAM_TRACK_PAN:
         return "PAN";
+    case FMT_PARAM_BIT8_ATTACK:
+        return "ATTACK";
+    case FMT_PARAM_BIT8_DECAY:
+        return "DECAY";
+    case FMT_PARAM_BIT8_SUSTAIN:
+        return "SUSTAIN";
+    case FMT_PARAM_BIT8_RELEASE:
+        return "RELEASE";
+    case FMT_PARAM_BIT8_PULSE_WIDTH:
+        return "WIDTH";
+    case FMT_PARAM_BIT8_WAVETABLE:
+        return "TABLE";
     default:
         return "?";
     }
@@ -86,6 +98,16 @@ static uint8_t fmt_lock_editor_param_knob(FmtParamId param_id)
     case FMT_PARAM_TRACK_LEVEL:
         return 3u;
     case FMT_PARAM_TRACK_PAN:
+        return 4u;
+    case FMT_PARAM_BIT8_ATTACK:
+    case FMT_PARAM_BIT8_PULSE_WIDTH:
+    case FMT_PARAM_BIT8_WAVETABLE:
+        return 1u;
+    case FMT_PARAM_BIT8_DECAY:
+        return 2u;
+    case FMT_PARAM_BIT8_SUSTAIN:
+        return 3u;
+    case FMT_PARAM_BIT8_RELEASE:
         return 4u;
     default:
         return 0u;
@@ -330,18 +352,19 @@ int fmt_lock_editor_knob_param(uint32_t knob,
     return 1;
 }
 
-int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
-                                uint32_t knob,
-                                int32_t delta)
+int fmt_lock_editor_apply_param_delta(FmtLockEditor *editor,
+                                      FmtParamId param_id,
+                                      uint16_t reference_value,
+                                      int32_t delta)
 {
-    FmtParamId param_id;
-    uint16_t reference, current, next;
+    uint16_t current, next;
     uint8_t replaced;
     FmtLockStatus status;
 
     if (!editor || !editor->active || editor->delete_armed || delta == 0)
         return 0;
-    if (!fmt_lock_editor_knob_param(knob, &param_id, &reference))
+    if (!fmt_param_is_lockable(param_id) ||
+        reference_value > FMT_LOCK_EDITOR_VALUE_MAX)
         return 0;
 
     editor->last_param = param_id;
@@ -352,7 +375,7 @@ int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
                           &current);
 
     if (status == FMT_LOCK_STATUS_NOT_FOUND) {
-        current = reference;
+        current = reference_value;
     } else if (status != FMT_LOCK_STATUS_OK) {
         fmt_lock_editor_set_storage_error(editor, status);
         return 1;
@@ -385,6 +408,21 @@ int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
     else
         editor->delete_armed = 0u;
     return 1;
+}
+
+int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
+                                uint32_t knob,
+                                int32_t delta)
+{
+    FmtParamId param_id;
+    uint16_t reference;
+
+    if (!fmt_lock_editor_knob_param(knob, &param_id, &reference))
+        return 0;
+    return fmt_lock_editor_apply_param_delta(editor,
+                                             param_id,
+                                             reference,
+                                             delta);
 }
 
 int fmt_lock_editor_browse(FmtLockEditor *editor, int32_t delta)
