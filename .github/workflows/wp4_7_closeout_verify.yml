@@ -1,0 +1,54 @@
+name: WP4.7 deterministic voice allocator closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - tests/run_wp4_7_closeout_ci.sh
+      - .github/workflows/wp4_7_closeout_verify.yml
+      - firmware/src/fmt_voice_allocator.h
+      - firmware/src/fmt_voice_allocator.c
+      - tests/test_wp4_7_voice_allocator.c
+      - tests/run_wp4_7_voice_allocator_tests.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-7-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D043 isolated allocator closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_7_closeout_ci.sh | tee build/wp4_7_closeout.log
+          grep -F 'WP4_7_ISOLATED_PRODUCTION_DELTA_OK=1' build/wp4_7_closeout.log
+          grep -F 'WP4_7_TARGET_OBJECT_OK=1' build/wp4_7_closeout.log
+          grep -F 'WP4_7_DEVICE_BASELINE' build/wp4_7_closeout.log
+          grep -F 'WP4_7_D043_EXIT_OK=1' build/wp4_7_closeout.log
+          grep -F 'WP4_7_CLOSEOUT_OK=1' build/wp4_7_closeout.log
+
+      - name: Upload WP4.7 closeout evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-7-allocator-closeout-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp4_7_*.log
+            build/wp4_7_*.txt
+            build/wp4_7_target/
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
