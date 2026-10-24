@@ -8,10 +8,10 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1 active; D037 engine-interface architecture freeze next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/NOISE active; D039 contract freeze next - 2026-10-24**
 
 Parent issue: #30
-Current work package: WP4.1 / #31
+Current work package: WP4.3 / #33
 Current branch: `phase4/8bit-engine`
 
 Phase 4 branch start / final Phase 3 handoff:
@@ -310,20 +310,23 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**WP4.2 - PULSE oscillator**
+**WP4.3 - NOISE oscillator**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; D038 FROZEN; focused PULSE implementation/tests next; no full-app engine integration**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3 / #33 active; D039 contract/test plan required before NOISE source**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
-WP4.2 issue: #32 — IN PROGRESS
+WP4.2 issue: #32 — COMPLETE
+WP4.3 issue: #33 — IN PROGRESS
 Branch: `phase4/8bit-engine`
 
-WP4.1 closed on run `40087703654`, job `120853898352`, with zero production delta from the Phase 4 branch start and the full inherited Phase 3 target gate green. Evidence: `docs/WP4_1_VERIFICATION.md`.
+WP4.2 closed on run `40089122159`, job `120857992257`, with focused PULSE host/PI32v2 verification green and the complete full app byte-identical to the WP4.1/Phase 3 baseline. Evidence: `docs/WP4_2_VERIFICATION.md`.
 
-D038 is frozen in `docs/WP4_2_PULSE_CONTRACT.md`: 4-byte phase-only state, exact existing Q7 pitch integers, sample-before-advance ordering, pulse width 32..224, hard-edge/band-unlimited output, focused deterministic vectors and zero full-app delta while isolated.
+D038 remains frozen: PULSE is a 4-byte phase-only hard-edge oscillator using the canonical Q7 pitch helper, pulse width 32..224 and sample-before-advance ordering. Its source remains isolated from `dinghy.c` until the later explicit engine-integration package.
 
-The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.2 primitive work. Do not pull NOISE/TRIANGLE/WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
+WP4.3 must freeze D039 before production NOISE source. D039 must define exact deterministic state/seed, PRNG/LFSR algorithm and tap direction, output mapping, Q7 pitch-to-noise clock relationship, maximum state advances per rendered frame, reset/retrigger/wrap semantics, spectral/aliasing intent, deterministic vectors/hash, target-compile obligations and the zero-full-app-delta isolation boundary.
+
+The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.3 primitive work. Do not pull TRIANGLE/WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
 
 ## Important decisions / do not regress
 
@@ -374,7 +377,8 @@ Implement and verify the isolated D038 primitives `fmt_engine_pitch.*` and `fmt_
 - WP4.1 closeout workflow: `01138c5f8a420efcc8e438ff3c2eb4090c086586`
 - WP4.2 D038 contract: `247ff3c03cdf3cd8e0878fe37d79693b26afc398`
 - WP4.2 D038 decision/status freeze: `6bf5324ec09266064fbb75828bffb5e773d7ad14`
+- WP4.2 D038 verification/closeout: `776cbd47e55fc5da6f57e894325ba67d67a61f29` — run `40089122159`, job `120857992257`
 
 ## Last updated
 
-2026-10-24 - WP4.2 / #32 active. D038 is now frozen in `WP4_2_PULSE_CONTRACT.md` before PULSE source. Exact next action is isolated PULSE/pitch implementation plus deterministic host/PI32v2 verification with the full-app proof sine unchanged.
+2026-10-24 - WP4.2 / #32 COMPLETE. D038 PULSE passed focused deterministic host verification, independent PI32v2 compilation and full-app closeout with zero linked delta; run `40089122159`, job `120857992257`. WP4.3 / #33 is now active. Exact next action: freeze D039 NOISE contract/test plan before NOISE production source.

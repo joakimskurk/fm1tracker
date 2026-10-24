@@ -263,14 +263,18 @@ Phase 3 evidence so far:
 | No float/double symbols in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
 | No runtime 64-bit divide in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
 | D038 PULSE primitive/test contract frozen | required | compile | n/a | ✅ `WP4_2_PULSE_CONTRACT.md` / `247ff3c0...` |
-| PULSE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.2 next |
-| NOISE/TRIANGLE/WAVETABLE bounds deterministic | required | required | optional later | ⬜ WP4.3-WP4.5 |
+| PULSE deterministic vectors + JieLi target compile | required | required | optional later | ✅ run `40088983995` / closeout `40089122159` |
+| WP4.2 full app remains exact WP4.1 baseline while PULSE is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
+| D039 NOISE primitive/test contract frozen before source | required | compile | n/a | ⬜ WP4.3 active |
+| NOISE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.3 next |
+| TRIANGLE/WAVETABLE bounds deterministic | required | required | optional later | ⬜ WP4.4-WP4.5 |
 | Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
 | P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |
 | Representative eight-track timing | benchmark | required | required later | ⬜ WP4.10 |
 | Physical FM-1 install/audio/execution margin | n/a | n/a | required later | ⬜ no physical FM-1 available |
 
 WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.
+WP4.2 detailed evidence: `WP4_2_PULSE_CONTRACT.md`, `WP4_2_VERIFICATION.md`.
 
 ## Phase 5 FM4
 
