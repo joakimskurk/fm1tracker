@@ -1,0 +1,21 @@
+# WP3.5 D031 locked-audio fixture through the real D029 panel editor.
+# Button ids: SEQ=11. Encoder ids: KNOB1=2 KNOB2=3 KNOB3=4.
+# Physical white key index 7 = local/global row 5 UI (zero-based step 4).
+# Physical white key index 9 = local/global row 6 UI (zero-based step 5).
+
+50 btn 11
+
+# Row 5: VOICE 255 -> 128, FINE 128 -> 192, TRACK 255 -> 128.
+100 keys 128
+120 enc 2 -127
+120 enc 3 64
+120 enc 4 -127
+140 keys 0
+
+# Row 6 is EMPTY in the proof pattern. Mute it with row-local VOICE=0.
+160 keys 512
+180 enc 2 -255
+200 keys 0
+
+# Row 7 remains unlocked and must restore defaults while the note stays active.
+1200 end
