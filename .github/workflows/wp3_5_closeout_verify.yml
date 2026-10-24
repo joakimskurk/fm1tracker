@@ -1,5 +1,6 @@
 name: WP3.5 full closeout verification
 
+# Exact device/resource/artifact assertions are frozen in run_wp3_5_closeout_ci.sh.
 on:
   push:
     branches:
