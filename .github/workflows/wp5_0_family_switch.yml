@@ -1,0 +1,41 @@
+name: WP5.0 D048 family-switch host
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_engine_router.c
+      - firmware/src/fmt_engine_router.h
+      - firmware/src/fmt_8bit_engine.c
+      - firmware/src/fmt_8bit_linked_params.c
+      - tests/host.c
+      - tests/run_wp5_0_family_switch_host.sh
+      - .github/workflows/wp5_0_family_switch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family-switch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run focused D048 family-switch gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_0_family_switch_host.sh | tee "$RUNNER_TEMP/wp5_0_family_switch.log"
+          grep -F 'WP5_0_FAMILY_SWITCH_OK=1 cross_family_order=hard_silence_clear_attempt_commit_on_success fm_dsp=absent active_cross_track_steals=0' "$RUNNER_TEMP/wp5_0_family_switch.log"
+      - name: Upload D048 family-switch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-family-switch
+          if-no-files-found: warn
+          path: |
+            build/wp5_0_family_switch/**
+            build/host/wp5_0_family_switch.wav
