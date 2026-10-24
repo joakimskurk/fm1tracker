@@ -14,16 +14,18 @@ on:
       - tests/run_lock_editor_tests.sh
       - tests/wp3_4_lock_delete_context.script
       - tests/run_lock_delete_context_host.sh
+      - tests/run_wp3_4_closeout_ci.sh
       - docs/PROJECT_STATE.md
       - docs/DECISIONS.md
       - docs/CONTROL_MAP_V0.1.md
+      - docs/WORK_PACKAGES.md
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  lock-delete-focused:
+  lock-delete-closeout:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout FM1Tracker
@@ -31,10 +33,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install host screenshot dependency
+      - name: Install inherited host-screen dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Verify focused WP3.4 scope
+      - name: Verify WP3.4 scope
         shell: bash
         run: |
           set -euo pipefail
@@ -46,6 +48,7 @@ jobs:
               'docs/PROJECT_STATE.md',
               'docs/DECISIONS.md',
               'docs/CONTROL_MAP_V0.1.md',
+              'docs/WORK_PACKAGES.md',
               'firmware/src/dinghy.c',
               'firmware/src/fmt_lock_editor.h',
               'firmware/src/fmt_lock_editor.c',
@@ -54,46 +57,32 @@ jobs:
               'tests/run_lock_editor_tests.sh',
               'tests/wp3_4_lock_delete_context.script',
               'tests/run_lock_delete_context_host.sh',
+              'tests/run_wp3_4_closeout_ci.sh',
           }
           changed = set(subprocess.check_output(
               ['git', 'diff', '--name-only', base, 'HEAD'], text=True
           ).splitlines())
           unexpected = sorted(changed - allowed)
           assert not unexpected, unexpected
-          print('WP3_4_FOCUSED_SCOPE_OK=1')
+          print('WP3_4_SCOPE_OK=1')
           PY
 
-      - name: Run D030 editor tests
+      - name: Run complete WP3.4 gate
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build
-          sh tests/run_lock_editor_tests.sh | tee build/wp3_4_lock_editor_tests.log
-          grep -F 'FMT_LOCK_EDITOR_TESTS_OK=1' build/wp3_4_lock_editor_tests.log
-          grep -F 'state_bytes=10 pattern=0 knobs=4 browse=select_sorted_clamped delete=edit_arm_then_sel_confirm clear_all=0' build/wp3_4_lock_editor_tests.log
-          grep -F 'delete_first_middle_last_only=1 free_recovery=1 neighbor_isolation=1 range_delete=1' build/wp3_4_lock_editor_tests.log
+        run: sh tests/run_wp3_4_closeout_ci.sh
 
-      - name: Run inherited p-lock foundations
-        shell: bash
-        run: |
-          set -euo pipefail
-          sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
-          sh tests/run_lock_store_tests.sh | grep -F 'FMT_LOCK_STORE_TESTS_OK=1'
-          sh tests/run_pattern_input_tests.sh | grep -F 'FMT_PATTERN_INPUT_TESTS_OK=1'
-          sh tests/run_lock_editor_context_host.sh | grep -F 'WP3_3_LOCK_EDITOR_CONTEXT_HOST_OK=1 midi_events=0'
-          echo 'WP3_4_FOUNDATION_REGRESSIONS_OK=1'
-
-      - name: Run real full-app D030 fixture
-        shell: bash
-        run: sh tests/run_lock_delete_context_host.sh
-
-      - name: Upload focused WP3.4 screenshots
+      - name: Upload WP3.4 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: wp3-4-lock-delete-focused
+          name: wp3-4-lock-delete-evidence
           path: |
+            build/wp3_4_*.log
+            build/wp3_4_*.txt
+            build/wp3_4_fmt_lock_editor.o
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
             build/host/fm1tracker_wp3_4_lock_delete-1000.ppm
             build/host/fm1tracker_wp3_4_lock_delete-3000.ppm
             build/host/fm1tracker_wp3_4_lock_delete-1000.png
             build/host/fm1tracker_wp3_4_lock_delete-3000.png
-            build/wp3_4_lock_delete_context_host.log
