@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+
       - name: Verify D049 pre-implementation contract and reference vectors
         run: sh tests/run_wp5_1_contract_freeze.sh
 
