@@ -16,7 +16,10 @@
 #include <string.h>
 
 #include "fmt_store.h"
+#include "fmt_lock_store.h"
+#include "fmt_playback_params.h"
 #include "fmt_tracker_effect.h"
+#include "fmt_8bit_linked_params.h"
 
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
@@ -108,7 +111,14 @@ static void app_main(void);
  * a held-button press/release, a relative encoder delta, or a MIDI message.
  * A script file (the second argument) replaces it, a line each:
  *   "T keys MASK", "T btn ID", "T btndown ID", "T btnup ID",
- *   "T enc ID DELTA", "T midi ST D1 D2", "T effect STEP CMD VALUE", "T end"
+ *   "T enc ID DELTA", "T midi ST D1 D2", "T effect STEP CMD VALUE",
+ *   "T clear",
+ *   "T step TRACK ROW NOTE INSTRUMENT EFFECT VALUE",
+ *   "T lock TRACK ROW PARAM VALUE",
+ *   "T base INSTRUMENT A D S R WIDTH TABLE", "T end"
+ * The final four commands are host-fixture setup helpers. They mutate only the
+ * same public main/editor store/publication APIs used by the firmware and are
+ * processed before audio when scheduled at t=1 ms.
  * `btn` preserves the historical one-shot press-edge behavior; btndown/btnup
  * additionally maintain fm1_in.buttons and release edges like the real HAL.
  * `enc` accumulates signed relative detent steps until fm1_enc_take(ID). */
@@ -119,8 +129,19 @@ typedef struct {
     uint8_t enc;
     int16_t enc_delta;
     uint8_t effect_action, effect_step, effect_command, effect_value;
+    uint8_t fixture_action, fixture_track, fixture_row;
+    uint8_t fixture_note, fixture_instrument, fixture_param;
+    uint8_t fixture_base[6];
+    uint16_t fixture_value;
 } host_ev_t;
 enum { HOST_BTN_PULSE = 0u, HOST_BTN_DOWN = 1u, HOST_BTN_UP = 2u };
+enum {
+    HOST_FIX_NONE = 0u,
+    HOST_FIX_CLEAR = 1u,
+    HOST_FIX_STEP = 2u,
+    HOST_FIX_LOCK = 3u,
+    HOST_FIX_BASE = 4u
+};
 static const host_ev_t SCRIPT0[] = {
     {200, 1u << 7, -1, 0, 0, 0, 0, 0, 0},                                /* C4 */
     {700, 1u << 7 | 1u << 11 | 1u << 14, -1, 0, 0, 0, 0, 0, 0},          /* + E4 G4: a chord */
@@ -143,9 +164,11 @@ static void read_script(const char *path)
     uint32_t n = 0;
     if (!f) { perror(path); exit(1); }
     while (fgets(line, sizeof line, f) && n < 4096u) {
-        host_ev_t e = {0, 0, -1, 0, 0, 0, HOST_BTN_PULSE, 0, 0};
-        unsigned a = 0, b = 0, c = 0;
+        host_ev_t e = {0};
+        unsigned a = 0, b = 0, c = 0, e1 = 0, e2 = 0, e3 = 0, e4 = 0;
         int d = 0;
+        e.btn = -1;
+        e.btn_action = HOST_BTN_PULSE;
         if (line[0] == '#' || sscanf(line, "%u %15s", &e.t, what) != 2) continue;
         if (!strcmp(what, "end")) { end_ms = e.t; continue; }
         if (!strcmp(what, "keys")) { sscanf(line, "%*u %*s %i", (int *)&e.keys); }
@@ -155,6 +178,25 @@ static void read_script(const char *path)
         else if (!strcmp(what, "enc")) { sscanf(line, "%*u %*s %u %d", &a, &d); e.enc = (uint8_t)a; e.enc_delta = (int16_t)d; }
         else if (!strcmp(what, "midi")) { sscanf(line, "%*u %*s %i %u %u", (int *)&a, &b, &c); e.st = (uint8_t)a; e.d1 = (uint8_t)b; e.d2 = (uint8_t)c; }
         else if (!strcmp(what, "effect")) { sscanf(line, "%*u %*s %u %u %u", &a, &b, &c); e.effect_action = 1u; e.effect_step = (uint8_t)a; e.effect_command = (uint8_t)b; e.effect_value = (uint8_t)c; }
+        else if (!strcmp(what, "clear")) { e.fixture_action = HOST_FIX_CLEAR; }
+        else if (!strcmp(what, "step")) {
+            if (sscanf(line, "%*u %*s %u %u %u %u %u %u", &a, &b, &c, &e1, &e2, &e3) != 6) continue;
+            e.fixture_action = HOST_FIX_STEP; e.fixture_track = (uint8_t)a; e.fixture_row = (uint8_t)b;
+            e.fixture_note = (uint8_t)c; e.fixture_instrument = (uint8_t)e1;
+            e.effect_command = (uint8_t)e2; e.effect_value = (uint8_t)e3;
+        }
+        else if (!strcmp(what, "lock")) {
+            if (sscanf(line, "%*u %*s %u %u %u %u", &a, &b, &c, &e1) != 4) continue;
+            e.fixture_action = HOST_FIX_LOCK; e.fixture_track = (uint8_t)a; e.fixture_row = (uint8_t)b;
+            e.fixture_param = (uint8_t)c; e.fixture_value = (uint16_t)e1;
+        }
+        else if (!strcmp(what, "base")) {
+            if (sscanf(line, "%*u %*s %u %u %u %u %u %u %u", &a, &b, &c, &e1, &e2, &e3, &e4) != 7) continue;
+            e.fixture_action = HOST_FIX_BASE; e.fixture_instrument = (uint8_t)a;
+            e.fixture_base[0] = (uint8_t)b; e.fixture_base[1] = (uint8_t)c;
+            e.fixture_base[2] = (uint8_t)e1; e.fixture_base[3] = (uint8_t)e2;
+            e.fixture_base[4] = (uint8_t)e3; e.fixture_base[5] = (uint8_t)e4;
+        }
         else continue;
         ev[n++] = e;
     }
@@ -210,7 +252,66 @@ static void platform_poll(void)                 /* one call = one millisecond */
     static int32_t blk[2u * HALF_FRAMES];
     fm1_ms++;
     while (step < script_n && script[step].t <= fm1_ms) {
-        if (script[step].effect_action) {
+        if (script[step].fixture_action == HOST_FIX_CLEAR) {
+            FmtPattern *pattern = fmt_store_pattern(FMT_PLAYBACK_PATTERN);
+            uint32_t track, row;
+            if (!pattern) { fprintf(stderr, "host clear: no pattern\n"); exit(1); }
+            for (track = 0u; track < FMT_TRACKS; track++)
+                for (row = 0u; row < FMT_STEPS_PER_PATTERN; row++)
+                    fmt_step_init(&pattern->steps[track][row]);
+            fmt_lock_store_reset();
+            fmt_playback_params_rebuild();
+            fmt_tracker_effect_cache_rebuild();
+            fmt_8bit_linked_params_rebuild();
+            printf("%6u ms  fixture clear pattern0\n", fm1_ms);
+        } else if (script[step].fixture_action == HOST_FIX_STEP) {
+            uint32_t track = script[step].fixture_track;
+            uint32_t row = script[step].fixture_row;
+            FmtStep *dst = fmt_store_step(FMT_PLAYBACK_PATTERN, track, row);
+            if (!dst) { fprintf(stderr, "host step: invalid %u/%u\n", track, row); exit(1); }
+            dst->note = script[step].fixture_note;
+            dst->instrument = script[step].fixture_instrument;
+            dst->effect = script[step].effect_command;
+            dst->effect_value = script[step].effect_value;
+            if (!fmt_playback_params_refresh_track_step(track, row) ||
+                !fmt_tracker_effect_cache_refresh_track_step(track, row) ||
+                !fmt_8bit_linked_params_rebuild_track(track)) {
+                fprintf(stderr, "host step: refresh failed\n"); exit(1);
+            }
+            printf("%6u ms  fixture step t%u r%u note%u inst%u fx%u/%u\n",
+                   fm1_ms, track, row, dst->note, dst->instrument, dst->effect, dst->effect_value);
+        } else if (script[step].fixture_action == HOST_FIX_LOCK) {
+            uint32_t track = script[step].fixture_track;
+            uint32_t row = script[step].fixture_row;
+            FmtLockStatus status = fmt_lock_set(FMT_PLAYBACK_PATTERN, track, row,
+                                                (FmtParamId)script[step].fixture_param,
+                                                script[step].fixture_value, NULL);
+            if (status != FMT_LOCK_STATUS_OK ||
+                !fmt_playback_params_refresh_track_step(track, row) ||
+                !fmt_8bit_linked_params_refresh_track_row(track, row)) {
+                fprintf(stderr, "host lock: failed %u/%u id%u status%u\n",
+                        track, row, script[step].fixture_param, (unsigned)status);
+                exit(1);
+            }
+            printf("%6u ms  fixture lock t%u r%u id%u value%u\n",
+                   fm1_ms, track, row, script[step].fixture_param, script[step].fixture_value);
+        } else if (script[step].fixture_action == HOST_FIX_BASE) {
+            Fmt8BitParamSet base;
+            base.attack = script[step].fixture_base[0];
+            base.decay = script[step].fixture_base[1];
+            base.sustain = script[step].fixture_base[2];
+            base.release = script[step].fixture_base[3];
+            base.pulse_width = script[step].fixture_base[4];
+            base.wavetable = script[step].fixture_base[5];
+            if (!fmt_8bit_linked_params_set_base(script[step].fixture_instrument, &base)) {
+                fprintf(stderr, "host base: invalid instrument %u\n", script[step].fixture_instrument);
+                exit(1);
+            }
+            printf("%6u ms  fixture base i%u A%u D%u S%u R%u W%u T%u\n",
+                   fm1_ms, script[step].fixture_instrument,
+                   base.attack, base.decay, base.sustain, base.release,
+                   base.pulse_width, base.wavetable);
+        } else if (script[step].effect_action) {
             FmtStep *row = fmt_store_step(FMT_PLAYBACK_PATTERN, FMT_PLAYBACK_TRACK, script[step].effect_step);
             if (!row) { fprintf(stderr, "invalid host effect step %u\n", script[step].effect_step); exit(1); }
             row->effect = script[step].effect_command;
