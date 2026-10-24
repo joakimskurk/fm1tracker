@@ -8,6 +8,7 @@
 #include "fmt_playback.h"
 
 #define FMT_PLAYBACK_PARAM_ROWS FMT_STEPS_PER_PATTERN
+#define FMT_PLAYBACK_PARAM_EXTRA_TRACKS (FMT_TRACKS - 1u)
 #define FMT_PLAYBACK_PARAM_VOICE_DEFAULT 255u
 #define FMT_PLAYBACK_PARAM_FINE_DEFAULT 128u
 #define FMT_PLAYBACK_PARAM_TRACK_DEFAULT 255u
@@ -28,9 +29,13 @@ typedef struct {
 FMT_STATIC_ASSERT(playback_param_voice_size_is_6,
                   sizeof(FmtPlaybackParamVoice) == 6u);
 
-/* D031: one naturally aligned atomic publication word per proof-lane row.
- * Main/editor code publishes. Audio reads one complete word at row dispatch. */
+/* D031 track-0 publication remains the exact historical 256 B symbol. D045
+ * Gate 1 adds seven separate fixed rows so inherited symbol/API evidence stays
+ * meaningful while all eight tracker tracks gain aligned publication words. */
 extern volatile uint32_t fmt_playback_param_cache[FMT_PLAYBACK_PARAM_ROWS];
+extern volatile uint32_t
+    fmt_playback_param_cache_extra[FMT_PLAYBACK_PARAM_EXTRA_TRACKS]
+                                  [FMT_PLAYBACK_PARAM_ROWS];
 
 uint32_t fmt_playback_params_pack(uint8_t voice_level,
                                   uint8_t fine_pitch,
@@ -46,6 +51,12 @@ void fmt_playback_params_reset(void);
 void fmt_playback_params_rebuild(void);
 int fmt_playback_params_refresh_step(uint32_t step);
 uint32_t fmt_playback_params_read(uint32_t step);
+
+/* D045 Gate 1 track-aware publication. Legacy helpers above are exact track-0
+ * wrappers. Rebuild/refresh are main/editor work; audio performs aligned reads. */
+void fmt_playback_params_rebuild_track(uint32_t track);
+int fmt_playback_params_refresh_track_step(uint32_t track, uint32_t step);
+uint32_t fmt_playback_params_read_track(uint32_t track, uint32_t step);
 
 /* Pure D031 integer mappings. */
 uint32_t fmt_playback_scale_u8(uint32_t value, uint8_t scale);
