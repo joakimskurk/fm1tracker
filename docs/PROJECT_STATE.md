@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 3 - p-locks and tracker effects**
 
-State: **IN PROGRESS - WP3.1-WP3.8 complete; WP3.9 ready for D035 visual/update freeze - 2026-10-24**
+State: **IN PROGRESS - WP3.1-WP3.9 complete; WP3.10 active, D036 frozen before stress implementation - 2026-10-24**
 
 Parent issue: #20  
 Current branch: `phase3/plocks-effects`
@@ -211,17 +211,62 @@ Final firmware artifacts:
 
 Historical default WAV, D031 locked WAV and all frozen WP3.6/WP3.7 audio fixtures remain byte-identical through WP3.8.
 
+### WP3.9 - lock/effect visual feedback - COMPLETE - #28
+
+Final verified production checkpoint:
+
+`354bf7d356774ad828f1f660bd456dbab7f0490d`
+
+Final GitHub Actions:
+
+- run `40083510351`
+- job `120841687772` (`visual-feedback-closeout`)
+- result **SUCCESS**
+
+Evidence: `docs/WP3_9_VERIFICATION.md`
+Normative contract: `docs/WP3_9_VISUAL_CONTRACT.md`
+
+Evidence artifact:
+
+- ID `12555799262`
+- ZIP SHA-256 `62bdffec5faa027484ccc8bf99b2babbb978874054182de97970b8d52f333bca`
+
+D035 keeps the D026 ten-region / max-two-redraw tracker surface and adds `LK` p-lock summaries plus four-character stored effect mnemonics. `FmtTrackerScreen` is exactly 62 B. TRACK PAN detailed feedback is marked `STORE`; D031-D034 runtime/audio semantics are unchanged.
+
+Reviewed framebuffers:
+
+- active target `d290415387ac8e55006863819c2188d64f0d0453e204bb194cb8d004121484f3`
+- released rows `ec15c6db429fe26d453ada14cc28a1eab8c2aa93e83c6f0bbfff67112f1a86c6`
+
+Final WP3.9 resources:
+
+| Resource | Used | Limit | Free | Delta vs WP3.8 |
+|---|---:|---:|---:|---:|
+| app image | 66,960 B | 581,564 B | 514,604 B | +652 B |
+| normal RAM | 13,296 B | 98,304 B | 85,008 B | +16 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
+
+Final firmware artifacts:
+
+- `fm1tracker.bin` SHA-256 `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27`
+- `fm1tracker-0.1.fwsc` SHA-256 `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`
+- package identity `FM-1_987`.
+
+Historical default WAV, D031 locked WAV, all frozen D032/D033 fixtures and all D034 queue fixtures remain byte-identical through WP3.9.
+
 ## Next milestone
 
-**WP3.9 - lock/effect visual feedback**
+**WP3.10 - Phase 3 worst-case tests and exit gate**
 
-State: **READY TO START - D035 visual/update contract required before production UI source**
+State: **IN PROGRESS - D036 frozen before stress implementation**
 
-GitHub issue: #28
+GitHub issue: #29
 
-D035 must freeze exactly what p-lock/effect state is shown, compact notation, cursor/playhead/edit-state priority, screen/update ownership, dirty-region bounds, stale-feedback cancellation and deterministic framebuffer evidence. No audio ISR may draw or mutate display state.
+Normative test/exit plan: `docs/WP3_10_TEST_PLAN.md`.
 
-Do not write WP3.9 production visual-feedback source before D035 is frozen. WP3.10 remains the Phase 3 final worst-case closeout and must not be pulled forward.
+WP3.10 must prove the complete D027-D035 stack under its declared worst cases, including full lock-pool pressure, exact effect/event timing, queue overflow storms/recovery, combined runtime/editor/UI stress, D035 redraw convergence, inherited deterministic audio and the pinned target-build/resource gate. Production source remains unchanged unless a frozen stress test exposes a real defect.
+
+Phase 4 production work is blocked until WP3.10 passes and Phase 3 is formally closed.
 
 ## Important decisions / do not regress
 
@@ -235,6 +280,8 @@ Do not write WP3.9 production visual-feedback source before D035 is frozen. WP3.
 - D032: six-tick tracker effects, persistent Q7 slide/porta pitch and transient ARP/vibrato through a second 256 B row cache.
 - D033: retrig/delay/cut remain fixed-state, exact-six-tick and queue-free; event runtime exactly 4 B at the verified checkpoint.
 - D034: runtime ingress is an exact 32-entry / 268-byte SPSC main->audio queue with 8-byte events, reject-newest overflow and fail-to-silence audition recovery; D024/D033 remain outside it.
+- D035: tracker presentation remains ten regions / max two redraws, `FmtTrackerScreen` 62 B, with bounded lock-count and stored-effect feedback only.
+- D036: WP3.10 is a stress/exit package; Phase 4 is blocked until the complete D027-D035 stack passes worst-case combined verification.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -248,7 +295,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Start WP3.9 / #28 by freezing D035 visual/update ownership and notation before production UI source. Preserve D026 bounded screen work and all D031-D034 audio/runtime behavior.
+Implement WP3.10 / #29 exactly from `docs/WP3_10_TEST_PLAN.md`: build the focused worst-case harnesses first, then combined full-app stress and final Phase 3 closeout. Do not begin Phase 4 production source.
 
 ## Last relevant checkpoints
 
@@ -262,7 +309,8 @@ Start WP3.9 / #28 by freezing D035 visual/update ownership and notation before p
 - WP3.6 verified: `d1910cb86b84240051cedfabb7701140259d8274`
 - WP3.7 verified: `d2a97798149816957745de818e4568c518a9a7e7`
 - WP3.8 verified: `5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`
+- WP3.9 verified production: `354bf7d356774ad828f1f660bd456dbab7f0490d`
 
 ## Last updated
 
-2026-10-24 - WP3.8 complete and #27 closed at clean checkpoint `5c282892...`. WP3.9 / #28 is next; freeze D035 before production visual-feedback source.
+2026-10-24 - WP3.9 complete and #28 closed after successful run `40083510351`. WP3.10 / #29 is active; D036 is frozen in `WP3_10_TEST_PLAN.md` before stress implementation.

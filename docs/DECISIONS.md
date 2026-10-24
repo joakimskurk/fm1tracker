@@ -716,3 +716,36 @@ WP3.8 queue timing is callback-boundary immediate ingress, not a new sample-accu
 **Reason:** The current proof firmware still has one architectural shortcut where main-context `play()` / `stop()` directly mutate manual audio voice state. A small SPSC queue removes that cross-context mutation, matches the original architecture, gives future live-performance work a measured ingress primitive, and provides a real overflow problem to solve without dragging live recording or multi-track engine work into Phase 3. A 32-entry/8-byte design is large enough for one full 27-key hardware edge set but cheap enough to measure now.
 
 **Consequence:** WP3.8 may add only the 8-byte runtime event envelope, exact 268-byte queue, NOTE ON/OFF audition adapter and the tests/diagnostics required by `WP3_8_QUEUE_CONTRACT.md`. Tests must prove exact layout, FIFO, full/reject-newest semantics, sequence wrap, O(1) discard, forced-overflow no-stuck-note recovery, real key/MIDI audition, queue-only MIDI neutrality, target alignment/resource cost and all inherited Phase 2 + WP3.1-WP3.7 deterministic audio regressions. Live REC/capture, timestamped automation, D033-through-queue, multi-track runtime dispatch, new engines and visual feedback remain out of scope.
+
+
+## D035 — WP3.9 extends the existing bounded tracker surface with lock/effect feedback
+
+Date: 2026-10-24
+Status: accepted and verified
+
+**Decision:** WP3.9 keeps the D026 240×240 tracker screen, ten redraw regions and maximum two tracker-region renders per main-loop poll. It adds no screen/page/menu architecture and no audio/ISR display coupling. The normative detailed contract is `docs/WP3_9_VISUAL_CONTRACT.md`.
+
+Rows are `ST NOTE IN VOL LK FX`. `LK` summarizes D028 storage as `--`, `L1..L4`, or `L!`; while the D029/D030 held-step editor owns that visible row it becomes `P0..P4` or `P!`. The existing D026 `>` cursor and `*` playhead remain independent and unchanged.
+
+`FX` is a four-character view of stored `FmtStep.effect/effect_value`: `----`, `ARhh`, `SUhh`, `SDhh`, `POhh`, `VIhh`, `RThh`, `DLhh`, `CThh`, or `????` for reserved commands. The raw stored value is shown in uppercase hexadecimal; presentation never clamps or reinterprets D032/D033 semantics.
+
+TRACK PAN remains storage-only under D031. The row summary intentionally reports only lock storage/count. Detailed D029/D030 footer feedback appends `STORE` when the selected parameter is TRACK PAN so the storage-only status is visible without inventing a second row-level classification.
+
+`FmtTrackerScreen` is frozen at exactly 62 bytes ordinary RAM, still below the original D026 64-byte cap. Each sync inspects only the same eight visible rows and performs at most one bounded `fmt_lock_count()` per row, therefore at most 32 lock-record inspections. No pool allocation or retained mutable lock pointer is introduced.
+
+**Reason:** the existing D026 row already reserved an FX column but intentionally deferred stable effect names, while D028-D030 p-lock state had detailed footer feedback but no normal-row presence indication. D035 makes the now-stable Phase 3 semantics legible without increasing redraw topology or crossing the main/audio ownership boundary.
+
+**Consequence:** WP3.9 changes presentation only. The reviewed active/released framebuffer PPM hashes are `d290415387ac8e55006863819c2188d64f0d0453e204bb194cb8d004121484f3` and `ec15c6db429fe26d453ada14cc28a1eab8c2aa93e83c6f0bbfff67112f1a86c6`. All frozen D031-D034 audio/runtime behavior remains byte-identical. Final resources are 66,960 B image / 13,296 B normal RAM / 113,000 B pool. Evidence is `docs/WP3_9_VERIFICATION.md`.
+
+## D036 — WP3.10 is a worst-case verification and Phase 3 exit package, not a feature package
+
+Date: 2026-10-24
+Status: accepted before WP3.10 stress implementation
+
+**Decision:** WP3.10 starts from the final WP3.9 production checkpoint `354bf7d356774ad828f1f660bd456dbab7f0490d` and freezes its complete stress/exit obligations in `docs/WP3_10_TEST_PLAN.md`. Production source should remain byte-identical unless a stress test exposes a real defect; any such fix must be minimal, receive a focused regression and trigger the entire exit gate again.
+
+D036 requires worst-case D028 pool saturation/recovery, D031/D032 cache boundaries, a full D032/D033 timing matrix, D034 saturation/wrap/overflow storms, combined playback/audition/editor/UI stress, D035 maximum visible-row lock inspection and dirty-backlog convergence, repeated editor/context transitions, long deterministic clock checks, static real-time boundedness audit, all inherited regressions and the pinned JieLi/AC79 target-build/resource gate.
+
+**Reason:** Phase 3 has accumulated several individually bounded systems whose final risk is interaction under simultaneous worst-case load rather than another missing feature. Closing the phase requires proving those declared bounds together before engine work begins.
+
+**Consequence:** Phase 4 production work is blocked until WP3.10 passes the D036 exit criteria and Phase 3 is formally closed. WP3.10 may add tests/tooling/docs; it may change production only to fix a defect demonstrated by the frozen stress plan.

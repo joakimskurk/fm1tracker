@@ -91,7 +91,7 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1–WP3.8 complete; WP3.9 next**
+Status: **IN PROGRESS — WP3.1–WP3.9 complete; WP3.10 active**
 
 Parent issue: #20
 
@@ -121,29 +121,32 @@ Parent issue: #20
 - **WP3.8 — bounded event queue and overflow policy** — COMPLETE — issue #27
   D034 freezes an 8-byte event envelope and exact 32-entry / 268-byte SPSC main->audio queue, reject-newest overflow, wrap-safe sequence counters and click-safe fail-to-silence audition recovery. Physical-key and USB-MIDI audition no longer mutate manual audio voices from main. Final clean-tree run `40079824265`, job `120830854974`. Final resources: 66,308 B image / 13,280 B normal RAM / 113,000 B pool. Evidence: `WP3_8_QUEUE_CONTRACT.md`, `WP3_8_VERIFICATION.md`.
 
-Current verified baseline after WP3.8:
+- **WP3.9 — lock/effect visual feedback** — COMPLETE — issue #28
+  D035 extends the existing ten-region / max-two-redraw tracker surface with `LK` p-lock summaries, stored D032/D033 effect mnemonics/values and `STORE` detail for TRACK PAN while preserving main-only bounded drawing. `FmtTrackerScreen` is exactly 62 B. Final run `40083510351`, job `120841687772`. Final resources: 66,960 B image / 13,296 B normal RAM / 113,000 B pool. Evidence: `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
 
-- app image: 66,308 B / 581,564 B
-- normal RAM: 13,280 B / 98,304 B
+Current verified baseline after WP3.9:
+
+- app image: 66,960 B / 581,564 B
+- normal RAM: 13,296 B / 98,304 B
 - pool RAM: 113,000 B / 344,064 B
 - D031 playback row cache: 256 B ordinary RAM
 - D032 effect row cache: 256 B ordinary RAM
 - D032 effect runtime: 12 B
 - D033 row-event runtime: 4 B
 - D034 runtime queue: 268 B ordinary RAM + 4 B overflow acknowledgement
+- D035 `FmtTrackerScreen`: 62 B ordinary RAM, ten regions / max two redraws
 - default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 - D031 locked WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
 - package identity: `FM-1_987`
 
 ## Next package
 
-- **WP3.9 — lock/effect visual feedback** — READY TO START — issue #28.
-  Freeze D035 before production UI source. D035 must define compact p-lock/effect notation, normal-view versus edit-only feedback, cursor/playhead/edit priority, screen-state ownership, bounded dirty regions/redraw work, stale-state cancellation and deterministic framebuffer evidence. Audio/ISR behavior remains untouched.
+- **WP3.10 — Phase 3 worst-case tests and exit gate** — IN PROGRESS — issue #29.
+  D036 is frozen in `WP3_10_TEST_PLAN.md`. Stress the complete D027-D035 stack and close Phase 3; production source remains unchanged unless a frozen stress test exposes a real defect.
 
 Remaining Phase 3 order:
 
-- WP3.9 lock/effect visual feedback
-- WP3.10 Phase 3 worst-case tests
+- WP3.10 Phase 3 worst-case tests and exit gate
 
 ---
 

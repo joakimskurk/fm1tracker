@@ -217,6 +217,23 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | D034 preserves D024 mailbox and D033 fixed-state scheduler boundaries | inspect/test | required | n/a | ✅ WP3.8 |
 | WP3.8 final resource delta measured/frozen | n/a | required | n/a | ✅ +368 B image / +272 B RAM / +0 B pool |
 | WP3.8 preserves all Phase 2 + WP3.1-WP3.7 regressions | required | required | later | ✅ run `40079824265` |
+| D035 tracker presentation state exactly 62 B and <= D026 64 B cap | required | required | n/a | ✅ WP3.9 |
+| D035 redraw topology remains exactly 10 regions / max 2 per poll | required | compile | required later | ✅ WP3.9 |
+| D035 lock summaries `--/L1..L4/P0..P4/L!/P!` deterministic | required | compile | required later | ✅ WP3.9 |
+| D035 stored effect command/value mnemonics deterministic | required | compile | required later | ✅ `----/AR/SU/SD/PO/VI/RT/DL/CT/????` |
+| TRACK PAN detailed feedback explicitly marks storage-only state | required | compile | required later | ✅ `STORE` suffix |
+| D035 visible-row sync bounded to <=32 lock-record inspections | inspect/test | compile | n/a | ✅ 8 rows × max 4 locks |
+| D035 held-target begin/end and row/effect changes dirty only bounded regions | required | compile | required later | ✅ focused D035 tests |
+| D035 HOME return clears stale feedback | required | compile | required later | ✅ pixel-identical control |
+| D035 reviewed active/released framebuffers frozen | required | compile | required later | ✅ `d2904153...` / `ec15c6db...` |
+| WP3.9 preserves historical default and all D031-D034 audio fixtures | required | required | n/a | ✅ run `40083510351` |
+| WP3.9 final resource delta measured/frozen | n/a | required | n/a | ✅ +652 B image / +16 B RAM / +0 B pool |
+| D036 full 2,048-record lock-pool saturation/recovery stress | required | required | n/a | 🟨 WP3.10 planned |
+| D036 D032/D033 complete timing/boundary stress | required | required | n/a | 🟨 WP3.10 planned |
+| D036 D034 repeated full/wrap/overflow-storm/recovery stress | required | required | later | 🟨 WP3.10 planned |
+| D036 combined playback + queue + editor + D035 backlog stress | required | required | later | 🟨 WP3.10 planned |
+| D036 static real-time boundedness audit | inspect/test | required | n/a | 🟨 WP3.10 planned |
+| D036 final Phase 3 inherited regression/device-build exit gate | required | required | hardware caveat | 🟨 WP3.10 planned |
 
 Phase 3 evidence so far:
 
@@ -228,6 +245,8 @@ Phase 3 evidence so far:
 - `WP3_6_VERIFICATION.md`
 - `WP3_7_VERIFICATION.md`
 - `WP3_8_VERIFICATION.md`
+- `WP3_9_VERIFICATION.md`
+- `WP3_10_TEST_PLAN.md` (D036 active exit plan)
 
 ## Phase 4 8-BIT engine
 

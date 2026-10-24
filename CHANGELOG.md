@@ -334,3 +334,22 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 - Final artifacts: `fm1tracker.bin` `a1d422b0c533af7f713deca37191a45e438640e2fc1be7c2734c1e4539822251`; `fm1tracker-0.1.fwsc` `b93d5dd57d4e23214ac4ef500e47d91b3e4528b620b646f8804312654df98b8a`.
 - Final clean-tree verification: checkpoint `5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`, run `40079824265`, job `120830854974`; evidence `docs/WP3_8_VERIFICATION.md`.
 - Next: WP3.9 / #28 lock/effect visual feedback. D035 visual/update contract must be frozen before production UI source.
+
+
+## 2026-10-24 - WP3.9 lock/effect visual feedback
+
+- Froze D035 before production UI changes in `docs/WP3_9_VISUAL_CONTRACT.md`.
+- Kept the D026 240×240 tracker surface at exactly ten regions and max two tracker redraws per main-loop poll.
+- Added `LK` row summaries for zero/one-to-four locks, active held-step targets and presentation errors.
+- Replaced the Phase-2 placeholder FX display with compact stored D032/D033 command/value mnemonics such as `AR37`, `RT02`, `DL03` and `CT00`.
+- Marked detailed TRACK PAN p-lock feedback with `STORE` while preserving its D031 storage-only semantics.
+- Grew `FmtTrackerScreen` from 44 B to exactly 62 B, still under the original 64 B D026 budget; linked normal-RAM delta is +16 B.
+- Visually reviewed/froze the active and released D035 framebuffers: `d290415387ac8e55006863819c2188d64f0d0453e204bb194cb8d004121484f3` and `ec15c6db429fe26d453ada14cc28a1eab8c2aa93e83c6f0bbfff67112f1a86c6`.
+- Preserved HOME cleanup, all Phase 2 behavior and every frozen D031-D034 audio fixture byte-for-byte.
+- Final resources: 66,960 B image / 13,296 B normal RAM / 113,000 B pool; delta vs WP3.8 +652 / +16 / +0 B.
+- Final artifacts: `fm1tracker.bin` `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27`; `fm1tracker-0.1.fwsc` `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`.
+- Final verification: production checkpoint `354bf7d356774ad828f1f660bd456dbab7f0490d`, run `40083510351`, job `120841687772`; evidence `docs/WP3_9_VERIFICATION.md`.
+
+### Next
+
+**WP3.10 - Phase 3 worst-case tests and exit gate**, issue #29, is IN PROGRESS. D036 is frozen in `docs/WP3_10_TEST_PLAN.md`; Phase 4 production work remains blocked until the complete Phase 3 stack passes the exit gate.

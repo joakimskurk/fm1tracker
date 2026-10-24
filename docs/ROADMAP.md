@@ -114,7 +114,7 @@ Phase 2 exit criteria are satisfied at the host/device-build level. Physical FM-
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
 
-Status: **IN PROGRESS — WP3.1–WP3.8 complete; WP3.9 next**
+Status: **IN PROGRESS — WP3.1–WP3.9 complete; WP3.10 active**
 
 Parent issue: #20
 
@@ -128,12 +128,12 @@ Progress:
 6. ✅ **WP3.6 — arpeggio / slide / portamento / vibrato tracker effects**. D032 freezes commands in `FmtStep.effect/effect_value`, exact six-tick D020 timing, Q7 persistent/transient pitch composition and bounded fixed caches/state. Final run `40073680548`; evidence `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
 7. ✅ **WP3.7 — retrig / note delay / note cut**. D033 adds commands `0x06..0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state without a general queue. Final run `40077809743`; evidence `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
 8. ✅ **WP3.8 — bounded event queue and overflow policy**. D034 freezes the exact 32-entry SPSC main->audio queue, reject-newest overflow and fail-to-silence audition recovery. Final run `40079824265`; evidence `WP3_8_QUEUE_CONTRACT.md`, `WP3_8_VERIFICATION.md`.
-9. ⬜ **WP3.9 — lock/effect visual feedback**, issue #28, READY FOR D035 VISUAL/UPDATE FREEZE.
-10. ⬜ WP3.10 — Phase 3 worst-case tests.
+9. ✅ **WP3.9 — lock/effect visual feedback**. D035 preserves the ten-region / max-two-redraw surface, adds bounded `LK` and stored `FX` feedback, and keeps every audio/runtime fixture unchanged. Final run `40083510351`; evidence `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
+10. 🟨 **WP3.10 — Phase 3 worst-case tests and exit gate**, issue #29, IN PROGRESS. D036 frozen in `WP3_10_TEST_PLAN.md`.
 
-Current verified Phase 3 footprint after WP3.8: 66,308 B image, 13,280 B normal RAM and 113,000 B pool. The historical default WAV, D031 locked WAV and every frozen WP3.6/WP3.7 fixture remain byte-identical.
+Current verified Phase 3 footprint after WP3.9: 66,960 B image, 13,296 B normal RAM and 113,000 B pool. `FmtTrackerScreen` is 62 B; the historical default WAV plus every frozen D031-D034 audio fixture remain byte-identical.
 
-Immediate next package: **WP3.9 / #28**. Freeze D035 visual/update ownership and compact notation before production UI source; preserve the bounded D026 redraw model and all D031-D034 runtime/audio semantics.
+Immediate package: **WP3.10 / #29**. D036 is frozen; execute worst-case/combined stress and the final Phase 3 exit gate before any Phase 4 production source.
 
 Exit criteria remain:
 
