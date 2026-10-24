@@ -91,7 +91,7 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1/WP3.2/WP3.3 complete; WP3.4 next**
+Status: **IN PROGRESS — WP3.1/WP3.2/WP3.3 complete; WP3.4 active**
 
 Parent issue: #20
 
@@ -104,7 +104,7 @@ Parent issue: #20
   D028 freezes one global 2,048-record sparse pool with exact 8-byte owner-checked records, strict ascending parameter-ID lists, deterministic replacement/removal/clear, explicit STEP_FULL/POOL_FULL/CORRUPT results and max four locks per individual step. All 8,192 owner addresses, pool exhaustion/reuse and corruption isolation are tested. Final run `40038453521`. Final resource delta vs WP3.1: +136 B image / +4 B normal RAM / +16,384 B pool. Evidence: `WP3_2_VERIFICATION.md`.
 
 - **WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22  
-  D029 freezes a held-white-step target latch in ordinary SEQ, relative KNOB1..4 mapping to the four D027 IDs, stale/begin/release-delta discard and normalized 0..255 editor values. `FmtLockEditor` is 8 B ordinary RAM; no pool storage is added. Unit coverage spans all 64 steps × 8 tracks, replacement, range/error handling and storage isolation. A real full-app fixture proves focus suppression, zero accidental MIDI and reviewed/frozen `VOICE 254` -> `255` footer feedback. Final run `40054322180`. Final resource delta vs WP3.2: +2,328 B image / +8 B normal RAM / +0 B pool. Evidence: `WP3_3_VERIFICATION.md`.
+  D029 freezes ordinary-SEQ held-white-step target ownership, stale/begin/release delta discard, KNOB1..4 mapping to the four current D027 IDs and normalized 0..255 storage-only editing. Full-app target/focus suppression and reviewed feedback are verified. Final run `40054322180`. Final resource delta vs WP3.2: +2,328 B image / +8 B normal RAM / +0 B pool. Evidence: `WP3_3_VERIFICATION.md`.
 
 Current verified baseline after WP3.3:
 
@@ -115,15 +115,16 @@ Current verified baseline after WP3.3:
 - `FmtLock`: 8 B
 - global lock pool: 2,048 records / 16,384 B
 - allocator runtime: 4 B
-- `FmtLockEditor`: 8 B
-- editable core + lock records: 82,280 B
+- `FmtLockEditor`: 8 B at WP3.3 closeout
 - frozen default WAV unchanged
 - package identity: `FM-1_987`
 
-## Next package
+## Active package
 
-- **WP3.4 — p-lock replace/delete UX** — READY TO START — issue #23.  
-  Freeze D030 before source: lock browse/selection, delete-one versus clear-all, destructive-action safeguards, D029 hold interaction, target/context ownership and minimal feedback. WP3.4 may use D028 remove/clear primitives but must not add WP3.5 playback/audio application.
+- **WP3.4 — p-lock replace/delete UX** — IN PROGRESS — issue #23.  
+  D030 is frozen before source. SELECT browses existing locks in D028 sorted order; EDIT arms one selected lock for deletion; only a later SEL press confirms. Same-poll EDIT+SEL never deletes. Pending arms cancel on release/context/PLAY/unrelated focus intent. No clear-all panel gesture exists in WP3.4. Locks remain storage-only and playback application stays WP3.5+.
+
+WP3.4 current implementation extends the editor state to a compile-time asserted 10 B with semantic selection + delete-arm state and adds bounded browse/arm/cancel/confirm helpers over unchanged D028 storage. Focused editor tests are green; full-app D030 panel integration is active.
 
 Remaining Phase 3 order:
 
