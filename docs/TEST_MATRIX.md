@@ -269,8 +269,10 @@ Phase 3 evidence so far:
 | NOISE deterministic vectors + JieLi target compile | required | required | optional later | ✅ run `40093607376` / closeout `40093740514` |
 | WP4.3 full app remains exact WP4.2 baseline while NOISE is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
 | D040 TRIANGLE primitive/test contract frozen before source | required | compile | n/a | ✅ `WP4_4_TRIANGLE_CONTRACT.md` / `79167dd9...` |
-| TRIANGLE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.4 next |
-| WAVETABLE-8 bounds deterministic | required | required | optional later | ⬜ WP4.5 |
+| TRIANGLE deterministic vectors + JieLi target compile | required | required | optional later | ✅ run `40094383287` / closeout `40094496353` |
+| WP4.4 full app remains exact WP4.3 baseline while TRIANGLE is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
+| D041 WAVETABLE-8 primitive/test contract frozen before source | required | compile | n/a | ⬜ WP4.5 active |
+| WAVETABLE-8 deterministic tables/vectors + JieLi target compile | required | required | optional later | ⬜ WP4.5 next |
 | Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
 | P-lock modulation stable | required | required | required later | ⬜ WP4.8-WP4.9 |
 | Representative eight-track timing | benchmark | required | required later | ⬜ WP4.10 |
@@ -279,6 +281,7 @@ Phase 3 evidence so far:
 WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.
 WP4.2 detailed evidence: `WP4_2_PULSE_CONTRACT.md`, `WP4_2_VERIFICATION.md`.
 WP4.3 detailed evidence: `WP4_3_NOISE_CONTRACT.md`, `WP4_3_VERIFICATION.md`.
+WP4.4 detailed evidence: `WP4_4_TRIANGLE_CONTRACT.md`, `WP4_4_VERIFICATION.md`.
 
 ## Phase 5 FM4
 
