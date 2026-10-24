@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9/linked 8-BIT engine integration active; D045 contract freeze next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9/linked 8-BIT engine integration active; D045 FROZEN; staged integration gates next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.9 / #40
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.9 - linked 8-BIT engine integration**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 linked integration/ownership/resource/test contract required before modifying linked production audio**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 FROZEN; Gate 1 track-aware playback/D031/D032 publication next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -328,7 +328,7 @@ Branch: `phase4/8bit-engine`
 
 WP4.8 closed on run `40104723586`, job `120903925381`. D044 passed six-ID/four-page deterministic verification, all 256 WIDTH/TABLE mappings, 4,096 exhaustive engine×slot×value resolver cases, pinned PI32v2 compilation and full-app closeout with zero linked delta. Evidence: `docs/WP4_8_VERIFICATION.md`.
 
-WP4.9 is the first package that deliberately crosses the Phase 4 isolation boundary. D045 must be frozen before `dinghy.c`, the linked D027 registry, the 2,048 B D044 row cache, engine voice state or proof-sine audio are changed.
+D045 is frozen in `docs/WP4_9_LINKED_ENGINE_CONTRACT.md`. WP4.9 deliberately crosses the isolation boundary in staged gates: track-aware playback/D031/D032 publication first, pure linked-engine state/mix second, D044 registry/cache/editor activation third, and only then `dinghy.c` proof-sine migration.
 
 D045 must define exact eight-track/eight-voice ownership, engine selection/fallback, D044 registry/cache activation, D031/D032 pitch/level precedence, D033 NOTE DELAY/RETRIG/CUT ordering, D042 articulation, D043 allocation/release-tail semantics, oscillator reset rules, mix/clamp ownership, proof-sine migration, deterministic per-engine/mixed fixtures, linked resource ceilings and the boundary to WP4.10 benchmarking.
 
@@ -356,6 +356,7 @@ Do not begin the final eight-track benchmark/Phase 4 closeout until WP4.9 integr
 - D042: WP4.6 common envelope is a 20-byte linear ADSR with Q15.16 level, division-free 16-entry rate mapping, hard NOTE/RETRIG articulation, TIE/EMPTY no-op and OFF/CUT release from current level while isolated.
 - D043: WP4.7 allocator is a 52-byte fixed eight-slot owner/recency map that reuses same-track voices, prefers IDLE, detaches OFF/CUT release tails and may steal only the oldest unowned RELEASE tail; active cross-track stealing is forbidden.
 - D044: WP4.8 freezes six 8-BIT semantic IDs (`0x20..0x25`), one exact four-control page per engine, a 6 B base set, bounded normalized WIDTH/TABLE mappings and a future aligned 2048 B row cache; global registry/UI/cache activation is deferred to WP4.9.
+- D045: WP4.9 deliberately migrates all eight tracker tracks to one fixed eight-slot 8-BIT engine through staged gates, preserving the four-byte legacy event, D034 audition lane and D020-D035 ownership while activating track-aware caches, D044 publication and bounded D038-D043 render/mix only after their prerequisite gates are green.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -369,7 +370,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze D045 and the deterministic WP4.9 linked-integration test/resource contract in the repository before modifying `dinghy.c`, activating the six D044 IDs in the linked registry, allocating the D044 row cache or replacing the Phase 3 proof sine. Do not begin WP4.10 benchmarking yet.
+Begin D045 Gate 1 only: add bounded eight-track playback row events plus track-aware D031/D032 publication while preserving the existing track-0 APIs/symbols and inherited regressions. Do not modify `dinghy.c`, activate D044 registry IDs, allocate the D044 cache or link the engine until Gate 1 is green.
 
 ## Last relevant checkpoints
 
@@ -403,7 +404,8 @@ Freeze D045 and the deterministic WP4.9 linked-integration test/resource contrac
 - WP4.7 final static-audit correction: `14fc240486f2cf72bfaafcb072fec2c946cc4c50` — run `40103577801` SUCCESS
 
 - WP4.8 D044 verification/closeout: `9e6c5268259d50eb74a2326259a5cbf3c05d189e` — run `40104723586`, job `120903925381`
+- WP4.9 D045 contract: `fd31801b8a73e27345d4575026b593fb45e10c20`
 
 ## Last updated
 
-2026-10-24 - WP4.8 / #39 COMPLETE. D044 six-ID/four-page parameter resolver passed exhaustive deterministic host verification, pinned PI32v2 compilation and full-app closeout with zero linked delta; run `40104723586`, job `120903925381`. WP4.9 / #40 is now active. Exact next action: freeze D045 linked engine integration/ownership/resource/test contract before changing the linked audio path.
+2026-10-24 - WP4.9 / #40 active. D045 is frozen in `WP4_9_LINKED_ENGINE_CONTRACT.md` before linked source. Exact next action: Gate 1 only — implement/test eight-track row events plus track-aware D031/D032 caches with track-0 regressions green; do not touch `dinghy.c` or activate the linked engine yet.

@@ -930,3 +930,26 @@ WP4.8 does **not** activate the six D044 IDs in the already-linked global `FMT_P
 **Reason:** the frozen oscillators expose only two oscillator-specific editable controls (PULSE width and WAVETABLE table), while D042 supplies common articulation. A single four-control page per engine matches the hardware/page budget without inventing fake NOISE/TRIANGLE DSP or a second page. Keeping D044 IDs normative but unlinked lets the complete page/p-lock translation be proven before deliberate production migration.
 
 **Consequence:** focused tests must prove exact IDs/layouts/default words, all-256 WIDTH/TABLE mappings, engine-page applicability, p-lock precedence/fallback, 6 B base set, 2048 B cache type, bounded <=4-lock work, replay/guards/hash and real PI32v2 compile. Production delta from the D044 pre-source checkpoint must be only the isolated WP4.8 module, and the complete full app must remain byte-identical to WP4.7. Any ID renumbering, page-order change, WIDTH/TABLE mapping change or second-page addition requires a superseding decision.
+
+## D045 — WP4.9 deliberately migrates the tracker proof lane to one bounded eight-track/eight-voice 8-BIT engine
+
+Date: 2026-10-24
+Status: accepted — frozen before linked engine source
+
+**Decision:** `docs/WP4_9_LINKED_ENGINE_CONTRACT.md` is normative. WP4.9 is the first Phase 4 package allowed to change linked tracker audio. It makes pattern 0 tracks `0..7` audible through D038-D044 while preserving D020-D035 timing/editor/UI ownership and leaving the separate D034 four-voice sine audition lane unchanged.
+
+D045 freezes project modes 8-BIT=0 and 16-BIT=1, engine identities SAFE=0/PULSE=1/NOISE=2/TRIANGLE=3/WAVETABLE-8=4, a deterministic runtime demo seed (instrument 0..3 = the four engines; track default instrument = track & 3), NOTE-only step-instrument inheritance, and safe silence for malformed/unsupported mode/engine data.
+
+The existing four-byte `FmtPlaybackEvent` remains unchanged. A separate four-byte multi-track row event captures step/kind/note/instrument for each fixed track index. Row and D032/D033 action dispatch order is always track 0 -> 7. D031 and D032 retain their verified track-0 cache symbols and add exactly seven extra 64x32-bit track rows each. D044 activates IDs 0x20..0x25, links a 96 B sixteen-instrument base bank and the frozen 2048 B aligned row cache. Audio consumes aligned publication words only and never traverses D028.
+
+One `Fmt8BitOscState` is 8 B, one `Fmt8BitVoice` is exactly 44 B, and one `Fmt8BitEngine` is exactly 404 B including the 52 B D043 allocator plus eight voices. Ordinary NOTE reuses oscillator phase only when the same track retains the same engine/instrument; fresh/tail-steal or engine/instrument change resets oscillator state. NOTE/RETRIG consume D042 A/D/S snapshots, OFF/CUT consume current-row RELEASE, PULSE WIDTH and WAVETABLE TABLE are live row timbre, and TIE/EMPTY never live-retime D042 A/D/S.
+
+D031 VOICE LEVEL x TRACK LEVEL becomes one Q15 gain via `fmt_playback_level_target(32767, ...)`. D032 remains sole owner of persistent/transient pitch and D033 remains sole owner of NOTE DELAY/RETRIG/CUT timing. Per-frame render scans exactly eight slots, applies oscillator * envelope * D031 gain with bounded signed 32-bit arithmetic, sums to a 32-bit accumulator, clamps to +/-32767 and feeds mono-centre to both channels. TRACK PAN remains storage-only.
+
+OFF/CUT starts D042 release, then D043 detaches ownership in the same event; unowned RELEASE tails continue rendering and may later be reclaimed only under D043. Allocator scans remain event-boundary O(8), never per-sample. Planned major normal-RAM delta is <=6368 B and the linked result must remain inside D037's 21,488 B normal-RAM, 132,496 B image and 129,384 B pool ceilings.
+
+WP4.9 uses staged gates: (1) track-aware playback/D031/D032 publication with track-0 regressions green, (2) pure linked-engine state/mix tests, (3) D044 registry/cache/page-aware p-lock editing, then (4) `dinghy.c` migration and deterministic per-engine/mixed/eight-track/D033/precedence fixtures, followed by inherited regressions and pinned full firmware measurement. The historical proof-sine WAV hash is intentionally superseded only at this explicit migration checkpoint.
+
+**Reason:** Phase 4 primitives are individually verified but not yet a product engine. D045 crosses that boundary without mixing in live-performance polyphony or the final timing benchmark, while keeping event/cache ownership and RAM cost statically bounded.
+
+**Consequence:** No linked engine source may precede D045. WP4.9 closes only with all four engines audible through the real tracker adapter, deterministic eight-track ownership/timing/p-lock evidence, new intentional full-app hashes and resource measurements inside D037. WP4.10 remains the representative timing benchmark/Phase 4 exit gate.
