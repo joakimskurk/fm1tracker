@@ -34,6 +34,7 @@ jobs:
           base = '01b35603ec387e079e4af512f8a8109e413d2714'
           allowed = {
               '.github/workflows/wp3_5_playback_params_verify.yml',
+              'docs/PROJECT_STATE.md',
               'docs/DECISIONS.md',
               'firmware/src/fmt_playback_params.h',
               'firmware/src/fmt_playback_params.c',
