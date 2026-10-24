@@ -8,6 +8,9 @@ on:
       - tests/test_wp3_10_worst_case.c
       - tests/run_wp3_10_worst_case.sh
       - tests/run_wp3_10_combined_host.sh
+      - tests/test_wp3_10_timing_matrix.c
+      - tests/run_wp3_10_timing_matrix.sh
+      - tests/run_wp3_10_realtime_audit.sh
       - .github/workflows/wp3_10_worst_case_verify.yml
   workflow_dispatch:
 
@@ -20,6 +23,8 @@ jobs:
     steps:
       - name: Checkout FM1Tracker
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Run D036 focused worst-case stress
         shell: bash
@@ -33,6 +38,18 @@ jobs:
           set -euo pipefail
           sh tests/run_wp3_10_combined_host.sh
 
+      - name: Run D036 timing matrix and long-clock proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_10_timing_matrix.sh
+
+      - name: Run D036 static realtime audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_10_realtime_audit.sh
+
       - name: Upload stress evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,6 +60,10 @@ jobs:
             build/wp3_10_worst_case.log
             build/wp3_10_combined_*.log
             build/wp3_10_combined_analysis.txt
+            build/wp3_10_timing_matrix.log
+            build/wp3_10_transport_long.log
+            build/wp3_10_tick_grid.log
+            build/wp3_10_realtime_audit.log
             build/host/fm1tracker_wp3_10_stress_a.wav
             build/host/fm1tracker_wp3_10_stress_a-1000.ppm
             build/host/fm1tracker_wp3_10_stress_a-3000.ppm
