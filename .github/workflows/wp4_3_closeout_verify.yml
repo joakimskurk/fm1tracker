@@ -1,0 +1,55 @@
+name: WP4.3 NOISE closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_osc_noise.h
+      - firmware/src/fmt_osc_noise.c
+      - tests/test_wp4_3_noise.c
+      - tests/run_wp4_3_noise_tests.sh
+      - tests/run_wp4_3_closeout_ci.sh
+      - .github/workflows/wp4_3_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-3-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D039 isolated NOISE closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_3_closeout_ci.sh | tee build/wp4_3_closeout.log
+          grep -F 'WP4_3_ISOLATED_PRODUCTION_DELTA_OK=1' build/wp4_3_closeout.log
+          grep -F 'WP4_3_TARGET_OBJECTS_OK=1' build/wp4_3_closeout.log
+          grep -F 'WP4_3_DEVICE_BASELINE' build/wp4_3_closeout.log
+          grep -F 'WP4_3_D039_EXIT_OK=1' build/wp4_3_closeout.log
+          grep -F 'WP4_3_CLOSEOUT_OK=1' build/wp4_3_closeout.log
+
+      - name: Upload WP4.3 closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-3-noise-closeout-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp4_3_*.log
+            build/wp4_3_*.txt
+            build/wp4_3_target/
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
