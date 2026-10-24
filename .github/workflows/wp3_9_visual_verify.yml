@@ -15,6 +15,8 @@ on:
       - tests/test_wp3_9_visual.c
       - tests/run_tracker_screen_tests.sh
       - tests/run_lock_editor_tests.sh
+      - tests/run_wp3_9_visual_host.sh
+      - tests/wp3_9_visual_feedback.script
       - .github/workflows/wp3_9_visual_verify.yml
   workflow_dispatch:
 
@@ -22,11 +24,14 @@ permissions:
   contents: read
 
 jobs:
-  visual-feedback-unit:
+  visual-feedback:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout FM1Tracker
         uses: actions/checkout@v4
+
+      - name: Install screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
 
       - name: Run D026 + D035 tracker screen tests
         shell: bash
@@ -39,3 +44,24 @@ jobs:
         run: |
           set -euo pipefail
           sh tests/run_lock_editor_tests.sh
+
+      - name: Run D035 full-app framebuffer proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_9_visual_host.sh
+
+      - name: Upload D035 framebuffer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-9-visual-feedback
+          if-no-files-found: warn
+          path: |
+            build/wp3_9_*host.log
+            build/host/fm1tracker_wp3_9_visual-1000.ppm
+            build/host/fm1tracker_wp3_9_visual-3000.ppm
+            build/host/fm1tracker_wp3_9_visual-1000.png
+            build/host/fm1tracker_wp3_9_visual-3000.png
+            build/host/fm1tracker_wp3_9_home_return-3000.ppm
+            build/host/fm1tracker_wp3_9_home_return-3000.png
