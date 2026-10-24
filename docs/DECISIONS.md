@@ -776,3 +776,24 @@ The complete Phase 4 incremental ceilings versus the frozen Phase 3 baseline are
 **Reason:** Phase 3 deliberately proved tracker timing, p-locks, effect scheduling, runtime ingress and UI before replacing the sine proof lane. Phase 4 now needs one measured engine contract so oscillator packages cannot invent incompatible pitch domains, ownership, queues, allocation rules, parameter paths or mix formats independently. Eight fixed voices cover the eight logical sequencer tracks while keeping worst-case audio work trivial to bound and leaving substantial device headroom for Phase 5 and later core work.
 
 **Consequence:** WP4.1 is documentation/architecture only and must close with zero production firmware/DSP delta from the clean Phase 4 branch start. WP4.2-WP4.8 may build isolated deterministic primitives behind this interface. The first production migration away from the Phase 3 proof sine must be explicit, preserve D020-D034 semantics through the adapter, rerun inherited regressions and freeze new intentional audio evidence instead of silently rewriting old hashes. WP4.10 must prove the final eight-track Phase 4 configuration remains inside the D037 ceilings or record a superseding decision.
+
+## D038 — WP4.2 PULSE is a 4-byte hard-edge oscillator using the existing Q7 pitch math
+
+Date: 2026-10-24
+Status: accepted — frozen before PULSE production source
+
+**Decision:** WP4.2 implements one isolated hard-edge PULSE primitive plus a canonical shared Q7-to-phase-increment helper, exactly as frozen in `docs/WP4_2_PULSE_CONTRACT.md`. It is not connected to the full-app proof lane in WP4.2.
+
+`FmtPulseOsc` contains exactly one `uint32_t phase` and is therefore exactly 4 B. Reset and retrigger set phase to zero. Rendering samples the current phase before advancing it, returns exactly `+32767` or `-32767`, then advances phase by unsigned 32-bit addition/wrap. A zero increment holds phase and output. Null render fails to silence with return value zero.
+
+Pulse width is one unsigned byte with a legal oscillator-domain range `32..224`, default `128`, interpreted as `width / 256` of one cycle high. The render threshold is `width << 24`; values below/above the legal range clamp to 32/224. This yields a continuous 12.5–87.5% range containing the classic 12.5/25/50/75% chip widths without permitting a deliberate all-high/all-low DC mode. WP4.8, not WP4.2, owns the eventual stable parameter ID/page mapping.
+
+D038 explicitly keeps PULSE band-unlimited/hard-edge. WP4.2 adds no BLEP/polyBLEP/minBLEP, oversampling or hidden smoothing/filter. Upper-register aliasing is accepted as part of the Phase 4 chip-style identity. Any later anti-aliasing strategy must supersede D038 because it changes state, CPU cost and deterministic sample vectors.
+
+The common pitch helper reuses the exact existing Phase 3 proof-lane behavior: unsigned Q7 semitone pitch `0..16383`, the existing 12-entry C9 phase-increment table, octave shifts and `fmt_playback_interp_inc()` rounding. Frozen compatibility vectors include C4 `25480118`, A4 `42852281`, A4+0.5 semitone `44126346`, MIDI127 `1221665363` and maximum Q7 `1293741834`. The helper runs only when pitch changes, not per rendered sample. No float or runtime 64-bit division is permitted.
+
+WP4.2 remains isolated: `fmt_engine_pitch.*` and `fmt_osc_pulse.*` must compile independently with the pinned JieLi compiler but are not included by `dinghy.c`. Therefore the required full-app image/RAM/pool delta, default WAV delta and BIN/FWSC delta for WP4.2 are all exactly zero. The isolated state cost is 4 B per PULSE oscillator (32 B for eight future instances), the immutable pitch table is 48 B, and there is no static mutable or pool storage.
+
+**Reason:** D037 requires one common pitch domain, fixed state and bounded per-sample work before engine integration. Reusing the already-proven pitch integers avoids a second tuning model; phase-only state makes PULSE trivial to bound; a 12.5–87.5% continuous duty range preserves classic chip voices without pathological DC endpoints; and deliberately postponing full-app integration keeps the Phase 3/WP4.1 audio/device baseline intact while the first oscillator primitive is tested in isolation.
+
+**Consequence:** Focused tests must freeze exact pitch vectors, 25/50/75% sample vectors, clamp behavior, phase wrap, zero increment, deterministic replay and a long-render hash before WP4.2 closes. Both new translation units require real PI32v2 target compilation and static realtime audit. No NOISE/TRIANGLE/WAVETABLE-8, envelope, allocator, engine parameter page/cache or proof-sine migration may be pulled into WP4.2. Any future anti-aliasing or change to pitch integers/pulse edge ordering requires a superseding decision and new deterministic evidence.

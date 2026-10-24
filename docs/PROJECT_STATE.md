@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.2 - PULSE oscillator**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; D038 PULSE contract/test plan next; no PULSE production source begun**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; D038 FROZEN; focused PULSE implementation/tests next; no full-app engine integration**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -321,7 +321,7 @@ Branch: `phase4/8bit-engine`
 
 WP4.1 closed on run `40087703654`, job `120853898352`, with zero production delta from the Phase 4 branch start and the full inherited Phase 3 target gate green. Evidence: `docs/WP4_1_VERIFICATION.md`.
 
-D038 must freeze the isolated PULSE primitive before source: exact state/reset, shared Q7 pitch-to-phase-increment boundary, phase/sample ordering, pulse-width representation/clamp, nominal-Q15 output, wrap/extreme behavior, deterministic vectors, target-compile/resource obligations and the explicit proof-sine migration boundary.
+D038 is frozen in `docs/WP4_2_PULSE_CONTRACT.md`: 4-byte phase-only state, exact existing Q7 pitch integers, sample-before-advance ordering, pulse width 32..224, hard-edge/band-unlimited output, focused deterministic vectors and zero full-app delta while isolated.
 
 The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.2 primitive work. Do not pull NOISE/TRIANGLE/WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
 
@@ -374,4 +374,4 @@ Freeze D038 and the focused WP4.2 PULSE test contract in the repository before c
 
 ## Last updated
 
-2026-10-24 - WP4.1 / #31 COMPLETE. D037 frozen before source; closeout run `40087703654` SUCCESS with zero production delta and inherited Phase 3 device-build gate green. WP4.2 / #32 is now IN PROGRESS; exact next action is D038 PULSE contract/test-plan freeze before PULSE source.
+2026-10-24 - WP4.2 / #32 active. D038 is now frozen in `WP4_2_PULSE_CONTRACT.md` before PULSE source. Exact next action is isolated PULSE/pitch implementation plus deterministic host/PI32v2 verification with the full-app proof sine unchanged.

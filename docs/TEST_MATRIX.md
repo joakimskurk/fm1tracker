@@ -262,7 +262,7 @@ Phase 3 evidence so far:
 | D037 Phase 4 resource ceilings frozen | inspect/gate | n/a | n/a | ✅ image 132,496 / RAM 21,488 / pool 129,384 maximum |
 | No float/double symbols in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
 | No runtime 64-bit divide in Phase 4 DSP | inspect/build | required | n/a | ⬜ retained gate |
-| D038 PULSE primitive/test contract frozen | required | compile | n/a | ⬜ WP4.2 active |
+| D038 PULSE primitive/test contract frozen | required | compile | n/a | ✅ `WP4_2_PULSE_CONTRACT.md` / `247ff3c0...` |
 | PULSE deterministic vectors + JieLi target compile | required | required | optional later | ⬜ WP4.2 next |
 | NOISE/TRIANGLE/WAVETABLE bounds deterministic | required | required | optional later | ⬜ WP4.3-WP4.5 |
 | Voice stealing deterministic | required | required | required later | ⬜ WP4.7 |
