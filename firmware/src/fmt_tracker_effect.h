@@ -16,7 +16,10 @@ enum {
     FMT_TRACKER_EFFECT_SLIDE_UP = 0x02,
     FMT_TRACKER_EFFECT_SLIDE_DOWN = 0x03,
     FMT_TRACKER_EFFECT_PORTAMENTO = 0x04,
-    FMT_TRACKER_EFFECT_VIBRATO = 0x05
+    FMT_TRACKER_EFFECT_VIBRATO = 0x05,
+    FMT_TRACKER_EFFECT_RETRIG = 0x06,
+    FMT_TRACKER_EFFECT_NOTE_DELAY = 0x07,
+    FMT_TRACKER_EFFECT_NOTE_CUT = 0x08
 };
 
 enum {
@@ -44,7 +47,7 @@ FMT_STATIC_ASSERT(tracker_effect_tick_divides_row_exactly,
 FMT_STATIC_ASSERT(tracker_effect_one_tick_max_per_frame,
                   0xFFFFu < FMT_TRACKER_EFFECT_TICK_PHASE);
 
-/* D032: one aligned atomic publication word per proof-lane row. */
+/* D032/D033: one aligned atomic publication word per proof-lane row. */
 extern volatile uint32_t fmt_tracker_effect_cache[FMT_TRACKER_EFFECT_ROWS];
 
 uint8_t fmt_tracker_effect_command_valid(uint8_t command);
@@ -66,6 +69,12 @@ void fmt_tracker_effect_begin_row(FmtTrackerEffectState *state,
                                   uint8_t event_kind,
                                   uint8_t event_note,
                                   uint32_t effect_word);
+/* D033 fixed-state late actions. These preserve the current row command/tick
+ * and only apply the note-state transition that would otherwise happen at row
+ * dispatch. */
+void fmt_tracker_effect_apply_delayed_note(FmtTrackerEffectState *state,
+                                           uint8_t note);
+void fmt_tracker_effect_apply_cut(FmtTrackerEffectState *state);
 uint8_t fmt_tracker_effect_tick_due(const FmtTrackerEffectState *state,
                                     uint32_t transport_phase);
 uint8_t fmt_tracker_effect_advance_tick(FmtTrackerEffectState *state);
