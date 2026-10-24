@@ -53,6 +53,36 @@ test "$HOST_SHA" = "$EXPECTED_HOST_WAV"
 test "$HOST_FRAMES" = '286464'
 printf 'WP5_0_DINGHY_D046_WAV_IDENTITY_OK=1 sha256=%s frames=%s\n' "$HOST_SHA" "$HOST_FRAMES" | tee "$OUT/wav_identity.txt"
 
+# Strong D048 proof on the actual integrated app: change exactly the legacy
+# song metadata mode byte at startup while keeping every instrument header,
+# tracker row and parameter publication identical. Playback must be unchanged.
+python3 - <<'PY'
+from pathlib import Path
+src = Path('firmware/src/dinghy.c').read_text()
+old = '            song->meta.mode = FMT_MODE_8BIT;\n'
+new = '            song->meta.mode = FMT_MODE_16BIT;\n'
+assert src.count(old) == 1, 'unexpected startup song-mode assignment shape'
+Path('build/tests/dinghy_wp5_0_songmode16.c').write_text(src.replace(old, new, 1))
+PY
+cc -O2 -Wall -Wno-unused-function -DDINGHY_HOST \
+    -DAPP_NAME='"FM1TRACKER"' -DAPP_VER='"dev"' \
+    -Ifirmware/src -Ifirmware/gen \
+    -o build/host/fm1tracker_songmode16 build/tests/dinghy_wp5_0_songmode16.c
+build/host/fm1tracker_songmode16 build/host/fm1tracker_songmode16 \
+    > "$OUT/songmode16_host.log"
+MODE16_SHA="$(sha256sum build/host/fm1tracker_songmode16.wav | awk '{print $1}')"
+MODE16_FRAMES="$(python3 - <<'PY'
+import wave
+with wave.open('build/host/fm1tracker_songmode16.wav', 'rb') as f:
+    print(f.getnframes())
+PY
+)"
+test "$MODE16_SHA" = "$EXPECTED_HOST_WAV"
+test "$MODE16_FRAMES" = "$HOST_FRAMES"
+cmp -s build/host/fm1tracker.wav build/host/fm1tracker_songmode16.wav
+printf 'WP5_0_DINGHY_SONG_META_NONGATING_OK=1 mode8_mode16_wav=byte_identical sha256=%s frames=%s\n' \
+    "$MODE16_SHA" "$MODE16_FRAMES" | tee "$OUT/song_meta_nongating.txt"
+
 # Pinned real target build, with D048 incremental ceilings rather than old hashes.
 : "${RUNNER_TEMP:?RUNNER_TEMP is required for the pinned WP5.0 integration gate}"
 ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
@@ -105,4 +135,4 @@ PY
 grep -F 'FM1Tracker package' "$OUT/device.log"
 grep -F 'identity FM-1_987' "$OUT/device.log"
 grep -F 'WP5_0_DINGHY_TARGET_METRICS_OK=1' "$OUT/metrics.txt"
-printf '%s\n' 'WP5_0_DINGHY_DRYRUN_OK=1 d048_router=linked d046_wav=byte_identical canonical_8bit=pass target=pinned fm_dsp=absent hardware_margin_claim=none' | tee "$OUT/summary.txt"
+printf '%s\n' 'WP5_0_DINGHY_DRYRUN_OK=1 d048_router=linked d046_wav=byte_identical song_meta=nongating canonical_8bit=pass target=pinned fm_dsp=absent hardware_margin_claim=none' | tee "$OUT/summary.txt"
