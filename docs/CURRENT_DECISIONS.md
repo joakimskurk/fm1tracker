@@ -53,11 +53,9 @@ Stable algorithm IDs:
 
 Frozen compatibility:
 
-- operator index 0..3 = OP1..OP4;
 - fixed evaluation OP4 -> OP3 -> OP2 -> OP1;
 - every operator renders exactly once/sample;
 - routing state = four D049 operators = 16 B;
-- no extra mutable history before feedback;
 - invalid algorithm -> STACK4;
 - mod depth 0..16383;
 - edge mapping `sample * depth * 4`;
@@ -68,14 +66,11 @@ Frozen compatibility:
 - PI32v2 router object 362 B, SHA `ed85fe6ed70402bd3b0727e59b1c8eee21f6d15f264ec8dc439603968a38f469`;
 - full app remains exact WP5.0 while routing is isolated.
 
-Canonical D050 run `40136425976`, host `120998804031`, target `120998804175`.
-
 ## D051 - curated FM4 ratio/pitch mapping
 
-Status: **ACCEPTED, CONTRACT FROZEN, IMPLEMENTATION NOT YET AUTHORIZED**  
-Normative: `WP5_3_FM_RATIO_CONTRACT.md`
-
-D051 freezes one stateless integer mapping from the existing D038 base phase increment to four D050 operator increments.
+Status: **ACCEPTED, CONTRACT FROZEN, PRE-IMPLEMENTATION GATE GREEN, ISOLATED IMPLEMENTATION AUTHORIZED**  
+Normative: `WP5_3_FM_RATIO_CONTRACT.md`  
+Evidence: `WP5_3_PREIMPLEMENTATION_EVIDENCE.md`
 
 Stable ratio IDs:
 
@@ -117,9 +112,16 @@ Frozen compatibility:
 - future PI32v2 ratio object ceiling 1,024 B;
 - D051 ceiling is not an anti-aliasing or bandlimiting claim.
 
-Production `fmt_fm_ratio.*` remains forbidden until the D051 source-absent reference workflow is green and its evidence is frozen in the repo.
+Canonical D051 source-absent gate:
 
-D051 does not define free Yamaha-style coarse/fine editing, fixed-frequency mode, final operator levels/mod-index, feedback, envelopes, voice allocation, parameter pages/p-lock IDs or audible mixed-engine integration.
+- run `40138575267`
+- job `121005262360`
+- head `e3b1272a442091dd9cc140f3d6d357f6215438b5`
+- artifact ID `12577928512`
+- artifact SHA `f6ff75f9dd2128f3d79cffd467ee1b88b1422a5daa788516387b7e9c50e19014`
+- conclusion SUCCESS
+
+Only isolated `fmt_fm_ratio.h/.c` implementation is now authorized. `dinghy.c` integration and WP5.4+ functionality remain forbidden until their own work packages.
 
 ## Current precedence
 

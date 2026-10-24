@@ -5,71 +5,68 @@ Repository state is authoritative. Do not reconstruct the plan from old chat con
 Read in this order:
 
 1. `docs/PROJECT_STATE.md`
-2. `docs/WP5_3_FM_RATIO_CONTRACT.md`
-3. `docs/WP5_2_VERIFICATION.md`
-4. `docs/WP5_2_FM_ALGORITHM_CONTRACT.md`
+2. `docs/WP5_3_PREIMPLEMENTATION_EVIDENCE.md`
+3. `docs/WP5_3_FM_RATIO_CONTRACT.md`
+4. `docs/WP5_2_VERIFICATION.md`
 5. `docs/WP5_1_VERIFICATION.md`
-6. `docs/WP5_1_FM_OPERATOR_CONTRACT.md`
-7. `docs/WP5_0_VERIFICATION.md`
-8. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-9. `docs/CURRENT_DECISIONS.md`
-10. `docs/WORK_PACKAGES.md`
-11. `docs/EXECUTION_PROTOCOL.md`
-12. `docs/CURRENT_TEST_STATE.md`
-13. `docs/TEST_MATRIX.md`
-14. `docs/ROADMAP.md`
-15. `THIRD_PARTY.md`
+6. `docs/WP5_0_VERIFICATION.md`
+7. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
+8. `docs/CURRENT_DECISIONS.md`
+9. `docs/WORK_PACKAGES.md`
+10. `docs/EXECUTION_PROTOCOL.md`
+11. `docs/CURRENT_TEST_STATE.md`
+12. `docs/TEST_MATRIX.md`
+13. `docs/ROADMAP.md`
+14. `THIRD_PARTY.md`
 
 ## Current handoff
 
 WP5.0 / D048, WP5.1 / D049 and WP5.2 / D050 are COMPLETE.
 
-Canonical WP5.2 exit:
+WP5.3 / D051 is ACTIVE on issue #46 and branch `phase5/fm4-ratios`.
 
-- implementation head `bc054bc697304afe94fe18b2990396e6a1667dbf`
-- closeout / WP5.3 parent `826a7dca7394d6e2c13f79fafa97bd05fb1986c8`
-- run `40136425976`
-- host job `120998804031`
-- target job `120998804175`
-- host artifact `12576975819`, SHA `3df772adb2054409aa65d75396878a4fe69817c7a524025dc3b1d5bbdf4b52fd`
-- target artifact `12576824809`, SHA `0e6f7788fc8f4d5a979b0dde66bd222e0e175735d4d2ce04017a4baa95a34db7`
-- router object 362 B text+rodata
-- router object SHA `ed85fe6ed70402bd3b0727e59b1c8eee21f6d15f264ec8dc439603968a38f469`
-- full application remains exact WP5.0
-- evidence `docs/WP5_2_VERIFICATION.md`
+The D051 contract is frozen and its source-absent reference gate is GREEN:
 
-## Active package
+- contract head `e3b1272a442091dd9cc140f3d6d357f6215438b5`
+- run `40138575267`
+- job `121005262360`
+- artifact `wp5-3-d051-contract-freeze`
+- artifact ID `12577928512`
+- artifact SHA `f6ff75f9dd2128f3d79cffd467ee1b88b1422a5daa788516387b7e9c50e19014`
+- production ratio source was absent
+- D038/D049/D050/`dinghy.c` were unchanged
+- all 16 ratio identities and clamp thresholds matched
+- exhaustive 262,144-output SHA matched `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`
+- inherited D050/D049/WP5.0 host regression remained exact
 
-**WP5.3 - FM4 integer ratio table and pitch mapping**, issue #46, branch `phase5/fm4-ratios`.
+## Frozen D051 core
 
-D051 is now contract-frozen in `docs/WP5_3_FM_RATIO_CONTRACT.md`, but production ratio source is still absent and unauthorized until the source-absent gate is green.
-
-Frozen D051 core:
-
-- 16 stable ratio IDs: `0.5, 1, 1.25, 1.4140625, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 12, 16`;
-- unsigned Q8 exact ratio representation;
+- ratios: `0.5, 1, 1.25, 1.4140625, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 12, 16`;
+- unsigned Q8 exact representation;
 - UNITY ID 1 is invalid-ID fallback;
 - canonical base maximum `1293741834`;
 - output ceiling `0x7fffffff`;
 - precomputed per-ratio clamp boundaries;
 - 32-bit split-Q8 round-half-up transform;
 - no runtime division/modulo, 64-bit integers or float;
-- exhaustive reference SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c` over 262,144 legal pitch/ratio outputs;
-- future PI32v2 ratio-object ceiling 1,024 B.
+- ratio mapping is stateless;
+- future PI32v2 ratio-object ceiling 1,024 B;
+- D051 ceiling is not an anti-aliasing claim.
 
 ## Exact next action
 
-Do not add `firmware/src/fmt_fm_ratio.h/.c` yet.
+The isolated implementation is now authorized.
 
 Proceed in this order:
 
-1. commit the D051 contract, `tests/run_wp5_3_contract_freeze.sh`, workflow and handoff docs without production firmware changes;
-2. compare that checkpoint against `826a7dca7394d6e2c13f79fafa97bd05fb1986c8` and prove zero `firmware/` delta;
-3. run `.github/workflows/wp5_3_contract_freeze.yml`;
-4. require exact ratio-table, arithmetic, clamp, map4, exhaustive hash and inherited D050/D049/WP5.0 green results;
-5. freeze the green pre-implementation evidence in the repo;
-6. only then implement isolated `fmt_fm_ratio.h/.c`;
-7. keep `dinghy.c` unchanged until later FM voice integration.
+1. preserve the green D051 pre-implementation evidence as a docs-only checkpoint;
+2. add only `firmware/src/fmt_fm_ratio.h/.c` under production firmware;
+3. add focused C verification that reproduces the frozen D051 anchors and exhaustive hash;
+4. add a pinned PI32v2/full-target verification workflow;
+5. keep `dinghy.c` unchanged;
+6. require ratio-object text+rodata <= 1,024 B;
+7. require D038/D049/D050 and WP5.0 regressions exact;
+8. write `docs/WP5_3_VERIFICATION.md` and close #46 before WP5.4 begins.
 
 Do not include final level/mod-index UX, feedback, envelopes, FM voice allocation, p-lock pages, oversampling policy or audible mixed FM playback in WP5.3.
 
