@@ -12,3 +12,5 @@ assert s.count(old) == 1
 s = s.replace(old, new, 1)
 p.write_text(s)
 print('D038_MIDI128_CLARIFICATION_OK=1 legal_pitch_max=16383 internal_lookup=128')
+
+# Deliberate trigger after the one-time workflow exists.
