@@ -393,6 +393,7 @@ static void test_delete_first_middle_last_only_and_recovery(void)
     const FmtStep *neighbor;
     uint16_t value;
     uint16_t free_before;
+    uint8_t count;
     char text[32];
 
     reset_all(&input, &editor);
@@ -436,8 +437,8 @@ static void test_delete_first_middle_last_only_and_recovery(void)
     assert(fmt_lock_editor_confirm_delete(&editor));
     assert(editor.selected_param == (FmtParamId)FMT_PARAM_NONE);
     assert(fmt_lock_store_free_count() == (uint16_t)(free_before + 1u));
-    assert(fmt_lock_count(0u, 0u, 0u, (uint8_t *)&value) == FMT_LOCK_STATUS_OK);
-    assert((uint8_t)value == 0u);
+    assert(fmt_lock_count(0u, 0u, 0u, &count) == FMT_LOCK_STATUS_OK);
+    assert(count == 0u);
     assert(memcmp(neighbor, &neighbor_before, sizeof neighbor_before) == 0);
 }
 
