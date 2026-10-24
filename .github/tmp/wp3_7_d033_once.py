@@ -2,7 +2,7 @@ from pathlib import Path
 
 D033 = r'''## D033 — WP3.7 uses fixed-state six-tick retrig / note-delay / note-cut scheduling without the WP3.8 queue
 
-Date: 2026-10-24  
+Date: 2026-10-24
 Status: accepted for the WP3.7 one-lane proof
 
 **Decision:** WP3.7 extends the existing `FmtStep.effect/effect_value` command domain with `0x06 RETRIG`, `0x07 NOTE_DELAY` and `0x08 NOTE_CUT`. The detailed normative semantics are frozen in `docs/WP3_7_EVENT_CONTRACT.md`.
