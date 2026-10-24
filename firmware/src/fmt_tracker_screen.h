@@ -56,15 +56,20 @@ void fmt_tracker_screen_reset(FmtTrackerScreen *screen);
  * by the edit cursor. Invalid/null input safely returns row 0. */
 uint8_t fmt_tracker_screen_window_start(const FmtPatternInput *input);
 
-/* Synchronize the presentation cache from the existing read-only editor,
- * transport, pattern store and D028 lock-store state. D035 may snapshot the
- * current D029/D030 lock-editor target but never mutates it. Returns 1 while
- * tracker context is active. Dirty bits accumulate until rendered. */
+/* Historical D026 synchronization entry point. D035 preserves it as a
+ * compatibility wrapper with no active held-step target. */
 int fmt_tracker_screen_sync(FmtTrackerScreen *screen,
                             const FmtPatternInput *input,
                             const FmtStepRecord *record,
-                            const FmtTransport *transport,
-                            const FmtLockEditor *lock_editor);
+                            const FmtTransport *transport);
+
+/* D035 synchronization entry point. It additionally snapshots the read-only
+ * D029/D030 editor target and D028 lock counts. It never mutates those inputs. */
+int fmt_tracker_screen_sync_feedback(FmtTrackerScreen *screen,
+                                     const FmtPatternInput *input,
+                                     const FmtStepRecord *record,
+                                     const FmtTransport *transport,
+                                     const FmtLockEditor *lock_editor);
 
 uint16_t fmt_tracker_screen_dirty(const FmtTrackerScreen *screen);
 
@@ -89,9 +94,12 @@ void fmt_tracker_screen_volume_text(uint32_t volume, char out[4]);
 void fmt_tracker_screen_lock_text(const FmtTrackerScreen *screen,
                                   uint32_t visible_row,
                                   char out[3]);
-void fmt_tracker_screen_effect_text(uint32_t effect,
-                                    uint32_t effect_value,
-                                    char out[5]);
+/* D026 compatibility helper: NONE/unknown only, no value. */
+void fmt_tracker_screen_effect_text(uint32_t effect, char out[4]);
+/* D035 stored command/value representation. */
+void fmt_tracker_screen_effect_value_text(uint32_t effect,
+                                          uint32_t effect_value,
+                                          char out[5]);
 void fmt_tracker_screen_row_text(const FmtTrackerScreen *screen,
                                  uint32_t visible_row,
                                  char out[32]);
