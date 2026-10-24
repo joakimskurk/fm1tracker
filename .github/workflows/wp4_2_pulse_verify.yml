@@ -1,0 +1,100 @@
+name: WP4.2 PULSE verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_engine_pitch.h
+      - firmware/src/fmt_engine_pitch.c
+      - firmware/src/fmt_osc_pulse.h
+      - firmware/src/fmt_osc_pulse.c
+      - tests/test_wp4_2_pulse.c
+      - tests/run_wp4_2_pulse_tests.sh
+      - docs/WP4_2_PULSE_CONTRACT.md
+      - .github/workflows/wp4_2_pulse_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pulse-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove isolated source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=da2ad7b54b8f55b9219c5e359e717aa881921877
+          actual="$(git diff --name-only "$BASE" -- firmware/src | sort)"
+          expected="$(printf '%s\n' \
+            firmware/src/fmt_engine_pitch.c \
+            firmware/src/fmt_engine_pitch.h \
+            firmware/src/fmt_osc_pulse.c \
+            firmware/src/fmt_osc_pulse.h | sort)"
+          test "$actual" = "$expected"
+          git diff --exit-code "$BASE" -- firmware/src/dinghy.c
+          echo 'WP4_2_ISOLATED_SOURCE_BOUNDARY_OK=1 new_modules=4 dinghy_delta=0'
+
+      - name: Run focused deterministic PULSE tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_2_pulse_tests.sh
+
+      - name: Static realtime/source audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          files='firmware/src/fmt_engine_pitch.h firmware/src/fmt_engine_pitch.c firmware/src/fmt_osc_pulse.h firmware/src/fmt_osc_pulse.c'
+          ! grep -nE '\b(float|double|malloc|calloc|realloc|free)\b' $files
+          ! grep -nE '\b(uint64_t|int64_t|long[[:space:]]+long)\b' $files
+          ! grep -nE '\b(for|while|do)[[:space:]]*\(' firmware/src/fmt_osc_pulse.c
+          ! grep -nE 'Fmt(Song|Step|Lock|Tracker|RtQueue)|fmt_lock_|fmt_store_' firmware/src/fmt_engine_pitch.c firmware/src/fmt_osc_pulse.c
+          grep -F 'uint32_t phase;' firmware/src/fmt_osc_pulse.h
+          grep -F 'osc->phase = phase + phase_increment;' firmware/src/fmt_osc_pulse.c
+          echo 'WP4_2_STATIC_AUDIT_OK=1 pulse_loops=0 alloc=0 float=0 int64=0 store_traversal=0'
+
+  pulse-target-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Compile D038 modules for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_2_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_engine_pitch.c \
+            -o build/wp4_2_target/fmt_engine_pitch.o
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_osc_pulse.c \
+            -o build/wp4_2_target/fmt_osc_pulse.o
+          test -s build/wp4_2_target/fmt_engine_pitch.o
+          test -s build/wp4_2_target/fmt_osc_pulse.o
+          sha256sum build/wp4_2_target/fmt_engine_pitch.o build/wp4_2_target/fmt_osc_pulse.o \
+            | tee build/wp4_2_target/object_sha256.txt
+          echo 'WP4_2_PI32V2_COMPILE_OK=1 modules=2' | tee build/wp4_2_target/summary.txt
+
+      - name: Upload target object evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-2-pulse-target-objects
+          path: build/wp4_2_target/
