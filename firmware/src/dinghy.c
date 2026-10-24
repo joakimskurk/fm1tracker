@@ -15,6 +15,7 @@
 #include "fmt_store.c"                         /* WP2.2: one bounds-safe pool-backed editable song */
 #include "fmt_param_registry.c"                /* WP3.1: stable one-byte semantic parameter IDs */
 #include "fmt_lock_store.c"                    /* WP3.2: bounded global sparse p-lock storage */
+#include "fmt_lock_editor.c"                   /* WP3.3: held-step relative encoder p-lock editor */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
@@ -28,6 +29,7 @@ FmtPlayback fmt_playback_runtime;
 FmtPatternInput fmt_pattern_input_runtime;
 FmtStepRecord fmt_step_record_runtime;
 FmtTrackerScreen fmt_tracker_screen_runtime;
+FmtLockEditor fmt_lock_editor_runtime;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -319,15 +321,25 @@ static void draw_tracker_row(uint8_t row)
     cv_blit(0, TRACKER_HEADER_H + (uint32_t)row * TRACKER_ROW_H);
 }
 
+static void tracker_footer_dirty(void)
+{
+    fmt_tracker_screen_runtime.dirty |=
+        (uint16_t)(1u << FMT_TRACKER_SCREEN_REGION_FOOTER);
+}
+
 static void draw_tracker_footer(void)
 {
     char text[32];
+    int lock_active = fmt_lock_editor_is_active(&fmt_lock_editor_runtime);
 
-    fmt_tracker_screen_footer(&fmt_tracker_screen_runtime, text);
+    if (lock_active)
+        fmt_lock_editor_footer(&fmt_lock_editor_runtime, text);
+    else
+        fmt_tracker_screen_footer(&fmt_tracker_screen_runtime, text);
     cv_begin(240, TRACKER_FOOTER_H, C_BLACK);
     cv_rect(0, 0, 240, 1, C_OFF);
     cv_text(5, 8, &FONT_S, text,
-            fmt_tracker_screen_runtime.step_rec ? C_WHITE : C_OFF);
+            (fmt_tracker_screen_runtime.step_rec || lock_active) ? C_WHITE : C_OFF);
     cv_blit(0, TRACKER_FOOTER_Y);
 }
 
@@ -358,6 +370,7 @@ static void app_main(void)
     fmt_pattern_input_reset(&fmt_pattern_input_runtime);
     fmt_step_record_reset(&fmt_step_record_runtime);
     fmt_tracker_screen_reset(&fmt_tracker_screen_runtime);
+    fmt_lock_editor_reset(&fmt_lock_editor_runtime);
     tracker_play_requested = 1u;
     tracker_transport_stopped = 1u;
     tracker_ready = 1u;
@@ -370,12 +383,22 @@ static void app_main(void)
     for (;;) {
         uint32_t keys, down, up, rel, b, lit = 0, base, write_key;
         uint8_t st, d1, d2, lowest_key;
-        int pattern_mode, step_rec_mode;
+        int32_t lock_delta[FMT_LOCK_EDITOR_KNOBS];
+        int pattern_mode, step_rec_mode, lock_began = 0, lock_ended = 0;
         platform_poll();
+
+        /* D029: always drain the four relative knob streams. Deltas are used
+         * only by a stable already-active hold later in this same poll. */
+        for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++)
+            lock_delta[k] = fm1_enc_take(ENC_KNOB1 + k);
 
         b = fm1_input_edges(&rel);
 
         if (b & (1u << BTN_HOME)) {
+            if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
+                fmt_lock_editor_cancel(&fmt_lock_editor_runtime);
+                lock_ended = 1;
+            }
             fmt_step_record_exit(&fmt_step_record_runtime);
             fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
         } else {
@@ -395,15 +418,57 @@ static void app_main(void)
                 if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
                     fmt_step_record_exit(&fmt_step_record_runtime);
                 } else if (!tracker_play_requested && tracker_transport_stopped) {
-                    (void)fmt_step_record_enter(&fmt_step_record_runtime,
-                                                &fmt_pattern_input_runtime,
-                                                &fmt_transport_runtime);
+                    if (fmt_step_record_enter(&fmt_step_record_runtime,
+                                              &fmt_pattern_input_runtime,
+                                              &fmt_transport_runtime)) {
+                        if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
+                            fmt_lock_editor_cancel(&fmt_lock_editor_runtime);
+                            lock_ended = 1;
+                        }
+                    }
                 }
             }
         }
 
         pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
         step_rec_mode = fmt_step_record_is_active(&fmt_step_record_runtime);
+
+        base = (uint32_t)(KEY0 + 12 * set.oct);
+        keys = fm1_in.notes;
+        down = keys & ~prev;
+        up = prev & ~keys;
+        prev = keys;
+
+        /* D029 release/context precedence. Ending a gesture discards this poll's
+         * already-drained encoder deltas and never retargets a held second key. */
+        if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            (!pattern_mode || step_rec_mode ||
+             !fmt_lock_editor_key_held(&fmt_lock_editor_runtime, keys))) {
+            fmt_lock_editor_cancel(&fmt_lock_editor_runtime);
+            lock_ended = 1;
+            if (pattern_mode)
+                tracker_footer_dirty();
+        }
+
+        /* Arm from the lowest newly pressed white key before ordinary black-key
+         * selection. This freezes the selected track as it existed at poll start. */
+        if (!lock_ended && pattern_mode && !step_rec_mode &&
+            !fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
+            uint8_t local;
+            for (k = 0u; k < FMT_PATTERN_INPUT_KEY_COUNT; k++) {
+                if ((down & (1u << k)) &&
+                    fmt_pattern_input_key_to_local(k, &local)) {
+                    (void)local;
+                    if (fmt_lock_editor_begin(&fmt_lock_editor_runtime,
+                                              &fmt_pattern_input_runtime,
+                                              k)) {
+                        lock_began = 1;
+                        tracker_footer_dirty();
+                    }
+                    break;
+                }
+            }
+        }
 
         /* D025's pending FX state lives in FmtStepRecord so modifier ordering,
          * cancellation and writes are covered by the same editor unit tests. */
@@ -416,20 +481,16 @@ static void app_main(void)
                                                 (b & (1u << BTN_SEL)) != 0u);
 
         if (pattern_mode && !step_rec_mode) {
-            if (b & (1u << BTN_OCT_DOWN))
-                (void)fmt_pattern_input_page_prev(&fmt_pattern_input_runtime);
-            if (b & (1u << BTN_OCT_UP))
-                (void)fmt_pattern_input_page_next(&fmt_pattern_input_runtime);
+            if (!fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
+                if (b & (1u << BTN_OCT_DOWN))
+                    (void)fmt_pattern_input_page_prev(&fmt_pattern_input_runtime);
+                if (b & (1u << BTN_OCT_UP))
+                    (void)fmt_pattern_input_page_next(&fmt_pattern_input_runtime);
+            }
         } else {
             if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
             if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
         }
-
-        base = (uint32_t)(KEY0 + 12 * set.oct);
-        keys = fm1_in.notes;
-        down = keys & ~prev;
-        up = prev & ~keys;
-        prev = keys;
 
         write_key = FMT_PATTERN_INPUT_KEY_COUNT;
         if (step_rec_mode && !fmt_step_record_runtime.gesture_latched &&
@@ -448,13 +509,31 @@ static void app_main(void)
                     play(held[k], 100);
                     midi_send(0x90, held[k], 100);
                 } else if (pattern_mode) {
-                    if (!fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k))
-                        (void)fmt_pattern_input_select_track_key(&fmt_pattern_input_runtime, k);
+                    /* D029 hold owns ordinary SEQ note-key input. Its owner key
+                     * was already selected before this loop; all other downs are
+                     * suppressed until release so target/cursor cannot diverge. */
+                    if (!fmt_lock_editor_is_active(&fmt_lock_editor_runtime) && !lock_ended) {
+                        if (!fmt_pattern_input_select_key(&fmt_pattern_input_runtime, k))
+                            (void)fmt_pattern_input_select_track_key(&fmt_pattern_input_runtime, k);
+                    }
                 } else {
                     held[k] = (uint8_t)(base + k);
                     play(held[k], 100);
                     midi_send(0x90, held[k], 100);
                 }
+            }
+        }
+
+        /* Only a hold that was already stable before this poll may consume the
+         * deltas drained at poll start. Begin/release/cancel polls discard them. */
+        if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            !lock_began && !lock_ended) {
+            for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++) {
+                if (lock_delta[k] != 0 &&
+                    fmt_lock_editor_apply_delta(&fmt_lock_editor_runtime,
+                                                k,
+                                                lock_delta[k]))
+                    tracker_footer_dirty();
             }
         }
 
