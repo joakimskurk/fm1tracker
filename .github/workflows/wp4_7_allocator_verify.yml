@@ -62,7 +62,8 @@ jobs:
           ! grep -Eq '[^*/]/[^/*]|%' "$SRC"
           grep -F 'if (allocator->clock != UINT32_MAX)' "$SRC" >/dev/null
           grep -F 'allocator->clock++;' "$SRC" >/dev/null
-          grep -F 'stage[i] == FMT_ENVELOPE_RELEASE' "$SRC" >/dev/null
+          grep -F 'allocator->voice_owner[i] != FMT_TRACK_NONE ||' "$SRC" >/dev/null
+          grep -F 'stage[i] != FMT_ENVELOPE_RELEASE)' "$SRC" >/dev/null
           grep -F 'allocator->age[i] < candidate_age' "$SRC" >/dev/null
           echo 'WP4_7_STATIC_AUDIT_OK=1 fixed_slot_scans=1 alloc=0 float=0 int64=0 divide_modulo=0 store_traversal=0 active_cross_track_steal=0'
 
