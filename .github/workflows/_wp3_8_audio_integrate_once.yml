@@ -38,7 +38,7 @@ jobs:
         run: sh tests/run_wp3_6_effect_audio_host.sh
 
       - name: Preserve D031 locked audio
-        run: sh tests/run_wp3_5_param_playback_host.sh
+        run: sh tests/run_wp3_5_locked_audio_host.sh
 
       - name: Verify source boundary
         shell: bash
