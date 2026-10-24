@@ -1,0 +1,37 @@
+name: WP3.8 runtime queue unit
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - firmware/src/fmt_rt_queue.h
+      - firmware/src/fmt_rt_queue.c
+      - tests/test_fmt_rt_queue.c
+      - tests/run_rt_queue_tests.sh
+      - .github/workflows/wp3_8_rt_queue_unit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  queue-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run D034 queue unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_rt_queue_tests.sh | tee build/wp3_8_rt_queue_unit.log
+          grep -F 'FMT_RT_QUEUE_TESTS_OK=1' build/wp3_8_rt_queue_unit.log
+          grep -F 'event_bytes=8 queue_bytes=268 capacity=32 usable=32 overflow=reject_newest wrap=1 discard_o1=1 malformed_reject=1' build/wp3_8_rt_queue_unit.log
+      - name: Check source shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c 'volatile uint32_t slots\[FMT_RT_QUEUE_CAPACITY\]\[2\]' firmware/src/fmt_rt_queue.h)" -eq 1
+          test "$(grep -c 'FMT_RT_QUEUE_CAPACITY 32u' firmware/src/fmt_rt_queue.h)" -eq 1
+          test "$(grep -c 'queue->overflow_seq = queue->overflow_seq + 1u' firmware/src/fmt_rt_queue.c)" -eq 1
+          git diff --check
