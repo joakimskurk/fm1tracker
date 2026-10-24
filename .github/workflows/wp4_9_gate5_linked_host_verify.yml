@@ -1,0 +1,51 @@
+name: WP4.9 D045 Gate 5 linked host verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_8bit_engine.c
+      - firmware/src/fmt_8bit_linked_params.c
+      - firmware/src/fmt_playback.c
+      - firmware/src/fmt_playback_params.c
+      - firmware/src/fmt_tracker_effect.c
+      - firmware/src/fmt_tracker_event.c
+      - tests/host.c
+      - tests/run_wp4_9_linked_audio_host.sh
+      - .github/workflows/wp4_9_gate5_linked_host_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linked-host-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run D045 linked host matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          git diff --check
+          sh tests/run_wp4_9_linked_audio_host.sh | tee build/wp4_9_gate5_host_matrix.log
+          grep -F 'WP4_9_GATE5_DISCOVERY_OK=1' build/wp4_9_gate5_host_matrix.log
+          grep -F 'WP4_9_GATE5_HOST_MATRIX_DISCOVERY_OK=1' build/wp4_9_gate5_host_matrix.log
+      - name: Upload Gate 5 discovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate5-linked-host-discovery
+          if-no-files-found: warn
+          path: |
+            build/wp4_9_gate5_host_matrix.log
+            build/wp4_9_gate5_hashes.txt
+            build/wp4_9_gate5_discovery.txt
+            build/wp4_9_*.log
+            build/wp4_9_fixtures/*.txt
+            build/host/wp4_9_*.wav
