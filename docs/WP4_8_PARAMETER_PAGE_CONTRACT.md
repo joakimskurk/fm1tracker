@@ -2,7 +2,7 @@
 
 Date: 2026-10-24  
 Package: WP4.8 / issue #39  
-Status: **D044 contract candidate — must be recorded in DECISIONS before production parameter-page source**
+Status: **FROZEN BY D044 BEFORE PRODUCTION PARAMETER-PAGE SOURCE**
 
 Parent architecture: D027, D031, D037-D043  
 Branch: `phase4/8bit-engine`
