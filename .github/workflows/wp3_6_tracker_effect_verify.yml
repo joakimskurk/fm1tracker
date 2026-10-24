@@ -1,0 +1,37 @@
+name: WP3.6 tracker effect verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - firmware/src/fmt_tracker_effect.h
+      - firmware/src/fmt_tracker_effect.c
+      - tests/test_fmt_tracker_effect.c
+      - tests/run_tracker_effect_tests.sh
+      - .github/workflows/wp3_6_tracker_effect_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  effect-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run D032 tracker effect core tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_tracker_effect_tests.sh
+      - name: Run inherited playback parameter tests
+        run: sh tests/run_playback_params_tests.sh
+      - name: Run inherited playback tests
+        run: sh tests/run_playback_tests.sh
+      - name: Run inherited lock store tests
+        run: sh tests/run_lock_store_tests.sh
+      - name: Run inherited lock editor tests
+        run: sh tests/run_lock_editor_tests.sh
