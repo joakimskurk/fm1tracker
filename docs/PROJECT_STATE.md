@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/NOISE active; D039 contract freeze next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/NOISE active; D039 FROZEN; isolated implementation/tests next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.3 / #33
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.3 - NOISE oscillator**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3 / #33 active; D039 contract/test plan required before NOISE source**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3 / #33 active; D039 FROZEN; isolated NOISE implementation/tests next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -324,7 +324,7 @@ WP4.2 closed on run `40089122159`, job `120857992257`, with focused PULSE host/P
 
 D038 remains frozen: PULSE is a 4-byte phase-only hard-edge oscillator using the canonical Q7 pitch helper, pulse width 32..224 and sample-before-advance ordering. Its source remains isolated from `dinghy.c` until the later explicit engine-integration package.
 
-WP4.3 must freeze D039 before production NOISE source. D039 must define exact deterministic state/seed, PRNG/LFSR algorithm and tap direction, output mapping, Q7 pitch-to-noise clock relationship, maximum state advances per rendered frame, reset/retrigger/wrap semantics, spectral/aliasing intent, deterministic vectors/hash, target-compile obligations and the zero-full-app-delta isolation boundary.
+D039 is frozen in `docs/WP4_3_NOISE_CONTRACT.md`: 8-byte phase+15-bit-LFSR state, seed `0x5A3D`, bit0-XOR-bit1 maximal recurrence, sample-before-advance output, saturated D038 pitch-clock x16, at most one LFSR step per audio frame, fixed deterministic vectors/hash and zero full-app delta while isolated.
 
 The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.3 primitive work. Do not pull TRIANGLE/WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
 
@@ -344,6 +344,7 @@ The Phase 3 proof sine remains the full-app production audio implementation duri
 - D036: the complete D027-D035 stack passed worst-case combined verification with zero production delta; Phase 3 is complete at host/device-build level.
 - D037: Phase 4 engine ownership, eight-voice cap, Q7 pitch domain, event/effect adapter boundary, Q15/32-bit mix rules, realtime bounds and complete Phase 4 resource ceilings are frozen before oscillator source.
 - D038: WP4.2 PULSE is a 4-byte phase-only hard-edge oscillator with exact existing Q7 pitch integers, pulse width 32..224, sample-before-advance ordering and zero full-app delta while isolated.
+- D039: WP4.3 NOISE is an 8-byte deterministic clocked 15-bit LFSR seeded `0x5A3D`, with saturated D038 pitch clock x16 and a hard maximum of one LFSR step per audio frame while isolated.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -357,7 +358,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Implement and verify the isolated D038 primitives `fmt_engine_pitch.*` and `fmt_osc_pulse.*` with focused deterministic host tests, static realtime audit and pinned PI32v2 target compilation. Keep the Phase 3 proof sine and full-app artifacts byte-identical; do not begin WP4.3 or full engine integration.
+Implement and verify isolated `fmt_osc_noise.*` exactly under D039 with focused deterministic host tests, full 32,767-step LFSR-period proof, static realtime audit and pinned PI32v2 target compilation. Keep D038 PULSE isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical; do not begin WP4.4 or full engine integration.
 
 ## Last relevant checkpoints
 
@@ -378,7 +379,8 @@ Implement and verify the isolated D038 primitives `fmt_engine_pitch.*` and `fmt_
 - WP4.2 D038 contract: `247ff3c03cdf3cd8e0878fe37d79693b26afc398`
 - WP4.2 D038 decision/status freeze: `6bf5324ec09266064fbb75828bffb5e773d7ad14`
 - WP4.2 D038 verification/closeout: `776cbd47e55fc5da6f57e894325ba67d67a61f29` — run `40089122159`, job `120857992257`
+- WP4.3 D039 contract: `9cf3fd7d0a227c9555c34c98e37154ea038ff4cb`
 
 ## Last updated
 
-2026-10-24 - WP4.2 / #32 COMPLETE. D038 PULSE passed focused deterministic host verification, independent PI32v2 compilation and full-app closeout with zero linked delta; run `40089122159`, job `120857992257`. WP4.3 / #33 is now active. Exact next action: freeze D039 NOISE contract/test plan before NOISE production source.
+2026-10-24 - WP4.3 / #33 active. D039 is frozen in `WP4_3_NOISE_CONTRACT.md` before NOISE source. Exact next action: implement/test isolated `fmt_osc_noise.*` with deterministic period/vector/hash proof and real PI32v2 compile while the full app remains byte-identical.

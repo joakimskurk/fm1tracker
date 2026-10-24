@@ -797,3 +797,26 @@ WP4.2 remains isolated: `fmt_engine_pitch.*` and `fmt_osc_pulse.*` must compile 
 **Reason:** D037 requires one common pitch domain, fixed state and bounded per-sample work before engine integration. Reusing the already-proven pitch integers avoids a second tuning model; phase-only state makes PULSE trivial to bound; a 12.5–87.5% continuous duty range preserves classic chip voices without pathological DC endpoints; and deliberately postponing full-app integration keeps the Phase 3/WP4.1 audio/device baseline intact while the first oscillator primitive is tested in isolation.
 
 **Consequence:** Focused tests must freeze exact pitch vectors, 25/50/75% sample vectors, clamp behavior, phase wrap, zero increment, deterministic replay and a long-render hash before WP4.2 closes. Both new translation units require real PI32v2 target compilation and static realtime audit. No NOISE/TRIANGLE/WAVETABLE-8, envelope, allocator, engine parameter page/cache or proof-sine migration may be pulled into WP4.2. Any future anti-aliasing or change to pitch integers/pulse edge ordering requires a superseding decision and new deterministic evidence.
+
+## D039 — WP4.3 NOISE is an 8-byte clocked 15-bit LFSR with a saturated x16 pitch clock
+
+Date: 2026-10-24
+Status: accepted — frozen before NOISE production source
+
+**Decision:** WP4.3 implements one isolated deterministic NOISE primitive exactly as frozen in `docs/WP4_3_NOISE_CONTRACT.md`. It remains disconnected from `dinghy.c` and the running full app.
+
+`FmtNoiseOsc` is exactly 8 bytes: one 32-bit wrapping clock phase plus one 32-bit field whose low 15 bits hold the LFSR. Reset and D033 RETRIG both restore phase zero and seed `0x5A3D`. The LFSR recurrence is fixed to a right shift with feedback `bit0 XOR bit1` inserted at bit14: `(state >> 1) | (((state ^ (state >> 1)) & 1) << 14)`. Every valid nonzero state lies on the same maximal 32,767-step cycle; WP4.3 defines no alternate short/metallic tap mode.
+
+NOISE samples current LFSR bit0 before any state advance and maps it exactly to `+32767` for one and `-32767` for zero. It then adds one unsigned 32-bit noise-clock increment to phase. Only an unsigned phase wrap may advance the LFSR, and one render can therefore perform zero or one LFSR step — never a catch-up loop.
+
+D039 reuses D038 pitch rather than inventing another tracker pitch domain. The NOISE clock is `fmt_engine_pitch_inc_q7(pitch_q7) * 16`, implemented as a saturating left shift: inputs above `UINT32_MAX >> 4` return `UINT32_MAX` instead of wrapping. This yields approximately 4.186 kHz LFSR clock at C4 and 7.040 kHz at A4, while low notes remain deliberately coarse and high notes saturate toward one state update per audio frame.
+
+The primitive is intentionally clocked/periodic chip noise, not mathematically white full-band noise. There is no interpolation, whitening, BLEP, oversampling, filter or hidden random source. The 32,767-step period, sample-and-hold behavior and clock/sample-rate aliasing are accepted parts of the Phase 4 8-BIT identity.
+
+Frozen deterministic evidence includes the reset seed, first LFSR states, the `0x80000000` sixteen-sample sign vector `++--++++++++----`, exact x16/saturation clock vectors, full-cycle period proof and a 65,536-sample A4 signature: final phase `0xFB900000`, final LFSR `0x5DC1`, FNV-1a32 `0xF50385B6`.
+
+WP4.3 remains isolated, so full-app image/RAM/pool/WAV/BIN/FWSC delta must remain exactly zero versus WP4.2. The isolated mutable state cost is 8 B per NOISE oscillator, 64 B for eight future instances, with no static mutable or pool storage.
+
+**Reason:** D037 requires fixed-size deterministic engine state and bounded per-sample work, while NOISE must still share the tracker Q7 pitch domain. A 15-bit maximal LFSR is recognizably chip-like and cheap; the saturated x16 clock makes ordinary musical pitches useful as noise rates without overflow wrap; and the one-wrap/one-step rule makes worst-case audio work independent of pitch.
+
+**Consequence:** Focused tests must prove the exact recurrence, 32,767-step period, reset/retrigger, clock vectors/saturation, zero/one-step render bound, short vectors, repeatability and long-run signature. `fmt_osc_noise.c` must compile with the real pinned PI32v2 compiler and pass the same no-float/no-int64/no-allocation/no-unbounded-loop audit. TRIANGLE, WAVETABLE-8, envelope, allocator, parameter pages and proof-sine migration remain later packages. Any alternate tap mode, whitening, seed, clock multiplier or multi-step catch-up rule requires a superseding decision and new deterministic evidence.

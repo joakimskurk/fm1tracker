@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Phase 4 is active. **WP4.1 / #31 is COMPLETE** with D037 frozen before source; **WP4.2 / #32 PULSE is COMPLETE** with D038 deterministic host/PI32v2 proof and zero linked full-app delta; **WP4.3 / #33 NOISE is active**, with D039 required before source.
+Phase 4 is active. **WP4.1 / #31 and WP4.2 / #32 are COMPLETE**; **WP4.3 / #33 NOISE is active and D039 is FROZEN** before source, with isolated deterministic implementation/testing next.
 
 ---
 
@@ -143,10 +143,10 @@ Phase 4 is active. **WP4.1 / #31 is COMPLETE** with D037 frozen before source; *
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3 / #33 NOISE active; D039 before source**
+Status: **IN PROGRESS — WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3 / #33 NOISE active; D039 FROZEN; isolated implementation/tests next**
 
 Parent issue: #30
-Active package: WP4.3 / #33 — freeze D039 NOISE state/seed/clock/output/test contract before production source. WP4.1 / #31 and WP4.2 / #32 are complete; PULSE remains isolated from the full app. Branch: `phase4/8bit-engine`.
+Active package: WP4.3 / #33 — D039 is frozen in `WP4_3_NOISE_CONTRACT.md`; implement/test isolated clocked-LFSR NOISE without full-app integration. WP4.1 / #31 and WP4.2 / #32 are complete; PULSE remains isolated. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 
