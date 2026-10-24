@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Phase 4 is active. **WP4.1 / #31 through WP4.8 / #39 are COMPLETE**; **WP4.9 / #40 linked 8-BIT engine integration is active and D045 is FROZEN**, with staged integration Gate 1 next.
+Phase 4 is active. **WP4.1 / #31 through WP4.8 / #39 are COMPLETE**; **WP4.9 / #40 linked 8-BIT engine integration is active and D045 is FROZEN**. Gate 1 is GREEN; Gate 2 pure linked-engine state/voice/render/mix is next.
 
 ---
 
@@ -143,10 +143,10 @@ Phase 4 is active. **WP4.1 / #31 through WP4.8 / #39 are COMPLETE**; **WP4.9 / #
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 FROZEN; Gate 1 next**
+Status: **IN PROGRESS — WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 FROZEN; Gate 1 GREEN; Gate 2 next**
 
 Parent issue: #30
-Active package: WP4.9 / #40 — D045 is frozen in `WP4_9_LINKED_ENGINE_CONTRACT.md`; execute Gate 1 track-aware playback + D031/D032 publication first, with legacy track-0 behavior retained. Do not link the engine or modify `dinghy.c` before Gate 1 is green. Branch: `phase4/8bit-engine`.
+Active package: WP4.9 / #40 — D045 is frozen in `WP4_9_LINKED_ENGINE_CONTRACT.md`; Gate 1 track-aware playback + D031/D032 publication is GREEN on run `40108097887`. Execute Gate 2 pure linked-engine state/voice/render/mix next. Do not activate Gate 3 registry/cache/editor work or modify `dinghy.c` before Gate 2 is green. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 

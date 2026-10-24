@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.9 - linked 8-BIT engine integration**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 FROZEN; Gate 1 track-aware playback/D031/D032 publication next**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 FROZEN; Gate 1 GREEN; Gate 2 pure linked-engine state/voice/render/mix next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -370,7 +370,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Begin D045 Gate 1 only: add bounded eight-track playback row events plus track-aware D031/D032 publication while preserving the existing track-0 APIs/symbols and inherited regressions. Do not modify `dinghy.c`, activate D044 registry IDs, allocate the D044 cache or link the engine until Gate 1 is green.
+Begin D045 Gate 2 only: implement and verify the pure linked-engine state/voice/render/mix layer from `WP4_9_LINKED_ENGINE_CONTRACT.md` — exact `Fmt8BitOscState` 8 B, `Fmt8BitVoice` 44 B and `Fmt8BitEngine` 404 B layouts, deterministic oscillator/envelope lifecycle, release tails, engine dispatch and bounded eight-slot Q15/32-bit mix. Do not modify `dinghy.c` or activate the D044 linked registry/cache/editor path until Gate 2 is green.
 
 ## Last relevant checkpoints
 
@@ -405,7 +405,8 @@ Begin D045 Gate 1 only: add bounded eight-track playback row events plus track-a
 
 - WP4.8 D044 verification/closeout: `9e6c5268259d50eb74a2326259a5cbf3c05d189e` — run `40104723586`, job `120903925381`
 - WP4.9 D045 contract: `fd31801b8a73e27345d4575026b593fb45e10c20`
+- WP4.9 D045 Gate 1 verification: `362c3f825791e5def2c9367fc27e6032018e8539` — run `40108097887`, host `120913890803`, PI32v2 `120913891037`
 
 ## Last updated
 
-2026-10-24 - WP4.9 / #40 active. D045 is frozen in `WP4_9_LINKED_ENGINE_CONTRACT.md` before linked source. Exact next action: Gate 1 only — implement/test eight-track row events plus track-aware D031/D032 caches with track-0 regressions green; do not touch `dinghy.c` or activate the linked engine yet.
+2026-10-24 - WP4.9 / #40 active. D045 is frozen and Gate 1 is GREEN: eight-track row dispatch plus track-aware D031/D032 publication passed source-boundary, inherited host regressions, exact proof-audio identity and pinned PI32v2 compilation on run `40108097887`. Exact next action: Gate 2 only — pure 404 B linked-engine state/voice/render/mix; keep `dinghy.c` and Gate 3 registry/cache/editor activation untouched.

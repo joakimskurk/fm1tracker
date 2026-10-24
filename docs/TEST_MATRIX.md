@@ -284,7 +284,7 @@ Phase 3 evidence so far:
 | D044 six IDs + four-engine pages + all-256 WIDTH/TABLE mappings + bounded p-lock fallback | required | required | optional later | ✅ run `40104638904` / closeout `40104723586` |
 | WP4.8 full app remains exact WP4.7 baseline while parameter layer is isolated | required | required | n/a | ✅ 0 B linked delta / WAV+BIN+FWSC identical |
 | D045 linked 8-BIT engine integration contract frozen before source | required | required | n/a | ✅ `WP4_9_LINKED_ENGINE_CONTRACT.md` / `fd31801b...` |
-| D045 Gate 1 eight-track row events + track-aware D031/D032 publication | required | required | n/a | ⬜ WP4.9 Gate 1 |
+| D045 Gate 1 eight-track row events + track-aware D031/D032 publication | required | required | n/a | ✅ run `40108097887`; host `120913890803`; PI32v2 `120913891037` |
 | D045 Gate 2 fixed 404 B engine state + deterministic oscillator/envelope/mix | required | required | optional later | ⬜ WP4.9 Gate 2 |
 | D045 Gate 3 D044 linked registry/cache/page-aware p-lock editor | required | required | optional later | ⬜ WP4.9 Gate 3 |
 | Integrated PULSE/NOISE/TRIANGLE/WAVETABLE host fixtures through real adapter | required | required | optional later | ⬜ WP4.9 |
@@ -302,6 +302,7 @@ WP4.5 detailed evidence: `WP4_5_WAVETABLE8_CONTRACT.md`, `WP4_5_VERIFICATION.md`
 WP4.6 detailed evidence: `WP4_6_ENVELOPE_CONTRACT.md`, `WP4_6_VERIFICATION.md`.
 WP4.7 detailed evidence: `WP4_7_ALLOCATOR_CONTRACT.md`, `WP4_7_VERIFICATION.md`.
 WP4.8 detailed evidence: `WP4_8_PARAMETER_PAGE_CONTRACT.md`, `WP4_8_VERIFICATION.md`.
+WP4.9 Gate 1 detailed evidence: `WP4_9_LINKED_ENGINE_CONTRACT.md`, `WP4_9_GATE1_VERIFICATION.md`.
 WP4.8 normative contract: `WP4_8_PARAMETER_PAGE_CONTRACT.md`.
 
 ## Phase 5 FM4

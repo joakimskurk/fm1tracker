@@ -151,7 +151,7 @@ Phase 3 is complete at host/device-build level. Physical FM-1 verification remai
 
 # Phase 4 — 8-BIT engine
 
-Status: **IN PROGRESS — WP4.1 / #31 through WP4.8 / #39 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 FROZEN; Gate 1 next**
+Status: **IN PROGRESS — WP4.1 / #31 through WP4.8 / #39 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 FROZEN; Gate 1 GREEN; Gate 2 next**
 
 Parent issue: #30
 
@@ -163,7 +163,7 @@ Parent issue: #30
 - **WP4.6 common envelope primitive** — COMPLETE — issue #36 — D042 + `WP4_6_VERIFICATION.md`; deterministic all-rate/sustain/event/stage host/PI32v2 proof and zero linked full-app delta
 - **WP4.7 deterministic voice allocation/stealing** — COMPLETE — issue #37 — D043 + `WP4_7_VERIFICATION.md`; deterministic release-tail allocator host/PI32v2 proof and zero linked full-app delta
 - **WP4.8 four-parameter pages + p-lock mapping** — COMPLETE — issue #39 — D044 + `WP4_8_VERIFICATION.md`; six stable IDs, bounded resolver and zero linked full-app delta
-- **WP4.9 linked 8-BIT engine integration** — IN PROGRESS — issue #40 — D045 FROZEN; Gate 1 track-aware playback + D031/D032 publication before engine linking
+- **WP4.9 linked 8-BIT engine integration** — IN PROGRESS — issue #40 — D045 FROZEN; Gate 1 GREEN (`WP4_9_GATE1_VERIFICATION.md`); Gate 2 pure 404 B engine state/voice/render/mix next
 - WP4.10 eight-track hardware benchmark
 
 ---
