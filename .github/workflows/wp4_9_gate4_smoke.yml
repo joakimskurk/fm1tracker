@@ -27,6 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           git diff --check
           sh tests/run_host.sh | tee build/wp4_9_gate4_smoke.log
           test -s build/host/fm1tracker.wav
