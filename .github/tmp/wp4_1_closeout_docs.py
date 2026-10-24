@@ -34,7 +34,7 @@ D038 must freeze the isolated PULSE primitive before source: exact state/reset, 
 
 The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.2 primitive work. Do not pull NOISE/TRIANGLE/WAVETABLE-8, envelope, final allocator, parameter pages or full engine integration forward.
 '''
-assert s.count(old) == 1
+assert s.count(old) == 1, 'PROJECT_STATE next milestone mismatch'
 s = s.replace(old, new)
 s = s.replace('- D036: the complete D027-D035 stack passed worst-case combined verification with zero production delta; Phase 3 is complete at host/device-build level.\n',
               '- D036: the complete D027-D035 stack passed worst-case combined verification with zero production delta; Phase 3 is complete at host/device-build level.\n- D037: Phase 4 engine ownership, eight-voice cap, Q7 pitch domain, event/effect adapter boundary, Q15/32-bit mix rules, realtime bounds and complete Phase 4 resource ceilings are frozen before oscillator source.\n')
@@ -46,42 +46,59 @@ new = '''## Exact next action
 
 Freeze D038 and the focused WP4.2 PULSE test contract in the repository before creating PULSE production source. Keep the Phase 3 proof sine as full-app production audio while the isolated primitive is implemented and verified.
 '''
-assert s.count(old) == 1
+assert s.count(old) == 1, 'PROJECT_STATE exact action mismatch'
 s = s.replace(old, new)
 old = '- WP3.10 / Phase 3 closeout workflow: `e90d0232c179ea92e2295171403697ceaf5e3ecf`\n'
 new = old + '- WP4.1 D037 contract: `a740da66a0587b4e257629d7aba12781fad73f73`\n- WP4.1 closeout workflow: `01138c5f8a420efcc8e438ff3c2eb4090c086586`\n'
-assert s.count(old) == 1
+assert s.count(old) == 1, 'PROJECT_STATE checkpoint anchor mismatch'
 s = s.replace(old, new)
 old = '2026-10-24 - Phase 4 branch `phase4/8bit-engine` created from clean Phase 3 handoff `d14955f2...`. #30 and WP4.1 / #31 are IN PROGRESS. D037 is frozen; exact next action is WP4.1 verification/closeout with zero production DSP delta. No Phase 4 production engine DSP has begun.'
 new = '2026-10-24 - WP4.1 / #31 COMPLETE. D037 frozen before source; closeout run `40087703654` SUCCESS with zero production delta and inherited Phase 3 device-build gate green. WP4.2 / #32 is now IN PROGRESS; exact next action is D038 PULSE contract/test-plan freeze before PULSE source.'
-assert s.count(old) == 1
+assert s.count(old) == 1, 'PROJECT_STATE last-updated mismatch'
 p.write_text(s.replace(old, new))
 
-# WORK_PACKAGES execution order.
+# WORK_PACKAGES: move Phase 4 status and exact active package to WP4.2.
 p = Path('docs/WORK_PACKAGES.md')
 s = p.read_text()
-old = '- **WP4.1 engine interface contract** — IN PROGRESS — issue #31 — D037 FROZEN; verification/closeout next; no production engine DSP\n- **WP4.2 PULSE** — queued'
-new = '- **WP4.1 engine interface contract** — COMPLETE — issue #31 — D037 + `WP4_1_VERIFICATION.md`; zero production delta\n- **WP4.2 PULSE** — IN PROGRESS — issue #32 — freeze D038/test contract before source'
-assert s.count(old) == 1
+old = '''Status: **IN PROGRESS — WP4.1 / #31 active; D037 required before production engine source**
+
+Parent issue: #30
+
+- **WP4.1 engine interface contract** — IN PROGRESS — issue #31 — D037 FROZEN; verification/closeout next; no production engine DSP
+- WP4.2 PULSE
+'''
+new = '''Status: **IN PROGRESS — WP4.1 / #31 COMPLETE; WP4.2 / #32 active; D038 required before PULSE source**
+
+Parent issue: #30
+
+- **WP4.1 engine interface contract** — COMPLETE — issue #31 — D037 + `WP4_1_VERIFICATION.md`; zero production delta
+- **WP4.2 PULSE** — IN PROGRESS — issue #32 — freeze D038/test contract before source
+'''
+assert s.count(old) == 1, 'WORK_PACKAGES Phase 4 block mismatch'
 p.write_text(s.replace(old, new))
 
-# ROADMAP current status/action.
+# ROADMAP current Phase 4 status/action and stale Phase 3 handoff line.
 p = Path('docs/ROADMAP.md')
 s = p.read_text()
+old = 'Immediate next package: **Phase 4 / WP4.1 / #31**. Freeze D037 engine/voice/realtime architecture before any 8-BIT engine production source.'
+new = 'Phase 4 is active. **WP4.1 / #31 is COMPLETE** with D037 frozen before source and zero production delta; **WP4.2 / #32 PULSE is now active**, with D038 required before oscillator source.'
+assert s.count(old) == 1, 'ROADMAP Phase 3 handoff mismatch'
+s = s.replace(old, new)
 old = 'Status: **IN PROGRESS — WP4.1 D037 FROZEN; verification/closeout next; no production engine DSP**'
 new = 'Status: **IN PROGRESS — WP4.1/D037 COMPLETE; WP4.2 / #32 PULSE active; D038 before source**'
-assert s.count(old) == 1
+assert s.count(old) == 1, 'ROADMAP Phase 4 status mismatch'
 s = s.replace(old, new)
 old = 'Active package: WP4.1 / #31 — D037 is frozen in `WP4_1_ENGINE_CONTRACT.md`; verify zero production delta and close WP4.1 before WP4.2. Branch: `phase4/8bit-engine`.'
 new = 'Active package: WP4.2 / #32 — freeze D038 PULSE primitive/test contract before production oscillator source. WP4.1 / #31 is complete with evidence in `WP4_1_VERIFICATION.md`. Branch: `phase4/8bit-engine`.'
-assert s.count(old) == 1
+assert s.count(old) == 1, 'ROADMAP active package mismatch'
 p.write_text(s.replace(old, new))
 
 # TEST_MATRIX: add Phase 4 section before regression rule.
 p = Path('docs/TEST_MATRIX.md')
 s = p.read_text()
 anchor = '\n## Regression rule\n'
-assert s.count(anchor) == 1
+assert s.count(anchor) == 1, 'TEST_MATRIX regression anchor mismatch'
+assert '## Phase 4 8-BIT engine' not in s, 'TEST_MATRIX Phase 4 section already exists'
 section = r'''
 
 ## Phase 4 8-BIT engine
