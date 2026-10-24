@@ -1,0 +1,43 @@
+name: WP5.0 D048 commit verified dinghy integration
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - tools/wp5_0_commit_dinghy.marker
+
+permissions:
+  contents: write
+
+jobs:
+  commit-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply the exact dry-run-proven D048 transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/wp5_0_apply_dinghy_router.py
+          grep -F '#include "fmt_engine_router.c"' firmware/src/dinghy.c
+          grep -F 'FmtEngineRouter fmt_engine_router_runtime;' firmware/src/dinghy.c
+          grep -F 'fmt_instrument_identity_publish_song(' firmware/src/dinghy.c
+          if grep -F 'song->meta.mode != FMT_MODE_8BIT' firmware/src/dinghy.c; then
+            echo 'obsolete song-mode playback gate survived' >&2
+            exit 1
+          fi
+      - name: Commit only the verified production adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add firmware/src/dinghy.c
+          test -n "$(git diff --cached --name-only)"
+          test "$(git diff --cached --name-only)" = 'firmware/src/dinghy.c'
+          git commit -m 'feat: integrate D048 family router into tracker playback'
+          git push origin HEAD:phase5/mixed-engine-routing
