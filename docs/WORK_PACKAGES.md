@@ -91,7 +91,7 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1/WP3.2/WP3.3 complete; WP3.4 active**
+Status: **IN PROGRESS — WP3.1–WP3.4 complete; WP3.5 ready to start**
 
 Parent issue: #20
 
@@ -106,30 +106,30 @@ Parent issue: #20
 - **WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22  
   D029 freezes ordinary-SEQ held-white-step target ownership, stale/begin/release delta discard, KNOB1..4 mapping to the four current D027 IDs and normalized 0..255 storage-only editing. Full-app target/focus suppression and reviewed feedback are verified. Final run `40054322180`. Final resource delta vs WP3.2: +2,328 B image / +8 B normal RAM / +0 B pool. Evidence: `WP3_3_VERIFICATION.md`.
 
-Current verified baseline after WP3.3:
+- **WP3.4 — p-lock browse / single-lock delete UX** — COMPLETE — issue #23  
+  D030 freezes SELECT browsing in D028 sorted order plus deliberate EDIT arm -> later SEL one-lock confirmation. Same-poll EDIT+SEL cannot delete; pending arms cancel on release/context/PLAY/unrelated focus intent; exactly one free record is recovered; no clear-all panel gesture exists. Real full-app safety cases and reviewed armed/deleted framebuffers are frozen. Final run `40064122343`. Final resource delta vs WP3.3: +2,512 B image / +4 B normal RAM / +0 B pool. Evidence: `WP3_4_VERIFICATION.md`.
 
-- app image: 61,716 B / 581,564 B
-- normal RAM: 12,476 B / 98,304 B
+Current verified baseline after WP3.4:
+
+- app image: 64,228 B / 581,564 B
+- normal RAM: 12,480 B / 98,304 B
 - pool RAM: 113,000 B / 344,064 B
 - `FmtParamId`: 1 B
 - `FmtLock`: 8 B
 - global lock pool: 2,048 records / 16,384 B
 - allocator runtime: 4 B
-- `FmtLockEditor`: 8 B at WP3.3 closeout
-- frozen default WAV unchanged
+- `FmtLockEditor`: 10 B
+- frozen pre-playback-lock WAV unchanged
 - package identity: `FM-1_987`
 
-## Active package
+## Next package
 
-- **WP3.4 — p-lock replace/delete UX** — IN PROGRESS — issue #23.  
-  D030 is frozen before source. SELECT browses existing locks in D028 sorted order; EDIT arms one selected lock for deletion; only a later SEL press confirms. Same-poll EDIT+SEL never deletes. Pending arms cancel on release/context/PLAY/unrelated focus intent. No clear-all panel gesture exists in WP3.4. Locks remain storage-only and playback application stays WP3.5+.
-
-WP3.4 current implementation extends the editor state to a compile-time asserted 10 B with semantic selection + delete-arm state and adds bounded browse/arm/cancel/confirm helpers over unchanged D028 storage. Focused editor tests are green; full-app D030 panel integration is active.
+- **WP3.5 — basic pitch/volume p-lock playback** — READY TO START — issue #24.  
+  Freeze D031 before source. It must define exactly which current D027 locks affect playback, normalized-value interpretation, pitch/level composition, row/unlocked semantics, NOTE/TIE/OFF/EMPTY interaction, invalid-range policy and the bounded sequencer/audio ownership handoff. WP3.5 must not pull WP3.6 modulation effects or WP3.8 general queue work forward unless D031 proves a minimal bounded handoff is strictly required.
 
 Remaining Phase 3 order:
 
-- WP3.4 lock replace/delete UX
-- WP3.5 basic pitch/volume effects
+- WP3.5 basic pitch/volume p-lock playback
 - WP3.6 arpeggio/slide/porta/vibrato
 - WP3.7 retrig/note delay/note cut
 - WP3.8 bounded event queue and overflow policy
