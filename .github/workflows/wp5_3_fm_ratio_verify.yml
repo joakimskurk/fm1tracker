@@ -11,6 +11,7 @@ on:
       - tests/test_wp5_3_fm_ratio.c
       - tests/run_wp5_3_fm_ratio_tests.sh
       - docs/WP5_3_FM_RATIO_CONTRACT.md
+      - .github/workflows/wp5_3_contract_freeze.yml
       - .github/workflows/wp5_3_fm_ratio_verify.yml
       - docs/PROJECT_STATE.md
       - START_HERE.md

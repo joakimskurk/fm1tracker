@@ -28,8 +28,18 @@ jobs:
       - name: Install host UI dependency
         run: python3 -m pip install pillow
 
-      - name: Verify D051 source-absent ratio contract
-        run: sh tests/run_wp5_3_contract_freeze.sh
+      - name: Verify D051 source-absent ratio contract or preserve canonical historical gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -e firmware/src/fmt_fm_ratio.c || test -e firmware/src/fmt_fm_ratio.h; then
+            test -e docs/WP5_3_PREIMPLEMENTATION_EVIDENCE.md
+            grep -F 'run: `40138575267`' docs/WP5_3_PREIMPLEMENTATION_EVIDENCE.md
+            grep -F 'job: `121005262360`' docs/WP5_3_PREIMPLEMENTATION_EVIDENCE.md
+            echo 'WP5_3_D051_CONTRACT_GATE_RETIRED_OK=1 canonical_run=40138575267 canonical_job=121005262360 implementation_present=1'
+            exit 0
+          fi
+          sh tests/run_wp5_3_contract_freeze.sh
 
       - name: Upload D051 contract evidence
         if: always()
@@ -38,5 +48,6 @@ jobs:
           name: wp5-3-d051-contract-freeze
           path: |
             docs/WP5_3_FM_RATIO_CONTRACT.md
+            docs/WP5_3_PREIMPLEMENTATION_EVIDENCE.md
             build/wp5_3_contract/
           if-no-files-found: warn
