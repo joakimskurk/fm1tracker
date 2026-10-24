@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `D047_MIXED_ENGI
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 / D048 contract frozen; pre-migration test evidence is next - 2026-10-24**
+State: **IN PROGRESS - WP5.0 / D048 production migration underway after frozen pre-migration evidence - 2026-10-24**
 
 Current work package: **WP5.0 - mixed-engine routing contract + migration**  
 Parent issue: **#42**  
@@ -17,7 +17,7 @@ Current branch: `phase5/mixed-engine-routing`
 Phase 5 branch point: `d56505ac15c233eb806c567b6a5944bccf02ec1e`  
 D048 contract commit: `166dbf8272e7323aea2abe16c33544edba0b456f`
 
-No WP5.0 production source has been changed yet. The next allowed work is pre-migration host/test harness evidence only.
+D048 pre-migration evidence is frozen and green. The generic router core and instrument identity publication are implemented, the obsolete song-level 8-BIT gate has been removed from the 8-BIT row/editor context, and the top-level `dinghy.c` integration is currently being validated as a transient CI transform before it is committed to production.
 
 ## Phase status summary
 
@@ -92,8 +92,24 @@ Normative documents:
 
 - `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
 - `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`
+- `docs/WP5_0_PREMIGRATION_EVIDENCE.md`
 
-D048 is frozen before production migration.
+D048 was frozen before production migration.
+
+### Frozen/green evidence already reached
+
+- Pre-migration run `40126003645` is green.
+- Pre-migration artifact `12572841977`, SHA-256 `0b7b5925584e0fa663769eece6e36191f83dc4687ebf2299919fcb4db3c02d87`.
+- The old `FmtSongMeta.mode` playback gate was reproduced from the frozen D046 source before removal.
+- Test-only D048 router semantics prove 8 B route state, 64 B identity publication, simultaneous per-track family identities, deterministic same-track switch ordering and zero active cross-track steals.
+- Router-core run `40126271710` is green; artifact `12573426831`, SHA-256 `5414f85ee591e1164eb6950c69cbbbbc85f30c50f24c9e56c6b42a9bc0ee9899`.
+
+### Production migration now present
+
+- `firmware/src/fmt_engine_router.[ch]` implements the bounded 8 B family router and aligned 64 B instrument identity publication.
+- `fmt_8bit_linked_row_context()` no longer rejects valid 8-BIT instruments because of `FmtSongMeta.mode`; per-instrument family/engine validation remains.
+- No FM operator/algorithm/oscillator DSP has been added.
+- The top-level `dinghy.c` family adapter is not yet committed. It is currently validated by transient CI transform `tools/wp5_0_apply_dinghy_router.py` and `tests/run_wp5_0_dinghy_dryrun.sh`.
 
 ### D048 implementation contract
 
@@ -120,11 +136,11 @@ WP5.0 hard incremental ceilings versus D046:
 
 ### Exact next execution action
 
-1. Add a pre-migration host probe that reproduces the current obsolete global `FmtSongMeta.mode` gate without changing production source.
-2. Add pure/test-only router semantic tests for the D048 8-byte family-route state and bounded mixed-family stub behavior.
-3. Freeze those tests and CI evidence.
-4. Only then begin the smallest production migration: generic identity publication, shared page-publication ownership and bounded router integration.
-5. Keep the complete D046 all-8-BIT path as an explicit regression baseline throughout WP5.0.
+1. Complete transient `dinghy.c` integration gate and require all canonical D045 engine/effect WAVs to remain byte-identical.
+2. Require the normal full-app D046 host WAV to stay exactly `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`.
+3. Add the focused actual-app song-meta independence variant: identical instrument/row data with only `FmtSongMeta.mode` changed must render the same WAV.
+4. Require pinned JieLi/AC79 target build inside WP5.0 ceilings: image <= 76,600 B, normal RAM <= 19,860 B, pool <= 113,000 B.
+5. Only after the transient gate is green, commit the top-level `dinghy.c` adapter and run post-migration/realtime closeout evidence.
 6. Do not begin WP5.1 FM operator code until `docs/WP5_0_VERIFICATION.md` closes WP5.0.
 
 ## D047 / D048 precedence
@@ -185,9 +201,10 @@ Physical execution-margin and UX validation remain explicit later gates.
 - WP4.10 final verification: `2379d3e7e52d1cefe9f845f8287ad0ccda8c019a`, run `40124536375`, job `120963022289`
 - Phase 5 branch point: `d56505ac15c233eb806c567b6a5944bccf02ec1e`
 - D047: `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-- D048 contract commit: `166dbf8272e7323aea2abe16c33544edba0b456f`
-- D048: `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`
+- D048 contract: `docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`
+- D048 pre-migration evidence: run `40126003645`, artifact `12572841977`
+- D048 router-core evidence: run `40126271710`, artifact `12573426831`
 
 ## Last updated
 
-2026-10-24 - Phase 5 branch and issues #42/#43 created. D048 WP5.0 mixed-engine routing contract frozen before production migration. Next step is pre-migration test evidence only; production remains at the D045/D046 8-BIT baseline until those tests are frozen.
+2026-10-24 - D048 pre-migration evidence and router core are green. Production migration has begun in bounded pieces. The obsolete song-level gate is removed from the 8-BIT linked row/editor path; the top-level family adapter is being proven transiently before commit. WP5.1 FM DSP remains blocked until WP5.0 closeout.
