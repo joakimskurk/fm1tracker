@@ -22,6 +22,15 @@ jobs:
       - name: Synchronize WP3.9 closeout and WP3.10 handoff
         run: python3 .github/tmp/wp3_9_handoff.py
 
+      - name: Normalize generated EOF whitespace
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('CHANGELOG.md')
+          p.write_text(p.read_text().rstrip() + '\n')
+          PY
+
       - name: Validate and commit handoff
         shell: bash
         run: |
