@@ -1,4 +1,5 @@
 name: WP4.10 D046 representative linked benchmark
+# Rerun after host-only transport digest correction.
 
 on:
   push:
