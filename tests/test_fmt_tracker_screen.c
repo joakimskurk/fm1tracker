@@ -206,7 +206,7 @@ static void test_cursor_playhead_markers_and_dirty_rows(void)
     fmt_tracker_screen_header_line2(&screen, line2);
     assert(strcmp(line2, "P01 T1 PG1/4 01-08") == 0);
     fmt_tracker_screen_header_line3(line3);
-    assert(strcmp(line3, "ST NOTE IN VOL FX") == 0);
+    assert(strcmp(line3, "ST NOTE IN VOL LK FX") == 0);
     fmt_tracker_screen_footer(&screen, footer);
     assert(strcmp(footer, "KEYS STEP/TRK  OCT PAGE") == 0);
 }
@@ -243,7 +243,7 @@ static void test_step_rec_header_footer_and_row_format(void)
     fmt_tracker_screen_footer(&screen, footer);
     assert(strcmp(footer, "FX RST  SEL TIE  FX+SEL OFF") == 0);
     fmt_tracker_screen_row_text(&screen, 0u, row);
-    assert(strcmp(row, "25 C#4  05 087 ---") == 0);
+    assert(strcmp(row, "25 C#4  05 087 -- ----") == 0);
 }
 
 static void test_visible_data_change_dirties_only_that_row_and_never_mutates_song(void)
