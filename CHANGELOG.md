@@ -353,3 +353,25 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 ### Next
 
 **WP3.10 - Phase 3 worst-case tests and exit gate**, issue #29, is IN PROGRESS. D036 is frozen in `docs/WP3_10_TEST_PLAN.md`; Phase 4 production work remains blocked until the complete Phase 3 stack passes the exit gate.
+
+
+## 2026-10-24 - WP3.10 / Phase 3 closeout
+
+- Froze D036 in `docs/WP3_10_TEST_PLAN.md` as a verification/stress-only package; no Phase 4 feature work was pulled forward.
+- Saturated the complete D028 pool: 2,048 records across 512 owners, deterministic exhaustion/replacement/recovery, final state hash `4f426945`.
+- Stressed all 64 D031/D032 proof-lane rows at four locks per row and verified both fixed 256 B caches.
+- Ran 2,048 full D034 queue cycles with 6,144 reject-newest events across wrap, alternating FIFO drain/O(1) discard and post-storm recovery.
+- Proved D035 worst-case visible inspection at 32 lock records/sync and deterministic ten-region/two-redraw backlog convergence.
+- Added combined full-app tracker/effect/p-lock/editor/UI/queue stress with two overflow epochs; stress was deterministic, recovered completely, emitted no p-lock MIDI and left framebuffers queue-neutral.
+- Exhaustively exercised all 256 values for each D032 command and each D033 RETRIG/DELAY/CUT command, then ran 4,096 rows / 64 wraps / 20,480 effect ticks with final step/phase zero.
+- Retained the independent six-hour D020 transport proof and exact 120 BPM tick anchors `919/1838/2757/3675/4594`, next row `5513`.
+- Hardened the realtime audit after detecting a test-runner `tee` exit-mask hazard; the corrected fail-fast audit verifies no allocator, no audio lock traversal/screen calls, callback queue cap 32, O(1) discard, no SPSC spin/IRQ masking, integer-only realtime units and one D020-derived six-tick clock.
+- D036 found no production defect. WP3.10 production delta is exactly zero versus WP3.9 checkpoint `354bf7d356774ad828f1f660bd456dbab7f0490d`.
+- Final Phase 3 resources remain 66,960 B image / 13,296 B normal RAM / 113,000 B pool.
+- Final firmware remains `fm1tracker.bin` `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27` and `fm1tracker-0.1.fwsc` `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`.
+- Final closeout: run `40084706845`, job `120845144453`, artifact `12556590742`, artifact SHA-256 `c4f494716ec98507ca9af6fe59313c01116136deececa7ba84e24598e78b82ee`.
+- Phase 3 / #20 and WP3.10 / #29 are closed complete at host/device-build level. Physical FM-1 install/audio/ergonomics/LCD/execution-margin verification remains later explicit hardware work.
+
+### Next
+
+Phase 4 / #30 is ready to start. WP4.1 / #31 must freeze D037 engine/voice/realtime architecture and resource budgets before any PULSE/NOISE/TRIANGLE/WAVETABLE-8 production source.

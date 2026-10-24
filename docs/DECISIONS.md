@@ -740,7 +740,7 @@ TRACK PAN remains storage-only under D031. The row summary intentionally reports
 ## D036 — WP3.10 is a worst-case verification and Phase 3 exit package, not a feature package
 
 Date: 2026-10-24
-Status: accepted before WP3.10 stress implementation
+Status: accepted and verified — Phase 3 exit complete
 
 **Decision:** WP3.10 starts from the final WP3.9 production checkpoint `354bf7d356774ad828f1f660bd456dbab7f0490d` and freezes its complete stress/exit obligations in `docs/WP3_10_TEST_PLAN.md`. Production source should remain byte-identical unless a stress test exposes a real defect; any such fix must be minimal, receive a focused regression and trigger the entire exit gate again.
 
@@ -748,4 +748,6 @@ D036 requires worst-case D028 pool saturation/recovery, D031/D032 cache boundari
 
 **Reason:** Phase 3 has accumulated several individually bounded systems whose final risk is interaction under simultaneous worst-case load rather than another missing feature. Closing the phase requires proving those declared bounds together before engine work begins.
 
-**Consequence:** Phase 4 production work is blocked until WP3.10 passes the D036 exit criteria and Phase 3 is formally closed. WP3.10 may add tests/tooling/docs; it may change production only to fix a defect demonstrated by the frozen stress plan.
+**Consequence:** D036 passed without finding a production defect. WP3.10 therefore leaves the final WP3.9 production checkpoint `354bf7d356774ad828f1f660bd456dbab7f0490d` byte-identical and adds zero production resource cost. Final run `40084706845`, job `120845144453`, artifact `12556590742` (`c4f494716ec98507ca9af6fe59313c01116136deececa7ba84e24598e78b82ee`) satisfies the Phase 3 host/device-build exit gate. Final resources remain 66,960 B image / 13,296 B normal RAM / 113,000 B pool and firmware hashes remain `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27` / `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`. Evidence is `docs/WP3_10_VERIFICATION.md`.
+
+Phase 3 is now formally complete at host/device-build level. Phase 4 may begin only with WP4.1 / D037 engine-interface architecture; physical FM-1 install/audio/ergonomics/LCD/execution-margin gates remain explicitly open.

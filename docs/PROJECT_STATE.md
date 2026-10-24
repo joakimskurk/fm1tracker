@@ -6,16 +6,24 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 ## Current phase
 
-**Phase 3 - p-locks and tracker effects**
+**Phase 3 - p-locks and tracker effects — COMPLETE**
 
-State: **IN PROGRESS - WP3.1-WP3.9 complete; WP3.10 active, D036 frozen before stress implementation - 2026-10-24**
+State: **COMPLETE - WP3.1-WP3.10 host/device-build exit satisfied - 2026-10-24**
 
-Parent issue: #20  
+Parent issue: #20 — CLOSED / completed
 Current branch: `phase3/plocks-effects`
 
 Phase 3 branch start / completed Phase 2 handoff:
 
 `c3693d8c7bb3d5306794aa232d6d25bef50c6c99`
+
+Final Phase 3 closeout workflow checkpoint:
+
+`e90d0232c179ea92e2295171403697ceaf5e3ecf`
+
+Final Phase 3 production firmware checkpoint remains the WP3.9 source tree:
+
+`354bf7d356774ad828f1f660bd456dbab7f0490d`
 
 ## Completed Phase 3 packages
 
@@ -254,19 +262,63 @@ Final firmware artifacts:
 
 Historical default WAV, D031 locked WAV, all frozen D032/D033 fixtures and all D034 queue fixtures remain byte-identical through WP3.9.
 
+### WP3.10 - Phase 3 worst-case tests and exit gate - COMPLETE - #29
+
+Final closeout workflow checkpoint:
+
+`e90d0232c179ea92e2295171403697ceaf5e3ecf`
+
+Final GitHub Actions:
+
+- run `40084706845`
+- job `120845144453` (`phase3-closeout`)
+- result **SUCCESS**
+
+Evidence: `docs/WP3_10_VERIFICATION.md`
+Normative test plan: `docs/WP3_10_TEST_PLAN.md`
+
+Evidence artifact:
+
+- ID `12556590742`
+- ZIP SHA-256 `c4f494716ec98507ca9af6fe59313c01116136deececa7ba84e24598e78b82ee`
+
+D036 found no production defect. It proved the complete D027-D035 stack under full lock-pool pressure, all-row cache pressure, repeated queue full/wrap/overflow recovery, combined playback/audition/editor/UI stress, all D032/D033 byte values, 4,096 rows / 64 wraps, the retained six-hour transport proof and a fail-fast static realtime audit.
+
+Key exit markers:
+
+- `WP3_10_LOCK_POOL_STRESS_OK=1 records=2048 owners=512 hash=4f426945`
+- `WP3_10_QUEUE_STRESS_OK=1 cycles=2048 rejected=6144 final_write=65519 final_read=65519 overflow=5143`
+- `WP3_10_COMBINED_STRESS_OK=1 deterministic=1 two_overflow_epochs=1 recovery=1 midi_neutral=1 screen_queue_neutral=1`
+- `WP3_10_TIMING_MATRIX_OK=1 d032_commands=5 values_each=256 d033_commands=3 values_each=256 no_tick6=1 hash=364d0c2c`
+- `WP3_10_REALTIME_AUDIT_OK=1`
+- `WP3_10_PHASE3_EXIT_OK=1 wp3_1_through_wp3_10=complete host_device_build=1 physical_hardware_pending=1`
+
+WP3.10 changes no production firmware source. Final Phase 3 resources therefore remain:
+
+| Resource | Used | Limit | Free | Delta vs WP3.9 |
+|---|---:|---:|---:|---:|
+| app image | 66,960 B | 581,564 B | 514,604 B | +0 B |
+| normal RAM | 13,296 B | 98,304 B | 85,008 B | +0 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
+
+Final firmware artifacts:
+
+- `fm1tracker.bin` SHA-256 `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27`
+- `fm1tracker-0.1.fwsc` SHA-256 `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`
+- package identity `FM-1_987`.
+
 ## Next milestone
 
-**WP3.10 - Phase 3 worst-case tests and exit gate**
+**Phase 4 / WP4.1 - 8-BIT engine interface contract**
 
-State: **IN PROGRESS - D036 frozen before stress implementation**
+State: **READY TO START - create/use `phase4/8bit-engine`, freeze D037 before production engine source**
 
-GitHub issue: #29
+Phase 4 parent issue: #30
+WP4.1 issue: #31
 
-Normative test/exit plan: `docs/WP3_10_TEST_PLAN.md`.
+D037 must freeze engine/voice ownership, fixed-point pitch, note/tie/off/retrigger adapter semantics, per-track/per-voice state, sample/mix format, p-lock/effect integration boundary, realtime work bounds and the complete Phase 4 resource budget before PULSE/NOISE/TRIANGLE/WAVETABLE-8 production DSP is written.
 
-WP3.10 must prove the complete D027-D035 stack under its declared worst cases, including full lock-pool pressure, exact effect/event timing, queue overflow storms/recovery, combined runtime/editor/UI stress, D035 redraw convergence, inherited deterministic audio and the pinned target-build/resource gate. Production source remains unchanged unless a frozen stress test exposes a real defect.
-
-Phase 4 production work is blocked until WP3.10 passes and Phase 3 is formally closed.
+The Phase 3 proof sine remains the current firmware audio implementation until a later Phase 4 package deliberately replaces/integrates it. Do not pull WP4.2+ implementation into WP4.1.
 
 ## Important decisions / do not regress
 
@@ -281,7 +333,7 @@ Phase 4 production work is blocked until WP3.10 passes and Phase 3 is formally c
 - D033: retrig/delay/cut remain fixed-state, exact-six-tick and queue-free; event runtime exactly 4 B at the verified checkpoint.
 - D034: runtime ingress is an exact 32-entry / 268-byte SPSC main->audio queue with 8-byte events, reject-newest overflow and fail-to-silence audition recovery; D024/D033 remain outside it.
 - D035: tracker presentation remains ten regions / max two redraws, `FmtTrackerScreen` 62 B, with bounded lock-count and stored-effect feedback only.
-- D036: WP3.10 is a stress/exit package; Phase 4 is blocked until the complete D027-D035 stack passes worst-case combined verification.
+- D036: the complete D027-D035 stack passed worst-case combined verification with zero production delta; Phase 3 is complete at host/device-build level.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -295,7 +347,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Implement WP3.10 / #29 exactly from `docs/WP3_10_TEST_PLAN.md`: build the focused worst-case harnesses first, then combined full-app stress and final Phase 3 closeout. Do not begin Phase 4 production source.
+Create/use the Phase 4 branch `phase4/8bit-engine`, then start WP4.1 / #31 by freezing D037 in the repository **before any production oscillator/engine DSP source**. Preserve every Phase 2/3 deterministic regression as the migration baseline.
 
 ## Last relevant checkpoints
 
@@ -310,7 +362,8 @@ Implement WP3.10 / #29 exactly from `docs/WP3_10_TEST_PLAN.md`: build the focuse
 - WP3.7 verified: `d2a97798149816957745de818e4568c518a9a7e7`
 - WP3.8 verified: `5c2828921f30c7d299cbc0e7aa6b7cfa9f4b3018`
 - WP3.9 verified production: `354bf7d356774ad828f1f660bd456dbab7f0490d`
+- WP3.10 / Phase 3 closeout workflow: `e90d0232c179ea92e2295171403697ceaf5e3ecf`
 
 ## Last updated
 
-2026-10-24 - WP3.9 complete and #28 closed after successful run `40083510351`. WP3.10 / #29 is active; D036 is frozen in `WP3_10_TEST_PLAN.md` before stress implementation.
+2026-10-24 - WP3.10 / #29 and Phase 3 / #20 closed after final run `40084706845`. Phase 3 is COMPLETE at host/device-build level with zero WP3.10 production delta. Phase 4 / #30 and WP4.1 / #31 are created; next step is the D037 engine-interface freeze on `phase4/8bit-engine`.

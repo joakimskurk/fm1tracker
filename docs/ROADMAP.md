@@ -114,7 +114,7 @@ Phase 2 exit criteria are satisfied at the host/device-build level. Physical FM-
 
 Goal: make the sequencer genuinely tracker-like and hardware-native.
 
-Status: **IN PROGRESS — WP3.1–WP3.9 complete; WP3.10 active**
+Status: **COMPLETE — WP3.1–WP3.10 host/device-build exit satisfied**
 
 Parent issue: #20
 
@@ -129,24 +129,24 @@ Progress:
 7. ✅ **WP3.7 — retrig / note delay / note cut**. D033 adds commands `0x06..0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state without a general queue. Final run `40077809743`; evidence `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
 8. ✅ **WP3.8 — bounded event queue and overflow policy**. D034 freezes the exact 32-entry SPSC main->audio queue, reject-newest overflow and fail-to-silence audition recovery. Final run `40079824265`; evidence `WP3_8_QUEUE_CONTRACT.md`, `WP3_8_VERIFICATION.md`.
 9. ✅ **WP3.9 — lock/effect visual feedback**. D035 preserves the ten-region / max-two-redraw surface, adds bounded `LK` and stored `FX` feedback, and keeps every audio/runtime fixture unchanged. Final run `40083510351`; evidence `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
-10. 🟨 **WP3.10 — Phase 3 worst-case tests and exit gate**, issue #29, IN PROGRESS. D036 frozen in `WP3_10_TEST_PLAN.md`.
+10. ✅ **WP3.10 — Phase 3 worst-case tests and exit gate**. D036 found no production defect after full-pool/cache/queue/UI/timing/combined stress and fail-fast realtime audit. Final run `40084706845`; evidence `WP3_10_TEST_PLAN.md`, `WP3_10_VERIFICATION.md`.
 
-Current verified Phase 3 footprint after WP3.9: 66,960 B image, 13,296 B normal RAM and 113,000 B pool. `FmtTrackerScreen` is 62 B; the historical default WAV plus every frozen D031-D034 audio fixture remain byte-identical.
+Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal RAM and 113,000 B pool, with zero production delta versus WP3.9. The historical default WAV plus every frozen D031-D035 regression remain deterministic. Final exit run `40084706845`, job `120845144453`.
 
-Immediate package: **WP3.10 / #29**. D036 is frozen; execute worst-case/combined stress and the final Phase 3 exit gate before any Phase 4 production source.
+Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Exit criteria remain:
-
-- worst-case lock/effect data inside budget;
-- no lock/effect edit corrupts audio/song state;
-- effect behavior host-tested and documented;
-- all event work bounded.
+Immediate next package: **Phase 4 / WP4.1 / #31**. Freeze D037 engine/voice/realtime architecture before any 8-BIT engine production source.
 
 ---
 
 ## Phase 4 — 8-BIT engine
 
 Goal: a musically complete chip-style palette.
+
+Status: **READY TO START — WP4.1 architecture first**
+
+Parent issue: #30
+Next package: WP4.1 / #31 — freeze D037 before engine source.
 
 Required starting engines:
 

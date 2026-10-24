@@ -91,7 +91,7 @@ Evidence: `PHASE2_VERIFICATION.md`.
 
 # Phase 3 — p-locks and tracker effects
 
-Status: **IN PROGRESS — WP3.1–WP3.9 complete; WP3.10 active**
+Status: **COMPLETE — WP3.1–WP3.10 host/device-build exit satisfied**
 
 Parent issue: #20
 
@@ -124,7 +124,10 @@ Parent issue: #20
 - **WP3.9 — lock/effect visual feedback** — COMPLETE — issue #28
   D035 extends the existing ten-region / max-two-redraw tracker surface with `LK` p-lock summaries, stored D032/D033 effect mnemonics/values and `STORE` detail for TRACK PAN while preserving main-only bounded drawing. `FmtTrackerScreen` is exactly 62 B. Final run `40083510351`, job `120841687772`. Final resources: 66,960 B image / 13,296 B normal RAM / 113,000 B pool. Evidence: `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
 
-Current verified baseline after WP3.9:
+- **WP3.10 — Phase 3 worst-case tests and exit gate** — COMPLETE — issue #29
+  D036 saturated all 2,048 lock records, stressed all 64 D031/D032 rows, ran 2,048 full queue cycles / 6,144 rejects, combined tracker+queue+editor+UI stress, all D032/D033 byte values, 4,096 rows / 64 wraps, retained the six-hour transport proof and completed a fail-fast realtime audit. No production defect was found; production source/resources/hashes remain exactly WP3.9. Final run `40084706845`, job `120845144453`. Evidence: `WP3_10_TEST_PLAN.md`, `WP3_10_VERIFICATION.md`.
+
+Final verified Phase 3 baseline after WP3.10:
 
 - app image: 66,960 B / 581,564 B
 - normal RAM: 13,296 B / 98,304 B
@@ -137,22 +140,22 @@ Current verified baseline after WP3.9:
 - D035 `FmtTrackerScreen`: 62 B ordinary RAM, ten regions / max two redraws
 - default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 - D031 locked WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
+- final `fm1tracker.bin`: `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27`
+- final `fm1tracker-0.1.fwsc`: `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`
 - package identity: `FM-1_987`
+- Phase 3 exit run: `40084706845`, job `120845144453`
 
-## Next package
-
-- **WP3.10 — Phase 3 worst-case tests and exit gate** — IN PROGRESS — issue #29.
-  D036 is frozen in `WP3_10_TEST_PLAN.md`. Stress the complete D027-D035 stack and close Phase 3; production source remains unchanged unless a frozen stress test exposes a real defect.
-
-Remaining Phase 3 order:
-
-- WP3.10 Phase 3 worst-case tests and exit gate
+Phase 3 is complete at host/device-build level. Physical FM-1 verification remains a later explicit gate.
 
 ---
 
 # Phase 4 — 8-BIT engine
 
-- WP4.1 engine interface contract
+Status: **READY TO START — WP4.1 / #31; D037 required before production engine source**
+
+Parent issue: #30
+
+- **WP4.1 engine interface contract** — READY TO START — issue #31
 - WP4.2 PULSE
 - WP4.3 NOISE
 - WP4.4 TRIANGLE

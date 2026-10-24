@@ -228,12 +228,12 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | D035 reviewed active/released framebuffers frozen | required | compile | required later | ✅ `d2904153...` / `ec15c6db...` |
 | WP3.9 preserves historical default and all D031-D034 audio fixtures | required | required | n/a | ✅ run `40083510351` |
 | WP3.9 final resource delta measured/frozen | n/a | required | n/a | ✅ +652 B image / +16 B RAM / +0 B pool |
-| D036 full 2,048-record lock-pool saturation/recovery stress | required | required | n/a | 🟨 WP3.10 planned |
-| D036 D032/D033 complete timing/boundary stress | required | required | n/a | 🟨 WP3.10 planned |
-| D036 D034 repeated full/wrap/overflow-storm/recovery stress | required | required | later | 🟨 WP3.10 planned |
-| D036 combined playback + queue + editor + D035 backlog stress | required | required | later | 🟨 WP3.10 planned |
-| D036 static real-time boundedness audit | inspect/test | required | n/a | 🟨 WP3.10 planned |
-| D036 final Phase 3 inherited regression/device-build exit gate | required | required | hardware caveat | 🟨 WP3.10 planned |
+| D036 full 2,048-record lock-pool saturation/recovery stress | required | required | n/a | ✅ 2,048 records / 512 owners / hash `4f426945` |
+| D036 D032/D033 complete timing/boundary stress | required | required | n/a | ✅ all 256 values / command; 4,096 rows / 64 wraps |
+| D036 D034 repeated full/wrap/overflow-storm/recovery stress | required | required | later | ✅ 2,048 full cycles / 6,144 rejects + recovery |
+| D036 combined playback + queue + editor + D035 backlog stress | required | required | later | ✅ deterministic; two overflow epochs; recovery; screen-neutral queue |
+| D036 static real-time boundedness audit | inspect/test | required | n/a | ✅ fail-fast audit; no allocator/list/screen in audio; queue cap 32 |
+| D036 final Phase 3 inherited regression/device-build exit gate | required | required | hardware caveat | ✅ run `40084706845`; zero production delta; physical hardware pending |
 
 Phase 3 evidence so far:
 
@@ -246,7 +246,8 @@ Phase 3 evidence so far:
 - `WP3_7_VERIFICATION.md`
 - `WP3_8_VERIFICATION.md`
 - `WP3_9_VERIFICATION.md`
-- `WP3_10_TEST_PLAN.md` (D036 active exit plan)
+- `WP3_10_TEST_PLAN.md`
+- `WP3_10_VERIFICATION.md` — final Phase 3 exit evidence
 
 ## Phase 4 8-BIT engine
 
