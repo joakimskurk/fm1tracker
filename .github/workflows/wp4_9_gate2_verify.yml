@@ -1,0 +1,86 @@
+name: WP4.9 D045 Gate 2 verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_8bit_engine.h
+      - firmware/src/fmt_8bit_engine.c
+      - tests/test_wp4_9_gate2.c
+      - tests/run_wp4_9_gate2.sh
+      - .github/workflows/wp4_9_gate2_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate2-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D045 Gate 2 host verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_9_gate2.sh | tee build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_SOURCE_BOUNDARY_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_FOCUSED_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_STATIC_AUDIT_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_PRIMITIVE_REGRESSIONS_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_PROOF_AUDIO_UNCHANGED_OK=1' build/wp4_9_gate2_ci.log
+          grep -F 'WP4_9_GATE2_OK=1' build/wp4_9_gate2_ci.log
+
+      - name: Upload D045 Gate 2 host evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate2-host
+          if-no-files-found: error
+          path: |
+            build/wp4_9_gate2/
+            build/wp4_9_gate2_ci.log
+            build/host/fm1tracker.wav
+
+  gate2-pi32v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+
+      - name: Compile pure Gate 2 engine for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_9_gate2_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_8bit_engine.c \
+            -o build/wp4_9_gate2_target/fmt_8bit_engine.o
+          test -s build/wp4_9_gate2_target/fmt_8bit_engine.o
+          sha256sum build/wp4_9_gate2_target/fmt_8bit_engine.o \
+            | tee build/wp4_9_gate2_target/object_sha256.txt
+          printf '%s\n' 'WP4_9_GATE2_PI32V2_OK=1 modules=1 engine_bytes=404 dinghy_migration=0 gate3_activation=0' \
+            | tee build/wp4_9_gate2_target/summary.txt
+
+      - name: Upload D045 Gate 2 target evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate2-pi32v2
+          if-no-files-found: error
+          path: build/wp4_9_gate2_target/
