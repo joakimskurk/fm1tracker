@@ -1,11 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "fmt_rt_queue.h"
-
-#if defined(__GNUC__) || defined(__clang__)
-#define FMT_RT_QUEUE_BARRIER() __asm__ __volatile__("" ::: "memory")
-#else
-#define FMT_RT_QUEUE_BARRIER() do { } while (0)
-#endif
+#include "../hal/fm1_barrier.h"
 
 static uint32_t fmt_rt_event_word0(const FmtRtEvent *event)
 {
@@ -66,7 +61,7 @@ FmtRtQueueStatus fmt_rt_queue_enqueue(FmtRtQueue *queue,
     slot = write_seq & FMT_RT_QUEUE_MASK;
     queue->slots[slot][0] = fmt_rt_event_word0(event);
     queue->slots[slot][1] = event->value_b;
-    FMT_RT_QUEUE_BARRIER();
+    fm1_compiler_barrier();
     queue->write_seq = write_seq + 1u;
     return FMT_RT_QUEUE_OK;
 }
@@ -83,12 +78,12 @@ int fmt_rt_queue_dequeue(FmtRtQueue *queue, FmtRtEvent *event)
     if (read_seq == write_seq)
         return 0;
 
-    FMT_RT_QUEUE_BARRIER();
+    fm1_compiler_barrier();
     slot = read_seq & FMT_RT_QUEUE_MASK;
     word0 = queue->slots[slot][0];
     word1 = queue->slots[slot][1];
     fmt_rt_event_unpack(word0, word1, event);
-    FMT_RT_QUEUE_BARRIER();
+    fm1_compiler_barrier();
     queue->read_seq = read_seq + 1u;
     return 1;
 }
@@ -100,7 +95,7 @@ void fmt_rt_queue_consumer_discard_all(FmtRtQueue *queue)
     if (!queue)
         return;
     write_seq = queue->write_seq;
-    FMT_RT_QUEUE_BARRIER();
+    fm1_compiler_barrier();
     queue->read_seq = write_seq;
 }
 
