@@ -17,14 +17,14 @@
 #define FMT_8BIT_PARAM_ROWS 64u
 #define FMT_8BIT_MAX_ROW_LOCKS 4u
 
-/* D044 semantic identities. WP4.9 activates these exact numeric IDs in the
- * linked D027 registry; WP4.8 deliberately keeps that registry unchanged. */
-#define FMT_8BIT_PARAM_ATTACK      ((FmtParamId)0x20u)
-#define FMT_8BIT_PARAM_DECAY       ((FmtParamId)0x21u)
-#define FMT_8BIT_PARAM_SUSTAIN     ((FmtParamId)0x22u)
-#define FMT_8BIT_PARAM_RELEASE     ((FmtParamId)0x23u)
-#define FMT_8BIT_PARAM_PULSE_WIDTH ((FmtParamId)0x24u)
-#define FMT_8BIT_PARAM_WAVETABLE   ((FmtParamId)0x25u)
+/* D044 semantic identities now alias the one linked D027 registry source of
+ * truth activated by D045 Gate 3. Numeric identity remains exactly 0x20..0x25. */
+#define FMT_8BIT_PARAM_ATTACK      ((FmtParamId)FMT_PARAM_BIT8_ATTACK)
+#define FMT_8BIT_PARAM_DECAY       ((FmtParamId)FMT_PARAM_BIT8_DECAY)
+#define FMT_8BIT_PARAM_SUSTAIN     ((FmtParamId)FMT_PARAM_BIT8_SUSTAIN)
+#define FMT_8BIT_PARAM_RELEASE     ((FmtParamId)FMT_PARAM_BIT8_RELEASE)
+#define FMT_8BIT_PARAM_PULSE_WIDTH ((FmtParamId)FMT_PARAM_BIT8_PULSE_WIDTH)
+#define FMT_8BIT_PARAM_WAVETABLE   ((FmtParamId)FMT_PARAM_BIT8_WAVETABLE)
 
 #define FMT_8BIT_DEFAULT_ATTACK      24u
 #define FMT_8BIT_DEFAULT_DECAY       0u
@@ -57,8 +57,8 @@ typedef struct {
     uint8_t reserved;
 } Fmt8BitParamLock;
 
-/* D037/D044 future publication shape. WP4.8 defines the type only and does not
- * allocate a global instance, preserving the isolated zero-linked-delta gate. */
+/* D037/D044 publication shape. D045 Gate 3 allocates the one linked aligned
+ * instance in fmt_8bit_linked_params.c; the type stays exact 2048 B. */
 typedef struct {
     uint32_t word[FMT_8BIT_PARAM_TRACKS][FMT_8BIT_PARAM_ROWS];
 } Fmt8BitRowParamCache;
@@ -68,6 +68,8 @@ typedef struct {
 FMT_8BIT_STATIC_ASSERT(param_set_size_is_6, sizeof(Fmt8BitParamSet) == 6u);
 FMT_8BIT_STATIC_ASSERT(param_lock_size_is_4, sizeof(Fmt8BitParamLock) == 4u);
 FMT_8BIT_STATIC_ASSERT(row_cache_size_is_2048, sizeof(Fmt8BitRowParamCache) == 2048u);
+FMT_8BIT_STATIC_ASSERT(attack_id_is_20, FMT_8BIT_PARAM_ATTACK == 0x20u);
+FMT_8BIT_STATIC_ASSERT(table_id_is_25, FMT_8BIT_PARAM_WAVETABLE == 0x25u);
 
 void fmt_8bit_param_set_defaults(Fmt8BitParamSet *set);
 int fmt_8bit_engine_supported(uint8_t engine);
