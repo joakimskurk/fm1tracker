@@ -23,6 +23,11 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/tmp/wp4_9_freeze_docs.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/DECISIONS.md')
+          p.write_text(p.read_text().rstrip() + '\n')
+          PY
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
