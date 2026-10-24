@@ -382,9 +382,9 @@ static void test_long_replay_hash_and_guards(void)
             if (v != FMT_VOICE_NONE)
                 stage[v] = FMT_ENVELOPE_IDLE;
             r.voice = fmt_voice_allocator_reap_idle(&guarded.a, stage);
+            assert(r.voice != FMT_VOICE_REAP_ERROR);
         }
 
-        assert(r.voice != FMT_VOICE_REAP_ERROR);
         assert(fmt_voice_allocator_validate(&guarded.a, stage) == 1u);
         assert_reciprocal(&guarded.a);
         h = hash_snapshot(h, &guarded.a, stage, &r);
