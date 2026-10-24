@@ -21,6 +21,7 @@
 #include "fmt_playback_params.c"               /* WP3.5: D031 fixed row-local p-lock snapshots */
 #include "fmt_tracker_effect.c"                /* WP3.6: D032 bounded tracker-effect snapshots/state */
 #include "fmt_tracker_event.c"                 /* WP3.7: D033 fixed-state retrig/delay/cut scheduler */
+#include "fmt_rt_queue.c"                      /* WP3.8: D034 bounded main-to-audio event ingress */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
 #include "fmt_step_record.c"                   /* WP2.7/2.8: stopped STEP REC note/special entry */
 #include "fmt_tracker_screen.c"                /* WP2.9: bounded read-only tracker presentation */
@@ -35,6 +36,8 @@ FmtTrackerScreen fmt_tracker_screen_runtime;
 FmtLockEditor fmt_lock_editor_runtime;
 FmtTrackerEffectState fmt_tracker_effect_runtime;
 FmtTrackerRowEventState fmt_tracker_row_event_runtime;
+FmtRtQueue fmt_rt_queue_runtime;
+volatile uint32_t fmt_rt_queue_overflow_seen;
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -52,10 +55,11 @@ static volatile uint32_t tracker_transport_stopped;
 static struct {
     volatile uint32_t inc;                      /* phase step per frame: f * 2^32 / 44100 */
     volatile int32_t gate;                      /* target level, Q15: 0 = released */
-    int32_t amp;                                /* the level now: glides to gate, no clicks */
+    volatile int32_t amp;                       /* audio-owned; main reads only for UI/quiet */
     uint32_t ph, age;
-    uint8_t note;
+    volatile uint8_t note;                      /* audio-owned; main reads only for LEDs */
 } voice[NV];
+static uint32_t audition_ages;
 
 /* Dedicated monophonic proof voice. D025 adds a target gate so OFF can release
  * click-safely while the default WP2.4 note-only render remains sample-identical. */
@@ -229,10 +233,83 @@ static void tracker_render_frame(int32_t *out)
         tracker_voice.inc = 0u;
 }
 
+static void audition_release_all(void)
+{
+    uint32_t v;
+    for (v = 0u; v < NV; v++)
+        voice[v].gate = 0;
+}
+
+static void audition_note_on(uint8_t note, uint8_t vel)
+{
+    uint32_t v, pick = 0u, best = 0xFFFFFFFFu;
+
+    if (note > 127u || !vel || vel > 127u)
+        return;
+    for (v = 0u; v < NV; v++) {
+        uint32_t score = voice[v].note == note && voice[v].gate ? 0u
+                       : voice[v].gate ? 0x80000000u + voice[v].age
+                       : (uint32_t)voice[v].amp + 1u;
+        if (score < best) {
+            best = score;
+            pick = v;
+        }
+    }
+    voice[pick].note = note;
+    voice[pick].age = ++audition_ages;
+    voice[pick].inc = note_inc(note);
+    voice[pick].gate = (int32_t)((uint32_t)vel * 90u);
+}
+
+static void audition_note_off(uint8_t note)
+{
+    uint32_t v;
+    for (v = 0u; v < NV; v++)
+        if (voice[v].note == note)
+            voice[v].gate = 0;
+}
+
+static void audition_consume_queue(void)
+{
+    uint32_t i, overflow;
+    FmtRtEvent event;
+
+    overflow = fmt_rt_queue_overflow_seq(&fmt_rt_queue_runtime);
+    if (overflow != fmt_rt_queue_overflow_seen) {
+        audition_release_all();
+        fmt_rt_queue_consumer_discard_all(&fmt_rt_queue_runtime);
+        fmt_rt_queue_overflow_seen = overflow;
+        return;
+    }
+
+    for (i = 0u; i < FMT_RT_QUEUE_CAPACITY; i++) {
+        uint8_t note, vel;
+
+        if (!fmt_rt_queue_dequeue(&fmt_rt_queue_runtime, &event))
+            break;
+        if (event.track >= FMT_TRACKS)
+            continue;
+        note = fmt_rt_event_note(&event);
+        if (note > FMT_NOTE_MAX)
+            continue;
+        if (event.type == FMT_RT_EVENT_NOTE_ON) {
+            vel = fmt_rt_event_velocity(&event);
+            if (vel != 0u && vel <= 127u)
+                audition_note_on(note, vel);
+        } else if (event.type == FMT_RT_EVENT_NOTE_OFF) {
+            audition_note_off(note);
+        }
+    }
+}
+
 static void app_audio(int32_t *out, uint32_t n)
 {
     uint32_t v, i;
     FmtPlaybackEvent event;
+
+    /* D034: bounded main->audio ingress is consumed only at callback start.
+     * Tracker D020-D033 timing remains on its independently verified path. */
+    audition_consume_queue();
 
     /* Main publishes only the desired run state. Audio owns all writes to the
      * transport runtime, then publishes a stopped acknowledgement for editor
@@ -280,7 +357,8 @@ static void app_audio(int32_t *out, uint32_t n)
         }
     }
 
-    /* Preserve Dinghy's original manual/audition voice path unchanged. */
+    /* D034 keeps rendering policy unchanged, but audio now owns every
+     * manual voice mutation as well as the render state. */
     for (v = 0; v < NV; v++) {
         uint32_t ph = voice[v].ph, step = voice[v].inc;
         int32_t amp = voice[v].amp, g = voice[v].gate;
@@ -301,33 +379,39 @@ static void app_audio(int32_t *out, uint32_t n)
 }
 
 /* ---- notes (main loop) */
-static uint32_t ages, last_note = 255;
+static uint32_t last_note = 255u;
 
 static void play(uint32_t note, uint32_t vel)
 {
-    uint32_t v, pick = 0, best = 0xFFFFFFFFu;
-    if (note > 127u || !vel) return;
-    for (v = 0; v < NV; v++) {
-        uint32_t score = voice[v].note == note && voice[v].gate ? 0u
-                       : voice[v].gate ? 0x80000000u + voice[v].age : (uint32_t)voice[v].amp + 1u;
-        if (score < best) { best = score; pick = v; }
-    }
-    voice[pick].note = (uint8_t)note;
-    voice[pick].age = ++ages;
-    voice[pick].inc = note_inc(note);
-    voice[pick].gate = (int32_t)(vel * 90u);
-    last_note = note;
+    FmtRtQueueStatus status;
+    uint8_t track = fmt_pattern_input_runtime.selected_track;
+
+    if (note > 127u || !vel || vel > 127u)
+        return;
+    status = fmt_rt_queue_enqueue_note_on(&fmt_rt_queue_runtime,
+                                          track,
+                                          (uint8_t)note,
+                                          (uint8_t)vel);
+    if (status == FMT_RT_QUEUE_OK)
+        last_note = note;
 }
 static void stop(uint32_t note)
 {
-    uint32_t v;
-    for (v = 0; v < NV; v++)
-        if (voice[v].note == note)
-            voice[v].gate = 0;
+    if (note > 127u)
+        return;
+    (void)fmt_rt_queue_enqueue_note_off(&fmt_rt_queue_runtime,
+                                        fmt_pattern_input_runtime.selected_track,
+                                        (uint8_t)note);
 }
 static int quiet(void)
 {
     uint32_t v;
+
+    /* D034 includes pending ingress and unresolved overflow recovery in the
+     * silence contract so flash work cannot overtake a queued NOTE_ON/OFF. */
+    if (fmt_rt_queue_depth(&fmt_rt_queue_runtime) != 0u ||
+        fmt_rt_queue_overflow_seq(&fmt_rt_queue_runtime) != fmt_rt_queue_overflow_seen)
+        return 0;
 
     /* settings_save() erases flash and waits for silence. A sustained tracker
      * gate or a release tail therefore still blocks flash just like WP2.4 did. */
@@ -483,6 +567,9 @@ static void app_main(void)
     fmt_tracker_effect_cache_reset();
     fmt_tracker_effect_state_reset(&fmt_tracker_effect_runtime);
     fmt_tracker_row_event_reset(&fmt_tracker_row_event_runtime);
+    fmt_rt_queue_reset(&fmt_rt_queue_runtime);
+    fmt_rt_queue_overflow_seen = 0u;
+    audition_ages = 0u;
     tracker_effect_row_word = fmt_playback_params_default_word();
     fmt_playback_seed_proof_pattern();
     fmt_playback_params_rebuild();
