@@ -85,7 +85,7 @@ new = '| PULSE deterministic vectors + JieLi target compile | required | require
 assert s.count(old) == 1, 'TEST_MATRIX oscillator rows mismatch'
 s = s.replace(old, new, 1)
 old = 'WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.'
-new = 'WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.  \nWP4.2 detailed evidence: `WP4_2_PULSE_CONTRACT.md`, `WP4_2_VERIFICATION.md`.'
+new = 'WP4.1 detailed evidence: `WP4_1_ENGINE_CONTRACT.md`, `WP4_1_VERIFICATION.md`.\nWP4.2 detailed evidence: `WP4_2_PULSE_CONTRACT.md`, `WP4_2_VERIFICATION.md`.'
 assert s.count(old) == 1, 'TEST_MATRIX evidence anchor mismatch'
 p.write_text(s.replace(old, new, 1))
 
