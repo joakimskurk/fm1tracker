@@ -12,7 +12,7 @@ volatile Fmt8BitRowParamCache fmt_8bit_row_param_cache
 static volatile uint32_t *fmt_8bit_linked_slot(uint32_t track, uint32_t row)
 {
     if (track >= FMT_TRACKS || row >= FMT_STEPS_PER_PATTERN)
-        return (volatile uint32_t *)0;
+        return 0;
     return &fmt_8bit_row_param_cache.word[track][row];
 }
 
@@ -34,67 +34,62 @@ static uint8_t fmt_8bit_linked_row_context(const FmtSong *song,
         return 0u;
 
     current = song->tracks[track].instrument;
-    for (row = 0u; row <= target_row; row++) {
-        const FmtStep *step = fmt_song_step_const(song,
-                                                  FMT_LOCK_EDITOR_PATTERN,
-                                                  track,
-                                                  row);
-        uint8_t target_malformed = 0u;
+    if (current >= FMT_INSTRUMENTS)
+        return 0u;
 
+    for (row = 0u; row <= target_row; row++) {
+        const FmtStep *step = fmt_store_step_const(FMT_PLAYBACK_PATTERN,
+                                                   track,
+                                                   row);
         if (!step)
             return 0u;
-
         if (step->note <= FMT_NOTE_MAX) {
             if (step->instrument < FMT_INSTRUMENTS) {
                 current = step->instrument;
             } else if (step->instrument != FMT_INSTRUMENT_INHERIT) {
-                target_malformed = (uint8_t)(row == target_row);
+                if (row == target_row)
+                    return 0u;
             }
-        }
-
-        if (row == target_row) {
-            const FmtInstrumentHeader *header;
-
-            if (target_malformed || current >= FMT_INSTRUMENTS)
-                return 0u;
-            header = &song->instruments[current];
-            if (header->mode != FMT_MODE_8BIT ||
-                !fmt_8bit_engine_supported(header->engine))
-                return 0u;
-            if (instrument_out)
-                *instrument_out = current;
-            if (engine_out)
-                *engine_out = header->engine;
-            return 1u;
         }
     }
 
-    return 0u;
+    if (current >= FMT_INSTRUMENTS)
+        return 0u;
+    {
+        const FmtInstrumentHeader *header = &song->instruments[current];
+        if (header->mode != FMT_MODE_8BIT ||
+            !fmt_8bit_engine_supported(header->engine))
+            return 0u;
+        if (instrument_out)
+            *instrument_out = current;
+        if (engine_out)
+            *engine_out = header->engine;
+    }
+    return 1u;
 }
 
-static uint8_t fmt_8bit_linked_collect_locks(uint32_t track,
-                                             uint32_t row,
-                                             Fmt8BitParamLock locks[4],
-                                             uint8_t *count_out)
+static uint32_t fmt_8bit_linked_resolve_row(const FmtSong *song,
+                                            uint32_t track,
+                                            uint32_t row,
+                                            uint8_t instrument,
+                                            uint8_t engine)
 {
+    Fmt8BitParamLock locks[FMT_8BIT_MAX_ROW_LOCKS];
     uint8_t count = 0u;
     uint8_t ordinal;
+    uint32_t word = 0u;
     FmtLockStatus status;
 
-    if (count_out)
-        *count_out = 0u;
-    if (!locks || !count_out)
-        return 0u;
-
-    status = fmt_lock_count(FMT_LOCK_EDITOR_PATTERN, track, row, &count);
-    if (status != FMT_LOCK_STATUS_OK || count > FMT_LOCKS_PER_STEP)
+    (void)song;
+    status = fmt_lock_count(FMT_PLAYBACK_PATTERN, track, row, &count);
+    if (status != FMT_LOCK_STATUS_OK || count > FMT_8BIT_MAX_ROW_LOCKS)
         return 0u;
 
     for (ordinal = 0u; ordinal < count; ordinal++) {
         FmtParamId id = (FmtParamId)FMT_PARAM_NONE;
         uint16_t value = 0u;
 
-        status = fmt_lock_at(FMT_LOCK_EDITOR_PATTERN,
+        status = fmt_lock_at(FMT_PLAYBACK_PATTERN,
                              track,
                              row,
                              ordinal,
@@ -107,37 +102,13 @@ static uint8_t fmt_8bit_linked_collect_locks(uint32_t track,
         locks[ordinal].reserved = 0u;
     }
 
-    *count_out = count;
-    return 1u;
-}
-
-static uint32_t fmt_8bit_linked_resolve_row(const FmtSong *song,
-                                            uint32_t track,
-                                            uint32_t row,
-                                            uint8_t instrument,
-                                            uint8_t engine)
-{
-    Fmt8BitParamLock locks[FMT_LOCKS_PER_STEP];
-    uint8_t lock_count = 0u;
-    uint32_t word = 0u;
-    uint8_t status;
-
-    (void)song;
-    if (instrument >= FMT_INSTRUMENTS ||
-        !fmt_8bit_engine_supported(engine) ||
-        !fmt_8bit_linked_collect_locks(track, row, locks, &lock_count))
+    if (fmt_8bit_resolve_page(engine,
+                              &fmt_8bit_instrument_base[instrument],
+                              locks,
+                              count,
+                              &word) == FMT_8BIT_RESOLVE_INVALID)
         return 0u;
-
-    status = fmt_8bit_resolve_page(engine,
-                                   &fmt_8bit_instrument_base[instrument],
-                                   locks,
-                                   lock_count,
-                                   &word);
-    if (status == FMT_8BIT_RESOLVE_OK ||
-        status == FMT_8BIT_RESOLVE_DOMAIN_FALLBACK ||
-        status == FMT_8BIT_RESOLVE_STRUCTURAL_FALLBACK)
-        return word;
-    return 0u;
+    return word;
 }
 
 void fmt_8bit_linked_params_reset(void)
@@ -146,11 +117,9 @@ void fmt_8bit_linked_params_reset(void)
 
     for (instrument = 0u; instrument < FMT_INSTRUMENTS; instrument++)
         fmt_8bit_param_set_defaults(&fmt_8bit_instrument_base[instrument]);
-
-    for (track = 0u; track < FMT_TRACKS; track++) {
+    for (track = 0u; track < FMT_TRACKS; track++)
         for (row = 0u; row < FMT_STEPS_PER_PATTERN; row++)
             fmt_8bit_row_param_cache.word[track][row] = 0u;
-    }
 }
 
 int fmt_8bit_linked_params_rebuild_track(uint32_t track)
@@ -162,15 +131,9 @@ int fmt_8bit_linked_params_rebuild_track(uint32_t track)
     if (!song || track >= FMT_TRACKS)
         return 0;
 
-    if (song->meta.mode != FMT_MODE_8BIT) {
-        for (row = 0u; row < FMT_STEPS_PER_PATTERN; row++)
-            fmt_8bit_row_param_cache.word[track][row] = 0u;
-        return 1;
-    }
-
     current = song->tracks[track].instrument;
     for (row = 0u; row < FMT_STEPS_PER_PATTERN; row++) {
-        const FmtStep *step = fmt_store_step_const(FMT_LOCK_EDITOR_PATTERN,
+        const FmtStep *step = fmt_store_step_const(FMT_PLAYBACK_PATTERN,
                                                    track,
                                                    row);
         uint8_t malformed_note = 0u;
