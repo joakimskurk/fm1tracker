@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 3 - p-locks and tracker effects**
 
-State: **IN PROGRESS - WP3.7 active; D033 frozen before source - 2026-10-24**
+State: **IN PROGRESS - WP3.1-WP3.7 complete; WP3.8 ready for D034 architecture freeze - 2026-10-24**
 
 Parent issue: #20  
 Current branch: `phase3/plocks-effects`
@@ -57,10 +57,6 @@ D031 makes VOICE LEVEL, FINE PITCH and TRACK LEVEL audible as row-local override
 
 ### WP3.6 - arpeggio / slide / portamento / vibrato tracker effects - COMPLETE - #25
 
-Start head:
-
-`44f4a6573c8729735a82283294fcf4837cf70b24`
-
 Final verified source/workflow checkpoint:
 
 `d1910cb86b84240051cedfabb7701140259d8274`
@@ -74,54 +70,84 @@ Final GitHub Actions:
 Evidence: `docs/WP3_6_VERIFICATION.md`  
 Normative contract: `docs/WP3_6_EFFECT_CONTRACT.md`
 
+D032 freezes commands `0x00..0x05` for NONE / ARPEGGIO / SLIDE_UP / SLIDE_DOWN / PORTAMENTO / VIBRATO in the existing `FmtStep.effect/effect_value` bytes. `FmtStep` remains 8 B and `FmtPlaybackEvent` remains 4 B.
+
+D032 timing uses exactly six effect ticks per row from the D020 phase domain: row phase `661500`, effect tick phase `110250`, tick 0 at row dispatch, internal thresholds `110250/220500/330750/441000/551250`, next row at `661500`. At 120 BPM the verified nonzero tick frames are `919,1838,2757,3675,4594`; the next row starts at `5513`.
+
+WP3.6 adds one 256 B aligned effect-row cache and a 12 B `FmtTrackerEffectState`.
+
+Final WP3.6 resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool.
+
+### WP3.7 - retrig / note delay / note cut - COMPLETE - #26
+
+Start head:
+
+`e2f354018b4cbad636b51ac8ae98c9b226e7ef18`
+
+Production audio-lane integration:
+
+`9ab3646a8b7ee36027d22855bd7bade61b3e46cf`
+
+Final clean-tree verified source/workflow checkpoint:
+
+`d2a97798149816957745de818e4568c518a9a7e7`
+
+Final GitHub Actions:
+
+- run `40077809743`
+- job `120824870575` (`tracker-events-closeout`)
+- result **SUCCESS**
+
+Evidence: `docs/WP3_7_VERIFICATION.md`  
+Normative contract: `docs/WP3_7_EVENT_CONTRACT.md`
+
 Evidence artifact:
 
-- ID `12552566558`
-- ZIP SHA-256 `3ce38fec8f73f1f2a842cc335a45a4a95be7bd60e1edba65cc89654a9cd4a3de`
+- ID `12553932464`
+- ZIP SHA-256 `5fca527df35446a879934b91d35d22acf0a0d7bc09ef1eb93e8e57fa25c9d332`
 
-D032 freezes the tracker effect command domain:
+D033 extends the same tracker effect-command domain:
 
-- `0x00` NONE
-- `0x01` ARPEGGIO
-- `0x02` SLIDE_UP
-- `0x03` SLIDE_DOWN
-- `0x04` PORTAMENTO
-- `0x05` VIBRATO
+- `0x06` RETRIG
+- `0x07` NOTE DELAY
+- `0x08` NOTE CUT
+- `0x09..0xFF` safe NONE/fallback.
 
-Effects use the existing `FmtStep.effect/effect_value` bytes and remain separate from D027 p-lock IDs. `FmtStep` remains 8 B and `FmtPlaybackEvent` remains 4 B.
+D033 reuses D032's exact six-tick row grid and deliberately does **not** introduce the WP3.8 general queue. It adds only `FmtTrackerRowEventState`, exactly 4 B ordinary RAM.
 
-D032 timing uses exactly six effect ticks per row from the D020 phase domain:
+Key semantics:
 
-- row phase `661500`
-- effect tick phase `110250`
-- tick 0 at row dispatch
-- internal thresholds `110250`, `220500`, `330750`, `441000`, `551250`
-- next row at `661500`; row dispatch wins over any synthetic tick 6.
-
-At 120 BPM the verified effect tick frames are `919,1838,2757,3675,4594`; the next row starts at frame `5513`.
-
-Persistent proof pitch is Q7. SLIDE and PORTAMENTO may change persistent pitch; ARPEGGIO and VIBRATO are transient. Final pitch precedence is:
-
-`persistent_pitch_q7 + (D031_FINE - 128) + transient_effect_mod_q7`
-
-clamped to `0..16383`.
-
-WP3.6 adds:
-
-- `fmt_tracker_effect_cache[64]`: 256 B ordinary RAM
-- `FmtTrackerEffectState`: 12 B ordinary RAM
-
-Audio reads one 32-bit effect snapshot at row dispatch. No allocator, D028 traversal, variable event loop, screen/flash work, float or runtime 64-bit division enters the effect path.
+- RETRIG `1..5` resets proof-oscillator phase at matching nonzero ticks while preserving logical gate/level, pitch and D032 state; `0` means no retrig and `>5` is a no-op.
+- NOTE DELAY `1..5` withholds only an ordinary NOTE until the exact tick. TIE/EMPTY/OFF are never delayed. The delayed NOTE consumes the exact D031 row snapshot captured at row dispatch. `0` is immediate and `>5` is a no-op.
+- NOTE CUT `0..5` applies synthetic D025 OFF semantics at the exact tick; CUT 0 occurs after the ordinary row event but before the first rendered sample. `>5` is a no-op.
+- at each nonzero tick there is at most one fixed-state D033 action; no variable event loop or allocator enters the audio path.
 
 Focused proof:
 
-`FMT_TRACKER_EFFECT_TESTS_OK=1`
+`FMT_TRACKER_EVENT_TESTS_OK=1`
 
-`WP3_6_TICK_GRID_TESTS_OK=1`
+`WP3_7_EVENT_AUDIO_BEHAVIOR_OK=1 delay=1 cut=1 cut0=1 retrig=1 invalid_noop=1 midi_events=0`
 
-`WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1 arp_ticks=1 slide_up=1 slide_down=1 porta_glide=1 vibrato=1 fine_composition=1 invalid_none=1 midi_events=0`
+Measured 120 BPM behavior:
 
-Invalid command audio is byte-identical to control.
+- NOTE DELAY 3 starts at frame `2757`
+- NOTE CUT 3 diverges from control at frame `2757`
+- RETRIG 2 diverges from control at frame `1838`
+- delay/cut/retrig value `6` are each byte-identical to the control WAV.
+
+Final WP3.7 resources:
+
+| Resource | Used | Limit | Free | Delta vs WP3.6 |
+|---|---:|---:|---:|---:|
+| app image | 65,940 B | 581,564 B | 515,624 B | +412 B |
+| normal RAM | 13,008 B | 98,304 B | 85,296 B | +4 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
+
+Final firmware artifacts:
+
+- `fm1tracker.bin` SHA-256 `f71bc5770ce2b56bcbc3fb4034b882f1a80f0b1997cdd4534cc7b8dd45100e2b`
+- `fm1tracker-0.1.fwsc` SHA-256 `cd4b3138ecb6e4e853b67cbe4b8a049e43290798dad26accf606279dc69e383d`
+- package identity `FM-1_987`.
 
 Historical default WAV remains byte-identical:
 
@@ -131,44 +157,27 @@ D031 locked WAV remains byte-identical:
 
 `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
 
-Final WP3.6 resources:
-
-| Resource | Used | Limit | Free | Delta vs WP3.5 |
-|---|---:|---:|---:|---:|
-| app image | 65,528 B | 581,564 B | 516,036 B | +804 B |
-| normal RAM | 13,004 B | 98,304 B | 85,300 B | +268 B |
-| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
-
-The +268 B RAM delta is exactly the 256 B D032 effect cache plus 12 B effect runtime state.
-
-Final artifacts:
-
-- `fm1tracker.bin` SHA-256 `01f8dc1fcec3371256dca767458709dcdc48303c833f7a4f9cb214ca4d5f0860`
-- `fm1tracker-0.1.fwsc` SHA-256 `ee7d14f32497fd701c3a291a4728fa1f3b56a881dab2dafdf497fb74fb3d5968`
-- package identity `FM-1_987`
+All frozen WP3.6 D032 audio fixtures also remain byte-identical through WP3.7.
 
 ## Next milestone
 
-**WP3.7 - retrig / note delay / note cut**
+**WP3.8 - bounded event queue and overflow policy**
 
-State: **IN PROGRESS - D033 frozen; production source is the next step**
+State: **READY TO START - D034 architecture freeze required before production source**
 
-GitHub issue: #26
+GitHub issue: #27
 
-WP3.7 start head: `e2f354018b4cbad636b51ac8ae98c9b226e7ef18`
+WP3.8 must first prove the actual producer/consumer need for a queue beyond D033's fixed row-local state, then freeze:
 
-D033 is frozen in `docs/DECISIONS.md` and `docs/WP3_7_EVENT_CONTRACT.md`. It defines:
+- event record and exact byte size;
+- queue capacity and RAM budget;
+- producer/consumer ownership and head/tail rules;
+- deterministic overflow behavior;
+- event timestamp domain and ordering against D020/D021/D031/D032/D033;
+- reset/STOP/seek semantics;
+- bounded worst-case audio work and malformed-event fallback.
 
-- exact command IDs and encoding for retrig, note delay and note cut;
-- exact sub-row timing and interaction with D020/D021/D032;
-- NOTE/TIE/OFF/EMPTY behavior;
-- retrigger phase/gate semantics;
-- delay/cut behavior on rows without a NOTE;
-- deterministic ordering against D032 ARP/slide/porta/vibrato and D031 p-locks;
-- bounded fixed state/work and malformed-command fallback;
-- whether WP3.7 truly needs any minimal WP3.8 queue primitive.
-
-Do not pull the general event queue/overflow design forward without an explicit superseding decision.
+Do not begin WP3.8 production source before D034 is frozen. Do not retrofit queue assumptions into the verified D033 path unless D034 explicitly supersedes a D033 rule.
 
 ## Important decisions / do not regress
 
@@ -180,6 +189,7 @@ Do not pull the general event queue/overflow design forward without an explicit 
 - D028-D030: bounded p-lock storage/editor behavior.
 - D031: three row-local p-lock playback parameters through a 256 B 32-bit cache; TRACK PAN storage-only.
 - D032: six-tick tracker effects, persistent Q7 slide/porta pitch and transient ARP/vibrato through a second 256 B row cache.
+- D033: retrig/delay/cut remain fixed-state, exact-six-tick and queue-free; event runtime exactly 4 B at the verified checkpoint.
 - Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
@@ -189,11 +199,11 @@ Do not pull the general event queue/overflow design forward without an explicit 
 
 ## Hardware limitation still open
 
-No physical FM-1 is currently available. Host/device-build evidence does not claim physical effect feel, install/boot/audio behavior, physical sound quality or measured AC791N execution margin.
+No physical FM-1 is currently available. Host/device-build evidence does not claim physical effect/event feel, install/boot/audio behavior, physical sound quality or measured AC791N execution margin.
 
 ## Exact next action
 
-Implement WP3.7 / #26 from the frozen D033 contract. Keep the fixed six-tick scheduler and do not begin WP3.8 queue work.
+Start WP3.8 / #27 with D034 architecture analysis and freeze. Do **not** write queue production source until D034 is accepted.
 
 ## Last relevant checkpoints
 
@@ -205,7 +215,8 @@ Implement WP3.7 / #26 from the frozen D033 contract. Keep the fixed six-tick sch
 - WP3.4 verified: `178ba57a19adc8e25106f1c63e0df2f16478fb33`
 - WP3.5 verified: `17316f203dba7a93c9d03a52df6f45b12a7a2580`
 - WP3.6 verified: `d1910cb86b84240051cedfabb7701140259d8274`
+- WP3.7 verified: `d2a97798149816957745de818e4568c518a9a7e7`
 
 ## Last updated
 
-2026-10-24 - WP3.7 active. D033 frozen before source; no WP3.7 production source has been committed yet.
+2026-10-24 - WP3.7 complete and issue #26 closed. WP3.8 / #27 is ready for D034 architecture freeze; no WP3.8 production source has begun.
