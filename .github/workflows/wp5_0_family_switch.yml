@@ -29,7 +29,11 @@ jobs:
         run: |
           set -euo pipefail
           sh tests/run_wp5_0_family_switch_host.sh | tee "$RUNNER_TEMP/wp5_0_family_switch.log"
-          grep -F 'WP5_0_FAMILY_SWITCH_OK=1 cross_family_order=hard_silence_clear_attempt_commit_on_success fm_dsp=absent active_cross_track_steals=0' "$RUNNER_TEMP/wp5_0_family_switch.log"
+          grep -F 'WP5_0_FAMILY_SWITCH_PROBE_OK=1 row0=8bit row1=fm_unsupported_silent row2=8bit_reentry' "$RUNNER_TEMP/wp5_0_family_switch.log"
+          grep -F 'WP5_0_DELAYED_NOTE_ROUTER_OK=1 old_family_until_tick=1 delayed_note=same_router fail_to_silence=1 reentry=1' "$RUNNER_TEMP/wp5_0_family_switch.log"
+          grep -F 'WP5_0_MALFORMED_IDENTITY_OK=1 unknown_family=silent invalid_engine=silent aliasing=0 recovery=deterministic' "$RUNNER_TEMP/wp5_0_family_switch.log"
+          grep -F 'WP5_0_NONAPPLICABLE_PLOCK_OK=1 family=fm bit8_lock=stored_ignored_not_reinterpreted' "$RUNNER_TEMP/wp5_0_family_switch.log"
+          grep -F 'WP5_0_FAMILY_SWITCH_OK=1 cross_family_order=hard_silence_clear_attempt_commit_on_success delayed_note=same_router malformed=safe nonapplicable_plock=ignored fm_dsp=absent active_cross_track_steals=0' "$RUNNER_TEMP/wp5_0_family_switch.log"
       - name: Upload D048 family-switch evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,3 +43,5 @@ jobs:
           path: |
             build/wp5_0_family_switch/**
             build/host/wp5_0_family_switch.wav
+            build/host/wp5_0_family_delay.wav
+            build/host/wp5_0_family_malformed.wav
