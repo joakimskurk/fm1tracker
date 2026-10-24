@@ -1,0 +1,42 @@
+name: WP3.6 host hygiene execution once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_host_hygiene_exec_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply checked host patch
+        run: python3 .github/scripts/wp3_6_host_hygiene.py
+      - name: Verify warning-free frozen host behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mkdir -p build/host
+          sh tests/run_tracker_effect_tests.sh
+          sh tests/run_wp3_6_effect_audio_host.sh
+          cc -O2 -Wall -Wextra -Werror -Wno-unused-function -DDINGHY_HOST -DAPP_NAME='"FM1TRACKER"' -DAPP_VER='"hygiene"' -Ifirmware/src -Ifirmware/gen -o build/host/fm1tracker_wp3_6_werror firmware/src/dinghy.c
+          grep -F 'WP3_6_EFFECT_AUDIO_BEHAVIOR_OK=1' build/wp3_6_effect_audio_analysis.txt
+          echo 'WP3_6_HOST_HYGIENE_OK=1'
+      - name: Commit warning cleanup and frozen hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/host.c tests/run_wp3_6_effect_audio_host.sh
+          git commit -m 'WP3.6: clean host fixtures and freeze effect audio hashes'
+          git pull --rebase origin phase3/plocks-effects
+          git push origin HEAD:phase3/plocks-effects
