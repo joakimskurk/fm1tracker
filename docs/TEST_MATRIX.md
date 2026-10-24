@@ -5,8 +5,8 @@ This file is the current regression index. Exact historical vectors, hashes and 
 Legend:
 
 - ✅ verified/frozen as stated
-- 🟨 committed/frozen, CI evidence pending
-- ⬜ active/future requirement
+- 🟨 active implementation evidence pending
+- ⬜ future requirement
 - ⛔ physical hardware unavailable
 
 ## Permanent invariants
@@ -80,51 +80,58 @@ Complete, D049. Evidence: `WP5_1_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_1_VERIFICA
 
 ## WP5.2 / D050 curated FM4 algorithm routing - ACTIVE
 
-Normative contract: `WP5_2_FM_ALGORITHM_CONTRACT.md`.
+Normative contract: `WP5_2_FM_ALGORITHM_CONTRACT.md`.  
+Pre-implementation evidence: `WP5_2_PREIMPLEMENTATION_EVIDENCE.md`.
 
-### Contract freeze
+### Contract-first evidence
 
 | Check | Status |
 |---|---|
-| D050 committed before production routing source | ✅ frozen |
-| algorithm count exactly 4 | ✅ frozen |
-| ID 0 STACK4 | ✅ frozen |
-| ID 1 FAN3 | ✅ frozen |
-| ID 2 DUAL2 | ✅ frozen |
-| ID 3 PARALLEL4 | ✅ frozen |
-| operator numbering OP1..OP4 = index 0..3 | ✅ frozen |
-| evaluation order OP4 -> OP3 -> OP2 -> OP1 | ✅ frozen |
-| all four operators advance exactly once per sample | ✅ frozen |
+| D050 committed before production routing source | ✅ |
+| production routing source absent during reference run | ✅ |
+| D049 source/data unchanged | ✅ |
+| algorithm count exactly 4 | ✅ |
+| ID 0 STACK4 | ✅ |
+| ID 1 FAN3 | ✅ |
+| ID 2 DUAL2 | ✅ |
+| ID 3 PARALLEL4 | ✅ |
+| operator numbering OP1..OP4 = index 0..3 | ✅ |
+| evaluation order OP4 -> OP3 -> OP2 -> OP1 | ✅ |
+| all four operators advance exactly once per sample | ✅ |
 | algorithm state exactly 16 B, no extra history | ✅ frozen |
-| invalid algorithm fallback STACK4 | ✅ frozen |
-| mod-depth internal domain 0..16383 | ✅ frozen |
-| exact edge mapping `sample * depth * 4` | ✅ frozen |
-| multi-modulator accumulation modulo 2^32 | ✅ frozen |
-| carrier counts restricted to 1/2/4 | ✅ frozen |
-| carrier normalization via power-of-two toward zero | ✅ frozen |
+| invalid algorithm fallback STACK4 | ✅ |
+| mod-depth internal domain 0..16383 | ✅ |
+| exact edge mapping `sample * depth * 4` | ✅ |
+| multi-modulator accumulation modulo 2^32 | ✅ |
+| carrier counts restricted to 1/2/4 | ✅ |
+| carrier normalization via power-of-two toward zero | ✅ |
 | no runtime graph traversal | ✅ frozen |
 | router object ceiling <= 2,048 B text+rodata | ✅ frozen |
-| STACK4 long SHA `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd` | ✅ frozen |
-| FAN3 long SHA `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653` | ✅ frozen |
-| DUAL2 long SHA `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269` | ✅ frozen |
-| PARALLEL4 long SHA `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882` | ✅ frozen |
-| source-absent D050 reference CI | 🟨 pending |
+| STACK4 long SHA `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd` | ✅ |
+| FAN3 long SHA `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653` | ✅ |
+| DUAL2 long SHA `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269` | ✅ |
+| PARALLEL4 long SHA `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882` | ✅ |
+| 65,536-render stress per algorithm | ✅ |
+| D049 production regression | ✅ |
+| WP5.0 router/representative host baseline | ✅ |
+| source-absent run `40135979431`, job `120997461479` | ✅ |
+| evidence artifact `12577609841`, SHA `d3465c39b17416d58c56d98c196a18ae1c4dbd6e07d2ab7cc4ca2b3992cab85` | ✅ |
 
 ### Production implementation gates
 
 | Check | Status |
 |---|---|
-| `fmt_fm_algorithm.*` source/header | ⬜ blocked until contract gate green |
-| exact state-size/reset/null behavior | ⬜ |
-| algorithm sanitizer | ⬜ |
-| mod-depth clamp/edge anchors | ⬜ |
-| modular accumulation anchors | ⬜ |
-| carrier normalization anchors | ⬜ |
-| exact first-12 vectors | ⬜ |
-| exact four long hashes/final phases | ⬜ |
-| 65,536-render-per-algorithm stress | ⬜ |
-| algorithm-switch phase continuity | ⬜ |
-| no heap/float/int64/divide/modulo/unbounded traversal | ⬜ |
+| `fmt_fm_algorithm.*` source/header | 🟨 implementation now allowed |
+| exact state-size/reset/null behavior | 🟨 |
+| algorithm sanitizer | 🟨 |
+| mod-depth clamp/edge anchors | 🟨 |
+| modular accumulation anchors | 🟨 |
+| carrier normalization anchors | 🟨 |
+| exact first-12 vectors | 🟨 |
+| exact four long hashes/final phases | 🟨 |
+| 65,536-render-per-algorithm stress | 🟨 |
+| algorithm-switch phase continuity | 🟨 |
+| no heap/float/int64/divide/modulo/unbounded traversal | 🟨 |
 | pinned PI32v2 router compile | ⬜ |
 | router object <= 2,048 B | ⬜ |
 | D049 regression exact | ⬜ |

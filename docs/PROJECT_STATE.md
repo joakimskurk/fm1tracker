@@ -2,20 +2,22 @@
 
 This is the **single source of truth for current execution state**.
 
-A new chat/session should read `START_HERE.md`, then this file, `WP5_2_FM_ALGORITHM_CONTRACT.md`, `WP5_1_VERIFICATION.md`, `WP5_1_FM_OPERATOR_CONTRACT.md`, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
+A new chat/session should read `START_HERE.md`, then this file, `WP5_2_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_2_FM_ALGORITHM_CONTRACT.md`, `WP5_1_VERIFICATION.md`, `WP5_1_FM_OPERATOR_CONTRACT.md`, `WP5_0_VERIFICATION.md`, `D047_MIXED_ENGINE_ARCHITECTURE.md`, `CURRENT_DECISIONS.md`, `WORK_PACKAGES.md`, `EXECUTION_PROTOCOL.md`, `CURRENT_TEST_STATE.md`, `TEST_MATRIX.md`, and `ROADMAP.md` before changing code.
 
 ## Current phase
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0/WP5.1 complete, WP5.2 D050 contract frozen, source-absent gate pending - 2026-10-24**
+State: **IN PROGRESS - WP5.0/WP5.1 complete, WP5.2 D050 source-absent gate green, production routing implementation allowed - 2026-10-24**
 
 Current work package: **WP5.2 - curated FM4 algorithm routing**  
 Parent issue: **#42**  
 Work-package issue: **#45**  
 Current branch: `phase5/fm4-algorithms`  
 WP5.1 closeout checkpoint: `bc71289690c8f9bd36e9cbbb378e0df3de1b9f25`  
-WP5.1 canonical run: `40134823600`
+D050 contract checkpoint: `f2d328f516bb66517d1e06d98aab1f3c09dcc68b`  
+D050 source-absent run: `40135979431`  
+D050 source-absent job: `120997461479`
 
 Do not begin WP5.3 ratio/tuning work, WP5.4 final level/mod-index mapping, WP5.5 feedback, WP5.6 envelopes, WP5.7 voice integration, WP5.8 parameter pages or WP5.9 audible mixed integration while WP5.2 is active.
 
@@ -36,7 +38,7 @@ Canonical WP5.1 exit: run `40134823600`, host job `120994003059`, target job `12
 
 ## D049 operator compatibility baseline
 
-WP5.2 must not alter D049 semantics:
+WP5.2 may not alter D049 semantics:
 
 - `FmtFmOperator` exactly 4 B, one uint32 phase;
 - 2^32 phase cycle with natural wrap;
@@ -51,9 +53,18 @@ The running application remains exact WP5.0 because FM DSP is still isolated.
 
 ## Active package - WP5.2 / D050 / issue #45
 
-Normative contract: `docs/WP5_2_FM_ALGORITHM_CONTRACT.md`.
+Normative contract: `docs/WP5_2_FM_ALGORITHM_CONTRACT.md`.  
+Pre-implementation evidence: `docs/WP5_2_PREIMPLEMENTATION_EVIDENCE.md`.
 
-**D050 is frozen before production FM algorithm-routing source.**
+D050 source-absent gate is **GREEN**:
+
+- run `40135979431`
+- job `120997461479`
+- head `f2d328f516bb66517d1e06d98aab1f3c09dcc68b`
+- artifact ID `12577609841`
+- artifact SHA-256 `d3465c39b17416d58c56d98c196a18ae1c4dbd6e07d2ab7cc4ca2b3992cab85`
+
+Production `fmt_fm_algorithm.*` may now be implemented, but must remain isolated from `dinghy.c` and match D050 exactly.
 
 ### Frozen algorithm set
 
@@ -72,13 +83,12 @@ Frozen routing rules:
 - routing state is exactly four D049 operators, 16 B total, no extra mutable history;
 - algorithm changes do not reset/pause phase;
 - invalid algorithm IDs sanitize to STACK4;
-- phase increments and operator levels are already-resolved inputs;
 - internal mod depth clamps to 0..16383;
 - edge phase offset is exactly `sample * depth * 4`;
-- multi-modulator phase offsets accumulate modulo 2^32;
+- multiple phase offsets accumulate modulo 2^32;
 - carrier counts are only 1, 2 or 4;
-- multi-carrier output normalization uses sign-safe power-of-two truncation toward zero;
-- routing uses an explicit four-case static dispatch, not runtime graph traversal;
+- multi-carrier normalization uses sign-safe power-of-two truncation toward zero;
+- explicit four-case static dispatch only;
 - feedback state is absent until WP5.5;
 - isolated router object `.text + .rodata` ceiling is 2,048 B;
 - full app must remain exact WP5.0 while WP5.2 stays isolated.
@@ -90,33 +100,20 @@ Frozen 4,096-render hashes:
 - DUAL2 `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269`
 - PARALLEL4 `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882`
 
-All four algorithms finish the frozen 4,096-sample fixture with identical phases:
-
-```text
-OP1 0x4476A040
-OP2 0x95C7F080
-OP3 0xE71940C0
-OP4 0x386A9000
-```
-
 ### Exact next action
 
-Run the committed D050 source-absent CI gate and require it to prove:
+Implement the isolated D050 production routing primitive and focused verification:
 
-1. `fmt_fm_algorithm.h/.c` are absent;
-2. D049 operator source/data are unchanged from WP5.1 closeout;
-3. all four stable IDs/topologies/evaluation order reproduce the contract;
-4. mod-depth anchors and exact sign mirrors pass;
-5. modulo-2^32 phase-offset accumulation anchors pass;
-6. carrier normalization anchors pass;
-7. all frozen first-12 output vectors pass;
-8. all four 4,096-render hashes/final phases pass;
-9. 65,536 renders per algorithm keep output bounded and phase advancement exact;
-10. invalid IDs reproduce STACK4 exactly;
-11. D049 production vectors remain exact;
-12. normal WP5.0 WAV and inherited representative baseline remain exact.
-
-Only after this gate is green may `fmt_fm_algorithm.*` production source be added.
+1. add `firmware/src/fmt_fm_algorithm.h/.c` only;
+2. keep `dinghy.c`, D048 router and D049 operator source unchanged;
+3. implement exact 16 B state/reset/retrigger/null semantics;
+4. implement algorithm/depth sanitizers, safe modulo phase-offset addition and sign-safe carrier normalization;
+5. implement four unrolled algorithm cases with fixed OP4 -> OP3 -> OP2 -> OP1 evaluation;
+6. add focused C tests reproducing all D050 vectors/hashes/stress and algorithm-switch phase continuity;
+7. add source audit proving no loop/heap/float/int64/divide/modulo/store/router access in render;
+8. compile/measure isolated PI32v2 router object <= 2,048 B;
+9. re-prove D049 and full WP5.0 host/target identity;
+10. only after green implementation CI write `WP5_2_VERIFICATION.md` and close WP5.2.
 
 ## WP5.2 explicitly out of scope
 
@@ -128,22 +125,10 @@ Only after this gate is green may `fmt_fm_algorithm.*` production source be adde
 - FM parameter pages/p-lock IDs, WP5.8;
 - simultaneous audible 8-BIT + FM4, WP5.9.
 
-## Important invariants
-
-- eight logical tracks are never silently reduced;
-- tracker timing/p-lock timing remain deterministic;
-- D034 remains an exact 32-entry queue;
-- no active cross-track primary stealing;
-- D048 remains authoritative for family routing/ownership;
-- D049 remains authoritative for each operator;
-- no float in firmware DSP and no runtime 64-bit division.
-
 ## Hardware limitation
 
-No physical FM-1 is available. Host/device-build evidence does not prove physical install/boot, sound quality, controls, screen feel or measured AC791N callback margin.
-
-`hardware_margin_claim=none`
+No physical FM-1 is available. `hardware_margin_claim=none`.
 
 ## Last updated
 
-2026-10-24 - D050 algorithm-routing contract and source-absent reference gate prepared. The contract gate is the only next action before production WP5.2 routing implementation.
+2026-10-24 - D050 source-absent gate is green. Isolated production algorithm-routing implementation is the only next action.
