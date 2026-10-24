@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 **Phase 3 — p-locks and tracker effects**
 
-State: **IN PROGRESS — WP3.2 complete; WP3.3 ready to start — 2026-10-24**
+State: **IN PROGRESS — WP3.3 active — 2026-10-24**
 
 Parent issue: #20
 
@@ -26,11 +26,9 @@ Verified checkpoint:
 
 `5af8065a9c98884d22682075b600d9790cfa7940`
 
-Evidence:
+Evidence: `docs/WP3_1_VERIFICATION.md`
 
-`docs/WP3_1_VERIFICATION.md`
-
-D027 freezes one-byte semantic parameter identity, namespace ranges and exactly four initial production-lockable IDs:
+D027 freezes one-byte semantic parameter identity and exactly four current production-lockable IDs:
 
 - `0x01` `FMT_PARAM_VOICE_LEVEL`
 - `0x02` `FMT_PARAM_PITCH_FINE`
@@ -43,11 +41,7 @@ Namespace membership alone never implies assignment.
 
 **WP3.2 — sparse four-lock-per-step storage** — COMPLETE — issue #21
 
-WP3.2 start head:
-
-`dc0f4280f27e8a1a1a4608faef8d59cfceb68a1e`
-
-Final verified source/workflow checkpoint:
+WP3.2 verified source/workflow checkpoint:
 
 `da2f5afe9b1da6defc3857b91f52b40d7525f33b`
 
@@ -57,97 +51,120 @@ Final GitHub Actions:
 - job `120703577806` (`lock-store-closeout`)
 - result **SUCCESS**
 
-Durable evidence:
+Durable evidence: `docs/WP3_2_VERIFICATION.md`
 
-`docs/WP3_2_VERIFICATION.md`
+D028 freezes one global sparse 2,048-record pool with exact 8-byte owner-checked records, max four active locks per individual step, ascending parameter-ID lists, deterministic replacement/removal/clear and explicit STEP_FULL/POOL_FULL/CORRUPT handling.
 
-### D028 frozen storage contract
+Final WP3.2 footprint:
 
-The full editable song shares one global sparse pool of 2,048 records. This is a deliberate global capacity, not four locks on all 8,192 resident steps simultaneously.
+| Resource | Used | Limit | Free |
+|---|---:|---:|---:|
+| app image | 59,388 B | 581,564 B | 522,176 B |
+| normal RAM | 12,468 B | 98,304 B | 85,836 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B |
 
-`FmtLock` is exactly 8 B:
+Frozen default WAV remains:
 
-```text
-uint16 next       offset 0
-uint16 value      offset 2
-uint16 owner      offset 4
-uint8  param_id   offset 6
-uint8  state      offset 7
-```
+`453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 
-The pool is exactly:
-
-```text
-2048 * 8 B = 16,384 B
-```
-
-Allocator runtime state is exactly 4 B: a 16-bit free head plus 16-bit used count.
-
-Any individual step may own at most four active locks. Active step lists are strictly sorted by ascending D027 parameter ID. Setting an existing parameter replaces in place and consumes no record. A fifth prevalidated unique lock returns `STEP_FULL`; global exhaustion returns `POOL_FULL`.
-
-Each active record carries a linear step owner `0..8191`, so an in-range index pointing to another step is rejected as corruption. Mutating operations validate the bounded list before changes; malformed/cross-owned/unsorted/overlong chains fail without partial mutation.
-
-The earlier planning claim that 2,048 records covered four locks on every song step was corrected: 16 patterns × 8 tracks × 64 steps × 4 would require 32,768 records. V0.1 intentionally remains a sparse global pool.
-
-### Final WP3.2 linked resources
-
-```text
-01c20000 .pool 00010168 fmt_store_storage
-01c30168 .pool 00004000 fmt_lock_store_storage
-01c0b080 .bss  00000004 fmt_lock_store_runtime
-```
-
-Final footprint:
-
-| Resource | Used | Limit | Free | Delta vs WP3.1 |
-|---|---:|---:|---:|---:|
-| app image | 59,388 B | 581,564 B | 522,176 B | +136 B |
-| normal RAM | 12,468 B | 98,304 B | 85,836 B | +4 B |
-| pool RAM | 113,000 B | 344,064 B | 231,064 B | +16,384 B |
-
-Editable core plus lock records:
-
-```text
-FmtSong core              65,896 B
-lock records              16,384 B
----------------------------------
-editable core + locks     82,280 B
-```
-
-This remains 16,024 B below the frozen 96 KiB editable-song target.
-
-Final artifacts:
-
-- `fm1tracker.bin`: `b717a504f96601393e493f52142e3120204051c5e11b733b0113309e0219ac2b`
-- `fm1tracker-0.1.fwsc`: `36c054c0f6c0cc8e86dd869fadf8d0093a560f5851a9ebd9b2405552642d5966`
-- identity `FM-1_987`
-- frozen WAV remains `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
-
-Final evidence artifact:
-
-- ID `12538271532`
-- ZIP SHA-256 `ecb0985b24201e3506d1512ead85e406e4226bebc7915d945cd5812e5dbd1830`
-
-## Next milestone
+## Current milestone
 
 **WP3.3 — hold-step + encoder p-lock editing**
 
-State: **READY TO START — no WP3.3 implementation has begun**
+State: **IN PROGRESS — 2026-10-24**
 
 GitHub issue: #22
 
-Before source code, WP3.3 must record the exact editor/gesture contract. It must freeze at least:
+WP3.3 start head:
 
-- step-hold/select gesture;
+`361c5efa308ade56a35fd3b50e6a77c9e3ee41bb`
+
+No WP3.3 source existed at the start checkpoint.
+
+### Exact objective
+
+Connect the verified D027 parameter registry and D028 sparse lock store to the first hardware-native p-lock editor gesture without yet applying locks to playback/audio and without adding WP3.4 delete/clear UX.
+
+D029 must be written before source implementation and must freeze:
+
+- exact step-hold/select gesture;
 - SEQ/STEP REC context gating;
-- encoder-to-D027 parameter mapping;
-- deterministic editor value scaling;
-- target step/track ownership during a gesture;
+- exact KNOB1..4 -> D027 parameter mapping;
+- first-lock initialization and relative encoder semantics;
+- editor-domain value ranges/clamping for the four assigned IDs;
+- whether the gesture writes storage only or also changes live/base parameters;
+- target pattern/track/step ownership for the duration of the gesture;
 - release/latch behavior;
-- storage-error handling;
-- minimal editing feedback.
+- simultaneous step-key/encoder ordering;
+- safe handling/feedback for D028 storage failures;
+- minimal tracker-screen feedback for the active edit gesture.
 
-WP3.3 is the first package allowed to call D028 `fmt_lock_set` from the hardware/editor path. It must not add lock delete/clear UX from WP3.4 or apply locks to playback/audio from WP3.5+.
+### Hardware/input facts already verified at package start
+
+The unchanged FM-1 HAL exposes seven encoders through `fm1_enc_take()`. It returns signed detent steps accumulated since the previous main-loop take; positive means clockwise. The decoder already makes one physical click equal one relative step and handles bounce/backtracking.
+
+Current encoder indexes are:
+
+- `ENC_SELECT = 0`
+- `ENC_ALGORITHM = 1`
+- `ENC_KNOB1 = 2`
+- `ENC_KNOB2 = 3`
+- `ENC_KNOB3 = 4`
+- `ENC_KNOB4 = 5`
+- `ENC_PRESETS = 6`
+
+This means WP3.3 can use explicit relative detent deltas rather than inventing an absolute-knob pickup threshold.
+
+Current D022 ordinary SEQ context already maps sixteen white physical note keys to the current 16-step page and the first eight black keys to D023 track selection. D024 STEP REC reinterprets all 27 note keys as pitch input, so WP3.3 must not silently steal the same keys there.
+
+### Reviewed D029 direction before source
+
+The intended prototype direction, to be frozen in D029 before implementation, is:
+
+- p-lock editing exists only in ordinary D022 SEQ/pattern context, not PERFORMANCE or STEP REC;
+- press and hold one white step key to arm p-lock editing for that exact global step and the selected track as they existed when the hold began;
+- the held white key still selects that step on press;
+- while that key remains physically held, KNOB1..4 are the only encoders that write locks;
+- target pattern remains the current Phase 2/3 editor pattern 0;
+- track and global step are snapshotted at gesture start so later track/page/cursor activity cannot redirect writes;
+- releasing the held white key ends the lock gesture immediately;
+- holding a different white step while a lock gesture is already active does not retarget the existing gesture; it may update ordinary cursor selection only after the current gesture ends, according to the frozen input order;
+- STEP REC entry, HOME or any context exit cancels the lock gesture without writing anything extra;
+- encoder movement writes storage only in WP3.3; it does not change proof playback, audition voices or base instrument state;
+- no delete/clear gesture exists in WP3.3.
+
+The exact parameter/value mapping still must be recorded in D029 before code.
+
+### Required verification
+
+1. exact gesture state is small, bounded and deterministic;
+2. only ordinary SEQ can begin or retain a p-lock gesture;
+3. held white key snapshots the intended pattern/track/global-step target;
+4. target cannot migrate after track/page/cursor changes;
+5. KNOB1..4 map only to the four authoritative D027 IDs;
+6. each signed encoder detent produces deterministic bounded value movement;
+7. first movement on an unlocked parameter creates exactly one lock;
+8. later movement on that parameter replaces in place without consuming another record;
+9. simultaneous encoder deltas are processed in fixed encoder order and remain independent;
+10. zero movement creates no lock;
+11. invalid context/release cancels safely;
+12. D028 STEP_FULL/POOL_FULL/CORRUPT outcomes cause no unintended song mutation;
+13. no lock is applied to playback/audio in this package;
+14. all Phase 2 + WP3.1 + WP3.2 regressions and frozen WAV remain green;
+15. full JieLi device build/resource delta is recorded;
+16. no WP3.4 delete/clear or WP3.5 playback semantics exist.
+
+### Strict non-goals
+
+- no user-facing lock deletion/clear — WP3.4;
+- no expanded replace/delete UX — WP3.4;
+- no playback/audio application of p-locks — WP3.5+;
+- no tracker-effect semantics;
+- no new parameter IDs unless separately justified;
+- no 8-BIT or FM4 engine work;
+- no live-performance capture/automation;
+- no persistence/file-format work;
+- no final hardware control-map freeze.
 
 ## Important decisions / do not regress
 
@@ -163,15 +180,15 @@ WP3.3 is the first package allowed to call D028 `fmt_lock_set` from the hardware
 
 ## Product direction that must not be lost
 
-`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction. Current Phase 3 storage/editor work is track/step-owned. Do not silently force future GLOBAL/master automation into D028 track lock ownership.
+`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction. WP3.3 edits track/step-owned p-lock data only. It must not define future GLOBAL/master automation ownership.
 
 ## Hardware limitation still open
 
-No physical FM-1 is currently available. Host/device-build verification does not claim physical install/boot/audio, panel ergonomics, display readability/smoothness or measured AC791N execution timing.
+No physical FM-1 is currently available. Host/device-build verification does not claim physical encoder/white-key comfort, display readability/smoothness, install/boot/audio behavior or measured AC791N execution timing.
 
 ## Exact next action
 
-Start WP3.3 / issue #22 as its own package. Verify actual branch HEAD, mark WP3.3 IN PROGRESS with that start head, then freeze the editor gesture/value contract before source. Do not begin WP3.4.
+Freeze D029 in `DECISIONS.md`, align the provisional parameter-lock section in `CONTROL_MAP_V0.1.md`, and only then create the WP3.3 editor/input source. Do not begin WP3.4.
 
 ## Last relevant checkpoints
 
@@ -179,8 +196,8 @@ Start WP3.3 / issue #22 as its own package. Verify actual branch HEAD, mark WP3.
 - Phase 3 branch start: `c3693d8c7bb3d5306794aa232d6d25bef50c6c99`
 - WP3.1 verified: `5af8065a9c98884d22682075b600d9790cfa7940`
 - WP3.2 verified: `da2f5afe9b1da6defc3857b91f52b40d7525f33b`
-- WP3.2 final run: `40038453521`
+- WP3.3 start head: `361c5efa308ade56a35fd3b50e6a77c9e3ee41bb`
 
 ## Last updated
 
-2026-10-24 — WP3.2 verified complete. WP3.3 / issue #22 is READY TO START; no WP3.3 source exists.
+2026-10-24 — WP3.3 / issue #22 marked IN PROGRESS at `361c5efa...`. D029 must be frozen before editor source implementation.
