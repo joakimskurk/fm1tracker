@@ -21,6 +21,18 @@
 #include "fmt_tracker_effect.h"
 #include "fmt_8bit_linked_params.h"
 #include "fmt_8bit_engine.h"
+#include "fmt_tracker_event.h"
+#include "fmt_transport.h"
+
+/* D045 host-only read probes. platform.c includes this harness before dinghy.c
+ * defines the externally visible runtime objects, so declare only those public
+ * test-visible symbols here. No firmware debug hook is added. */
+extern FmtTransport fmt_transport_runtime;
+extern FmtTrackerEffectState fmt_tracker_effect_runtime;
+extern FmtTrackerEffectState fmt_tracker_effect_runtime_extra[FMT_TRACKS - 1u];
+extern FmtTrackerRowEventState fmt_tracker_row_event_runtime;
+extern FmtTrackerRowEventState fmt_tracker_row_event_runtime_extra[FMT_TRACKS - 1u];
+extern Fmt8BitEngine fmt_8bit_engine_runtime;
 
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
@@ -337,22 +349,17 @@ static void platform_poll(void)                 /* one call = one millisecond */
                        (unsigned)phase, (unsigned)lfsr);
             }
             for (track = 0u; track < FMT_TRACKS; track++) {
-                FmtTrackerEffectState *effect = tracker_effect_state(track);
-                FmtTrackerRowEventState *row_event = tracker_row_event_state(track);
+                FmtTrackerEffectState *effect = track == 0u
+                    ? &fmt_tracker_effect_runtime
+                    : &fmt_tracker_effect_runtime_extra[track - 1u];
+                FmtTrackerRowEventState *row_event = track == 0u
+                    ? &fmt_tracker_row_event_runtime
+                    : &fmt_tracker_row_event_runtime_extra[track - 1u];
                 printf("%6u ms  fixture state t%u tick%u cmd%u value%u pitch%u transient%d "
-                       "pending%u pnote%u common%08x page%08x currenti%u notei%u\n",
-                       fm1_ms, track,
-                       effect ? effect->tick : 0u,
-                       effect ? effect->command : 0u,
-                       effect ? effect->value : 0u,
-                       effect ? effect->pitch_q7 : 0u,
-                       effect ? effect->transient_q7 : 0,
-                       row_event ? row_event->pending_valid : 0u,
-                       row_event ? row_event->pending_note : 0u,
-                       (unsigned)tracker_common_row_word[track],
-                       (unsigned)tracker_page_row_word[track],
-                       tracker_current_instrument[track],
-                       tracker_note_instrument[track]);
+                       "pending%u pnote%u\n",
+                       fm1_ms, track, effect->tick, effect->command, effect->value,
+                       effect->pitch_q7, effect->transient_q7,
+                       row_event->pending_valid, row_event->pending_note);
             }
         } else if (script[step].fixture_action == HOST_FIX_BASE) {
             Fmt8BitParamSet base;
