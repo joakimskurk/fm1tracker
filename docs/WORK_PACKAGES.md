@@ -155,7 +155,7 @@ Status: **IN PROGRESS — WP4.1 / #31 active; D037 required before production en
 
 Parent issue: #30
 
-- **WP4.1 engine interface contract** — IN PROGRESS — issue #31 — freeze D037 before source
+- **WP4.1 engine interface contract** — IN PROGRESS — issue #31 — D037 FROZEN; verification/closeout next; no production engine DSP
 - WP4.2 PULSE
 - WP4.3 NOISE
 - WP4.4 TRIANGLE

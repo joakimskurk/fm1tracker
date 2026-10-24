@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.1 - 8-BIT engine interface contract**
 
-State: **IN PROGRESS - D037 architecture freeze next; no production engine DSP begun**
+State: **IN PROGRESS - D037 FROZEN; WP4.1 verification/closeout next; no production engine DSP begun**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31
@@ -349,7 +349,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze D037 for WP4.1 / #31 in the repository **before any production oscillator/engine DSP source**. Preserve every Phase 2/3 deterministic regression as the migration baseline and define explicit Phase 4 image/RAM/pool headroom before WP4.2.
+Verify and close WP4.1 / #31 with D037 frozen in `docs/WP4_1_ENGINE_CONTRACT.md`: prove zero production firmware/DSP delta from the Phase 4 branch start, preserve the Phase 2/3 migration baseline, record verification evidence, then make WP4.2 / PULSE the only active package.
 
 ## Last relevant checkpoints
 
@@ -368,4 +368,4 @@ Freeze D037 for WP4.1 / #31 in the repository **before any production oscillator
 
 ## Last updated
 
-2026-10-24 - Phase 4 branch `phase4/8bit-engine` created from clean Phase 3 handoff `d14955f2...`. #30 and WP4.1 / #31 are IN PROGRESS. Exact next action is the D037 engine-interface architecture freeze; no Phase 4 production engine DSP has begun.
+2026-10-24 - Phase 4 branch `phase4/8bit-engine` created from clean Phase 3 handoff `d14955f2...`. #30 and WP4.1 / #31 are IN PROGRESS. D037 is frozen; exact next action is WP4.1 verification/closeout with zero production DSP delta. No Phase 4 production engine DSP has begun.

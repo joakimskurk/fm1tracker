@@ -143,10 +143,10 @@ Immediate next package: **Phase 4 / WP4.1 / #31**. Freeze D037 engine/voice/real
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1 architecture active; D037 before source**
+Status: **IN PROGRESS — WP4.1 D037 FROZEN; verification/closeout next; no production engine DSP**
 
 Parent issue: #30
-Active package: WP4.1 / #31 — freeze D037 before engine source. Branch: `phase4/8bit-engine`.
+Active package: WP4.1 / #31 — D037 is frozen in `WP4_1_ENGINE_CONTRACT.md`; verify zero production delta and close WP4.1 before WP4.2. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 
