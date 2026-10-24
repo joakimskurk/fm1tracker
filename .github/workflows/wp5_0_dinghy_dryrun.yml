@@ -1,0 +1,53 @@
+name: WP5.0 D048 dinghy integration dry-run
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - firmware/src/fmt_engine_router.c
+      - firmware/src/fmt_engine_router.h
+      - firmware/src/fmt_8bit_linked_params.c
+      - tools/wp5_0_apply_dinghy_router.py
+      - tests/run_wp5_0_dinghy_dryrun.sh
+      - tests/run_wp5_0_router_host.sh
+      - tests/wp5_0_router_host.c
+      - .github/workflows/wp5_0_dinghy_dryrun.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dinghy-dryrun:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+      - name: Run transient D048 dinghy integration gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp5_0_dinghy
+          sh tests/run_wp5_0_dinghy_dryrun.sh | tee "$RUNNER_TEMP/wp5_0_dinghy_dryrun.log"
+          cp "$RUNNER_TEMP/wp5_0_dinghy_dryrun.log" build/wp5_0_dinghy/ci.log
+          grep -F 'WP5_0_DINGHY_SOURCE_ROUTER_OK=1 song_mode_gate=absent static_dispatch=1 identity_publication=1' build/wp5_0_dinghy/ci.log
+          grep -F 'WP5_0_DINGHY_SHARED_CACHE_OK=1 definitions=1 size_asserts=1 bytes=2048' build/wp5_0_dinghy/ci.log
+          grep -F 'WP5_0_DINGHY_D046_WAV_IDENTITY_OK=1 sha256=17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076 frames=286464' build/wp5_0_dinghy/ci.log
+          grep -F 'WP5_0_DINGHY_TARGET_METRICS_OK=1' build/wp5_0_dinghy/metrics.txt
+          grep -F 'WP5_0_DINGHY_DRYRUN_OK=1 d048_router=linked d046_wav=byte_identical canonical_8bit=pass target=pinned fm_dsp=absent hardware_margin_claim=none' build/wp5_0_dinghy/ci.log
+      - name: Upload D048 dinghy dry-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-dinghy-dryrun
+          if-no-files-found: warn
+          path: |
+            build/wp5_0_dinghy/**
+            build/host/fm1tracker.wav
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
