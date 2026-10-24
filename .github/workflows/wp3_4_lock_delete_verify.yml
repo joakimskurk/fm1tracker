@@ -1,24 +1,6 @@
-name: WP3.4 p-lock browse/delete verification
+name: WP3.4 p-lock browse/delete verification (frozen)
 
 on:
-  push:
-    branches:
-      - phase3/plocks-effects
-    paths:
-      - .github/workflows/wp3_4_lock_delete_verify.yml
-      - firmware/src/dinghy.c
-      - firmware/src/fmt_lock_editor.h
-      - firmware/src/fmt_lock_editor.c
-      - tests/host.c
-      - tests/test_fmt_lock_editor.c
-      - tests/run_lock_editor_tests.sh
-      - tests/wp3_4_lock_delete_context.script
-      - tests/run_lock_delete_context_host.sh
-      - tests/run_wp3_4_closeout_ci.sh
-      - docs/PROJECT_STATE.md
-      - docs/DECISIONS.md
-      - docs/CONTROL_MAP_V0.1.md
-      - docs/WORK_PACKAGES.md
   workflow_dispatch:
 
 permissions:
@@ -28,53 +10,30 @@ jobs:
   lock-delete-closeout:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout verified WP3.4 checkpoint
         uses: actions/checkout@v4
         with:
+          ref: 178ba57a19adc8e25106f1c63e0df2f16478fb33
           fetch-depth: 0
 
       - name: Install inherited host-screen dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Verify WP3.4 scope
+      - name: Verify pinned checkpoint
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import subprocess
-          base = '8ffa2a3de00f89946aca37fa7015fd3940851c93'
-          allowed = {
-              '.github/workflows/wp3_4_lock_delete_verify.yml',
-              'docs/PROJECT_STATE.md',
-              'docs/DECISIONS.md',
-              'docs/CONTROL_MAP_V0.1.md',
-              'docs/WORK_PACKAGES.md',
-              'firmware/src/dinghy.c',
-              'firmware/src/fmt_lock_editor.h',
-              'firmware/src/fmt_lock_editor.c',
-              'tests/host.c',
-              'tests/test_fmt_lock_editor.c',
-              'tests/run_lock_editor_tests.sh',
-              'tests/wp3_4_lock_delete_context.script',
-              'tests/run_lock_delete_context_host.sh',
-              'tests/run_wp3_4_closeout_ci.sh',
-          }
-          changed = set(subprocess.check_output(
-              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
-          ).splitlines())
-          unexpected = sorted(changed - allowed)
-          assert not unexpected, unexpected
-          print('WP3_4_SCOPE_OK=1')
-          PY
+          test "$(git rev-parse HEAD)" = "178ba57a19adc8e25106f1c63e0df2f16478fb33"
+          echo "WP3_4_FROZEN_CHECKPOINT_OK=1"
 
-      - name: Run complete WP3.4 gate
+      - name: Run complete frozen WP3.4 gate
         shell: bash
         run: sh tests/run_wp3_4_closeout_ci.sh
 
-      - name: Upload WP3.4 evidence
+      - name: Upload frozen WP3.4 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: wp3-4-lock-delete-evidence
+          name: wp3-4-lock-delete-evidence-frozen
           path: |
             build/wp3_4_*.log
             build/wp3_4_*.txt
