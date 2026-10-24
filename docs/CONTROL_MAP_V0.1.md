@@ -204,7 +204,7 @@ A project setting may later choose STOP AT END, but no such setting exists yet.
 
 ## 5. Parameter locks
 
-D029/WP3.3 freezes the first real p-lock editor prototype. D030/WP3.4 adds deliberate browsing and one-lock deletion without changing playback.
+D029/WP3.3 freezes the first real p-lock editor prototype. D030/WP3.4 adds deliberate browsing and one-lock deletion. D031/WP3.5 now applies VOICE LEVEL, FINE PITCH and TRACK LEVEL to the current pattern-0/track-0 proof playback lane; TRACK PAN remains storage-only.
 
 ### Hold-step gesture
 
@@ -218,7 +218,7 @@ P-lock editing is available only in ordinary SEQ/pattern mode. It is deliberatel
 
 A quick white-key tap with no later encoder movement therefore behaves like ordinary step selection and creates no lock.
 
-While the p-lock hold is active, other step keys, black track selectors and OCT page navigation cannot retarget the editor. The cursor/header remain on the snapshotted target. HOME or entering STEP REC cancels the hold without an extra write. PLAY is allowed to start/stop while the hold remains active because current Phase 3 editing is storage-only; locks are not applied to playback yet.
+While the p-lock hold is active, other step keys, black track selectors and OCT page navigation cannot retarget the editor. The cursor/header remain on the snapshotted target. HOME or entering STEP REC cancels the hold without an extra write. PLAY is allowed to start/stop while the hold remains active. D031 publishes relevant pattern-0/track-0 edits through the bounded row snapshot cache while the held D029 target itself remains fixed.
 
 If several white step keys go down in one input poll, the lowest physical white key owns the gesture. If a black track key and white step key arrive together, the hold uses the track that was selected before that poll and the simultaneous black-key change is suppressed.
 
@@ -311,9 +311,19 @@ Current p-lock feedback stays in the existing tracker footer only:
 
 Full row lock markers and detailed lock visualization remain WP3.9.
 
-### Storage-only rule
+### Playback rule after WP3.5
 
-WP3.3/WP3.4 p-lock editing changes lock storage only. It does not alter note, instrument, volume or tracker-effect fields, does not change a base instrument/track parameter and does not alter the proof/audition voice. Playback does not consume p-locks yet.
+P-lock editing still mutates only D028 lock storage. It does not rewrite note, instrument, row volume, tracker-effect fields or persistent base instrument/track values.
+
+D031 resolves the current pattern-0/track-0 proof row outside the audio ISR into one fixed 32-bit snapshot. The current audible parameters and row defaults are:
+
+- VOICE LEVEL = 255;
+- FINE PITCH = 128;
+- TRACK LEVEL = 255.
+
+TRACK PAN remains storage-only. These playback values are row-local overrides: an unlocked next row restores the explicit defaults. Audio never traverses the mutable D028 linked list directly, and `FmtPlaybackEvent` remains 4 B.
+
+The historical no-lock proof remains byte-identical. The current level law and Q7 fine-pitch mapping are bounded proof semantics; full engine/mixer parameter laws remain later engine work.
 
 Physical comfort of holding a white key while browsing/arming/confirming deletion remains provisional until Phase 7 hardware testing.
 
@@ -327,8 +337,8 @@ During playback:
 
 - D026 keeps playhead and selected edit row visually separate;
 - the playhead does not steal/scroll the cursor-owned edit viewport;
-- D029/D030 allow storage-only p-lock edit/browse/delete during playback because the current audio path does not read lock storage;
-- future lock application must preserve atomic/bounded shared-state handoff before p-locks are consumed by audio;
+- D029/D030 allow p-lock edit/browse/delete while playback continues;
+- D031 publishes relevant pattern-0/track-0 edits as complete aligned 32-bit row snapshots; audio consumes them only at row dispatch and never traverses D028 lock lists;
 - pattern/song structure edits that could invalidate currently executing data may be deferred until a safe boundary in early versions;
 - flash save remains unavailable while audio is active if the platform write path causes dropouts.
 

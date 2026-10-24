@@ -276,3 +276,17 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 ### Next
 
 **WP3.5 - basic pitch/volume p-lock playback**, issue #24, is READY TO START. D031 must freeze exact playback/audio semantics before source. No WP3.5 production implementation has begun.
+
+## 2026-10-24 - WP3.5 basic pitch/volume p-lock playback
+
+- Frozen D031 before playback/audio source changes.
+- Made VOICE LEVEL, FINE PITCH and TRACK LEVEL audible as row-local overrides on the existing pattern-0/track-0 proof lane; TRACK PAN remains storage-only.
+- Added an aligned 64×32-bit / 256-byte main-to-audio row snapshot cache so the audio ISR never traverses mutable D028 linked lists.
+- Preserved the exact 4-byte `FmtPlaybackEvent` and D020/D021 boundary timing.
+- Added deterministic integer level composition and signed-Q7 fine-pitch interpolation without float or runtime 64-bit division.
+- Defined NOTE/TIE/EMPTY/OFF interaction with row-local locks, including level-zero mute without semantic NOTE OFF and deterministic unlocked-row restore.
+- Preserved the historical no-lock WAV byte-for-byte: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`.
+- Added frozen locked-audio proof `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`, proving combined attenuation, fine-pitch change, EMPTY-row mute and unlocked-row restore.
+- Final resources: 64,724 B image (+496 B), 12,736 B normal RAM (+256 B), 113,000 B pool (+0 B) versus WP3.4.
+- Final artifacts: `fm1tracker.bin` `d0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae`; `fm1tracker-0.1.fwsc` `5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372`.
+- Final verification: run `40069110111`, job `120798506694`; evidence `docs/WP3_5_VERIFICATION.md`.

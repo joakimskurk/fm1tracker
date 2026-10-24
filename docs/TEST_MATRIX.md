@@ -169,7 +169,17 @@ Phase 2 is complete at the host/device-build level. Physical key feel, REST/TIE/
 | `FmtLockEditor` exact 10 B after D030 and adds no pool allocation | required | required | n/a | ✅ WP3.4, pool +0 B |
 | WP3.4 final resource delta measured/frozen | n/a | required | n/a | ✅ +2,512 B image / +4 B RAM / +0 B pool |
 | WP3.4 preserves all Phase 2 + WP3.1 + WP3.2 + WP3.3 regressions | required | required | later | ✅ run `40064122343` |
-| Lock application to playback is deterministic and does not mutate stored base data | required | required | observable | ⬜ WP3.5+ |
+| D031 audible subset is exactly VOICE LEVEL / FINE PITCH / TRACK LEVEL | required | compile | observable | ✅ WP3.5; TRACK PAN storage-only |
+| D031 row snapshot cache is exactly 64×32-bit / 256 B and aligned | required | required | n/a | ✅ `.bss` `0x01C0B074` |
+| Audio ISR never traverses mutable D028 lock lists | inspect/test | required | n/a | ✅ one 32-bit row snapshot load at dispatch |
+| Lock application to playback is deterministic and does not mutate stored base data | required | required | observable | ✅ D031/WP3.5 |
+| Unlocked rows restore D031 defaults rather than leaking prior lock state | required | compile | observable | ✅ locked-audio restore fixture |
+| NOTE/TIE/EMPTY/OFF compose deterministically with row-local locks | required | compile | observable | ✅ WP3.5 unit/audio proof |
+| D031 structural/domain-invalid lock data falls back safely | required | compile | n/a | ✅ separate fallback flags |
+| Default no-lock WAV remains byte-identical after p-lock playback integration | required | required | n/a | ✅ `453dc6b7...` |
+| Locked audio proof deterministic/frozen | required | compile | observable | ✅ `8d2e478e...`, 52,736 frames |
+| WP3.5 final resource delta measured/frozen | n/a | required | n/a | ✅ +496 B image / +256 B RAM / +0 B pool |
+| WP3.5 preserves all Phase 2 + WP3.1–WP3.4 regressions | required | required | later | ✅ run `40069110111` |
 | Queue overflow policy deterministic | required | required | stress test | ⬜ WP3.8 |
 | Note delay/cut timing bounded | required | required | required | ⬜ WP3.7 |
 | Retrig timing/count bounded | required | required | required | ⬜ WP3.7 |
@@ -180,6 +190,7 @@ Phase 3 evidence so far:
 - `WP3_2_VERIFICATION.md`
 - `WP3_3_VERIFICATION.md`
 - `WP3_4_VERIFICATION.md`
+- `WP3_5_VERIFICATION.md`
 
 ## Phase 4 8-BIT engine
 
