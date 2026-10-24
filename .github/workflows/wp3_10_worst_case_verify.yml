@@ -1,4 +1,4 @@
-name: WP3.10 focused worst-case verification
+name: WP3.10 worst-case verification
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     paths:
       - tests/test_wp3_10_worst_case.c
       - tests/run_wp3_10_worst_case.sh
+      - tests/run_wp3_10_combined_host.sh
       - .github/workflows/wp3_10_worst_case_verify.yml
   workflow_dispatch:
 
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  focused-worst-case:
+  worst-case:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout FM1Tracker
@@ -26,10 +27,22 @@ jobs:
           set -euo pipefail
           sh tests/run_wp3_10_worst_case.sh
 
-      - name: Upload focused stress evidence
+      - name: Run D036 combined full-app stress
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_10_combined_host.sh
+
+      - name: Upload stress evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wp3-10-focused-worst-case
+          name: wp3-10-worst-case
           if-no-files-found: warn
-          path: build/wp3_10_worst_case.log
+          path: |
+            build/wp3_10_worst_case.log
+            build/wp3_10_combined_*.log
+            build/wp3_10_combined_analysis.txt
+            build/host/fm1tracker_wp3_10_stress_a.wav
+            build/host/fm1tracker_wp3_10_stress_a-1000.ppm
+            build/host/fm1tracker_wp3_10_stress_a-3000.ppm
