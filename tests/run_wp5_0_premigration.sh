@@ -144,8 +144,8 @@ grep -F 'WP5_0_PREMIGRATION_SWITCH_ORDER_MODEL_OK=1 old_silence=before_new_note 
 grep -F 'WP5_0_PREMIGRATION_NONNOTE_MODEL_OK=1 tie_alloc=0 retrig_alloc=0 off_clears_route=1' "$OUT/router_model.log"
 
 # Record the physical D044 starting shape that D048 will generalize rather than
-# duplicate. One definition, one exact 2,048-byte type assertion.
-CACHE_DEFS="$(grep -R -h -F 'volatile Fmt8BitRowParamCache fmt_8bit_row_param_cache' firmware/src \
+# duplicate. Match only the real top-level definition, not the extern header.
+CACHE_DEFS="$(grep -R -h -E '^volatile Fmt8BitRowParamCache fmt_8bit_row_param_cache$' firmware/src \
     | wc -l | tr -d ' ')"
 CACHE_ASSERTS="$(grep -R -h -F 'sizeof(fmt_8bit_row_param_cache) == 2048u' firmware/src \
     | wc -l | tr -d ' ')"
