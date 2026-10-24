@@ -25,6 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build/wp5_0_router
           sh tests/run_wp5_0_router_host.sh | tee build/wp5_0_router/ci.log
           grep -F 'WP5_0_ROUTER_SIZE_OK=1 bytes=8' build/wp5_0_router/ci.log
           grep -F 'WP5_0_IDENTITY_PUBLICATION_OK=1 instruments=16 bytes=64' build/wp5_0_router/ci.log
