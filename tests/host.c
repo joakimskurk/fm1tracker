@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fmt_store.h"
+#include "fmt_tracker_effect.h"
+
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
 #endif
@@ -105,7 +108,7 @@ static void app_main(void);
  * a held-button press/release, a relative encoder delta, or a MIDI message.
  * A script file (the second argument) replaces it, a line each:
  *   "T keys MASK", "T btn ID", "T btndown ID", "T btnup ID",
- *   "T enc ID DELTA", "T midi ST D1 D2", "T end"
+ *   "T enc ID DELTA", "T midi ST D1 D2", "T effect STEP CMD VALUE", "T end"
  * `btn` preserves the historical one-shot press-edge behavior; btndown/btnup
  * additionally maintain fm1_in.buttons and release edges like the real HAL.
  * `enc` accumulates signed relative detent steps until fm1_enc_take(ID). */
@@ -115,6 +118,7 @@ typedef struct {
     uint8_t st, d1, d2, btn_action;
     uint8_t enc;
     int16_t enc_delta;
+    uint8_t effect_action, effect_step, effect_command, effect_value;
 } host_ev_t;
 enum { HOST_BTN_PULSE = 0u, HOST_BTN_DOWN = 1u, HOST_BTN_UP = 2u };
 static const host_ev_t SCRIPT0[] = {
@@ -150,6 +154,7 @@ static void read_script(const char *path)
         else if (!strcmp(what, "btnup")) { sscanf(line, "%*u %*s %d", &e.btn); e.btn_action = HOST_BTN_UP; }
         else if (!strcmp(what, "enc")) { sscanf(line, "%*u %*s %u %d", &a, &d); e.enc = (uint8_t)a; e.enc_delta = (int16_t)d; }
         else if (!strcmp(what, "midi")) { sscanf(line, "%*u %*s %i %u %u", (int *)&a, &b, &c); e.st = (uint8_t)a; e.d1 = (uint8_t)b; e.d2 = (uint8_t)c; }
+        else if (!strcmp(what, "effect")) { sscanf(line, "%*u %*s %u %u %u", &a, &b, &c); e.effect_action = 1u; e.effect_step = (uint8_t)a; e.effect_command = (uint8_t)b; e.effect_value = (uint8_t)c; }
         else continue;
         ev[n++] = e;
     }
@@ -205,7 +210,14 @@ static void platform_poll(void)                 /* one call = one millisecond */
     static int32_t blk[2u * HALF_FRAMES];
     fm1_ms++;
     while (step < script_n && script[step].t <= fm1_ms) {
-        if (script[step].st) {
+        if (script[step].effect_action) {
+            FmtStep *row = fmt_store_step(FMT_PLAYBACK_PATTERN, FMT_PLAYBACK_TRACK, script[step].effect_step);
+            if (!row) { fprintf(stderr, "invalid host effect step %u\n", script[step].effect_step); exit(1); }
+            row->effect = script[step].effect_command;
+            row->effect_value = script[step].effect_value;
+            if (!fmt_tracker_effect_cache_refresh_step(script[step].effect_step)) { fprintf(stderr, "effect cache refresh failed\n"); exit(1); }
+            printf("%6u ms  effect step %u cmd %u value %u\n", fm1_ms, script[step].effect_step, script[step].effect_command, script[step].effect_value);
+        } else if (script[step].st) {
             mq[mq_w % 64u][0] = script[step].st; mq[mq_w % 64u][1] = script[step].d1; mq[mq_w % 64u][2] = script[step].d2;
             mq_w++;
         } else if (script[step].enc_delta) {
