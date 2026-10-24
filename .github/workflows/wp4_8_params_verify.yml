@@ -1,0 +1,107 @@
+name: WP4.8 D044 parameter-page verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_8bit_params.h
+      - firmware/src/fmt_8bit_params.c
+      - tests/test_wp4_8_8bit_params.c
+      - tests/run_wp4_8_8bit_params_tests.sh
+      - .github/workflows/wp4_8_params_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  d044-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove isolated D044 production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=5f46f94dc477ac0625417baec9dbfba0d3cb7877
+          git diff --name-only "$BASE"..HEAD -- firmware/src \
+            | sort > /tmp/wp4_8_prod_delta.txt
+          printf '%s\n' \
+            firmware/src/fmt_8bit_params.c \
+            firmware/src/fmt_8bit_params.h \
+            | sort > /tmp/wp4_8_expected_delta.txt
+          diff -u /tmp/wp4_8_expected_delta.txt /tmp/wp4_8_prod_delta.txt
+          git diff --quiet "$BASE"..HEAD -- firmware/src/dinghy.c
+          git diff --quiet "$BASE"..HEAD -- firmware/src/fmt_param_registry.c firmware/src/fmt_param_registry.h
+          git diff --quiet "$BASE"..HEAD -- \
+            firmware/src/fmt_osc_pulse.c firmware/src/fmt_osc_pulse.h \
+            firmware/src/fmt_osc_noise.c firmware/src/fmt_osc_noise.h \
+            firmware/src/fmt_osc_triangle.c firmware/src/fmt_osc_triangle.h \
+            firmware/src/fmt_osc_wavetable8.c firmware/src/fmt_osc_wavetable8.h \
+            firmware/src/fmt_envelope.c firmware/src/fmt_envelope.h \
+            firmware/src/fmt_voice_allocator.c firmware/src/fmt_voice_allocator.h
+          echo 'WP4_8_ISOLATED_SOURCE_BOUNDARY_OK=1 production_files=2 registry_delta=0 dinghy_delta=0 prior_primitives_delta=0'
+
+      - name: Run focused D044 deterministic tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_8_8bit_params_tests.sh
+
+      - name: Static boundedness and isolation audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC=firmware/src/fmt_8bit_params.c
+          HDR=firmware/src/fmt_8bit_params.h
+          ! grep -En '\b(malloc|calloc|realloc|free)\b' "$SRC" "$HDR"
+          ! grep -En '\b(float|double|uint64_t|int64_t)\b' "$SRC" "$HDR"
+          ! grep -En '[[:space:]]/[[:space:]]|[[:space:]]%[[:space:]]' "$SRC"
+          ! grep -En '\b(while|do)[[:space:]]*\(' "$SRC"
+          ! grep -En 'fmt_lock_(count|at)|FmtLockStore|FmtSong|screen_|platform_' "$SRC" "$HDR"
+          test "$(grep -Ec 'for \(' "$SRC")" -eq 3
+          grep -F 'slot < FMT_8BIT_PAGE_SLOTS' "$SRC" >/dev/null
+          grep -F 'i < lock_count' "$SRC" >/dev/null
+          grep -F 'lock_count > FMT_8BIT_MAX_ROW_LOCKS' "$SRC" >/dev/null
+          grep -F 'sizeof(Fmt8BitRowParamCache) == 2048u' "$HDR" >/dev/null
+          ! grep -F 'fmt_8bit_params.c' firmware/src/dinghy.c
+          echo 'WP4_8_STATIC_AUDIT_OK=1 loops=3 max_lock_count=4 alloc=0 float=0 int64=0 division=0 store_traversal=0 linked=0'
+
+  d044-target-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+
+      - name: Compile isolated D044 module for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_8_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_8bit_params.c \
+            -o build/wp4_8_target/fmt_8bit_params.o
+          test -s build/wp4_8_target/fmt_8bit_params.o
+          sha256sum build/wp4_8_target/fmt_8bit_params.o \
+            | tee build/wp4_8_target/object_sha256.txt
+          echo 'WP4_8_PI32V2_COMPILE_OK=1 modules=1 registry_activation=0 cache_global=0' \
+            | tee build/wp4_8_target/summary.txt
+
+      - name: Upload D044 target evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-8-d044-target-object
+          path: build/wp4_8_target/
