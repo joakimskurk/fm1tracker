@@ -8,10 +8,10 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/D040 COMPLETE; WP4.5/WAVETABLE-8 active; D041 FROZEN; isolated implementation/tests next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/D040 COMPLETE; WP4.5/D041 COMPLETE; WP4.6/envelope active; D042 contract freeze next - 2026-10-24**
 
 Parent issue: #30
-Current work package: WP4.5 / #35
+Current work package: WP4.6 / #36
 Current branch: `phase4/8bit-engine`
 
 Phase 4 branch start / final Phase 3 handoff:
@@ -310,25 +310,26 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**WP4.5 - WAVETABLE-8 oscillator**
+**WP4.6 - common envelope primitive**
 
-State: **IN PROGRESS - WP4.1/D037 COMPLETE; WP4.2/D038 COMPLETE; WP4.3/D039 COMPLETE; WP4.4/D040 COMPLETE; WP4.5 / #35 active; D041 FROZEN; isolated WAVETABLE-8 implementation/tests next**
+State: **IN PROGRESS - WP4.1/D037 through WP4.5/D041 COMPLETE; WP4.6 / #36 active; D042 state/time/gate/retrigger/release contract required before envelope source**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
 WP4.2 issue: #32 — COMPLETE
 WP4.3 issue: #33 — COMPLETE
 WP4.4 issue: #34 — COMPLETE
-WP4.5 issue: #35 — IN PROGRESS
+WP4.5 issue: #35 — COMPLETE
+WP4.6 issue: #36 — IN PROGRESS
 Branch: `phase4/8bit-engine`
 
-WP4.4 closed on run `40094496353`, job `120873805827`. D040 TRIANGLE passed exhaustive 131,072-bin bounds/antisymmetry verification, deterministic vector/hash proof, real PI32v2 compilation and a full-app closeout with zero linked delta. Evidence: `docs/WP4_4_VERIFICATION.md`.
+WP4.5 closed on run `40095198147`, job `120875856198`. D041 WAVETABLE-8 passed all-256-sample/table-SHA/eight-hash deterministic verification, real PI32v2 compilation and a full-app closeout with zero linked delta. Evidence: `docs/WP4_5_VERIFICATION.md`.
 
-D038 PULSE, D039 NOISE and D040 TRIANGLE remain isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.4.
+The complete starting oscillator palette — D038 PULSE, D039 NOISE, D040 TRIANGLE and D041 WAVETABLE-8 — remains isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.5.
 
-D041 is frozen in `docs/WP4_5_WAVETABLE8_CONTRACT.md`: eight immutable 32-sample signed-8-bit tables, 256 B exact row-major data, top-five-bit phase index, no interpolation, malformed selector fallback to SINE, exact `raw*258` Q15 expansion, direct D038 pitch reuse, eight deterministic hashes and zero full-app delta while isolated.
+WP4.6 must freeze D042 before production envelope source. D042 must define exact common envelope topology, fixed state and Q15 level domain, parameter/time mapping, zero-time behavior, NOTE/gate-on vs D033 RETRIG semantics, OFF/release and TIE semantics, sample/update ordering, stage-transition bound, deterministic vectors/hash, realtime/resource bounds, real PI32v2 obligations and the zero-full-app-delta isolation boundary.
 
-The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.5 primitive work. Do not pull envelope, final allocator, parameter pages or full engine integration forward.
+The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.6 primitive work. Do not pull final allocator, parameter pages or full engine integration forward.
 
 ## Important decisions / do not regress
 
@@ -362,7 +363,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Implement and verify isolated `fmt_osc_wavetable8.*` exactly under D041 with all-256-sample/table-SHA/eight-hash host tests, static realtime audit and pinned PI32v2 target compilation. Keep PULSE/NOISE/TRIANGLE isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical; do not begin WP4.6 or full engine integration.
+Freeze D042 and the focused WP4.6 common-envelope test contract in the repository before creating envelope production source. Keep all four oscillator primitives isolated and keep the Phase 3 proof sine/full-app artifacts byte-identical.
 
 ## Last relevant checkpoints
 
@@ -388,7 +389,8 @@ Implement and verify isolated `fmt_osc_wavetable8.*` exactly under D041 with all
 - WP4.4 D040 contract: `79167dd9e76fdac09801fe8fc59bb7c9bb94a72e`
 - WP4.4 D040 verification/closeout: `55e40a9a9cc94fa3c329ff2a3f12603006b8158f` — run `40094496353`, job `120873805827`
 - WP4.5 D041 contract: `c543c99df84ee304a1db4fb631c30d01dc8607d3`
+- WP4.5 D041 verification/closeout: `bb56d16c31330e3515ba36241726c09a2a30729b` — run `40095198147`, job `120875856198`
 
 ## Last updated
 
-2026-10-24 - WP4.5 / #35 active. D041 is frozen in `WP4_5_WAVETABLE8_CONTRACT.md` before production source. Exact next action: implement/test isolated `fmt_osc_wavetable8.*` with all-256-sample, selector-fallback, table-SHA and eight long-hash proof plus real PI32v2 compile while the full app remains byte-identical.
+2026-10-24 - WP4.5 / #35 COMPLETE. D041 WAVETABLE-8 passed all-table deterministic verification, independent PI32v2 compilation and full-app closeout with zero linked delta; run `40095198147`, job `120875856198`. WP4.6 / #36 is now active. Exact next action: freeze D042 common-envelope state/time/gate/retrigger/release/test contract before production source.
