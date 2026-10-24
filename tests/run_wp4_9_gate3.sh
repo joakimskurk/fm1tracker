@@ -64,13 +64,30 @@ grep -F 'fmt_playback_params_refresh_track_step' firmware/src/fmt_8bit_linked_pa
 grep -F 'fmt_8bit_linked_params_refresh_track_row' firmware/src/fmt_8bit_linked_params.c >/dev/null
 printf '%s\n' 'WP4_9_GATE3_STATIC_AUDIT_OK=1 alloc=0 float=0 int64=0 unbounded=0 d032_refresh=0 main_only_publication=1'
 
-# Inherited D027-D031 and D044 behavior must remain green after assigning the
-# formerly-reserved 0x20..0x25 IDs.
+# D027-D030 remain inherited. D044's resolver/history stays byte-for-byte under
+# test, but its one WP4.8-only assertion that 0x20..0x25 were unassigned is
+# intentionally superseded by D045 Gate 3. Adapt only that historical assertion
+# in a build-directory copy; never rewrite the archived WP4.8 test source.
 sh tests/run_param_registry_tests.sh >/dev/null
 sh tests/run_lock_store_tests.sh >/dev/null
 sh tests/run_lock_editor_tests.sh >/dev/null
-sh tests/run_wp4_8_8bit_params_tests.sh >/dev/null
-printf '%s\n' 'WP4_9_GATE3_INHERITED_EDITOR_REGRESSIONS_OK=1 d027=1 d028=1 d029_d030=1 d044=1'
+python3 - <<'PY'
+from pathlib import Path
+src = Path('tests/test_wp4_8_8bit_params.c').read_text()
+old = '''        /* D044 freezes the IDs but WP4.8 deliberately does not activate the\n         * already-linked D027 registry. That migration belongs to WP4.9. */\n        assert(fmt_param_lookup(ids[i]) == NULL);\n        assert(fmt_param_is_assigned(ids[i]) == 0);\n        assert(fmt_param_is_lockable(ids[i]) == 0);\n'''
+new = '''        /* D045 Gate 3 deliberately activates the six frozen D044 IDs. */\n        assert(fmt_param_lookup(ids[i]) != NULL);\n        assert(fmt_param_is_assigned(ids[i]) == 1);\n        assert(fmt_param_is_lockable(ids[i]) == 1);\n'''
+assert old in src
+Path('build/wp4_9_gate3/test_wp4_8_gate3_compat.c').write_text(src.replace(old, new, 1))
+PY
+cc -std=c11 -O2 -Wall -Wextra -Werror -Ifirmware/src \
+    build/wp4_9_gate3/test_wp4_8_gate3_compat.c \
+    firmware/src/fmt_8bit_params.c \
+    firmware/src/fmt_param_registry.c \
+    -o build/tests/test_wp4_8_under_gate3
+./build/tests/test_wp4_8_under_gate3 > build/wp4_9_gate3/d044_compat.log
+grep -F 'WP4_8_D044_TESTS_OK=1' build/wp4_9_gate3/d044_compat.log
+grep -F 'WP4_8_REPLAY_FNV1A32=635311c5' build/wp4_9_gate3/d044_compat.log
+printf '%s\n' 'WP4_9_GATE3_INHERITED_EDITOR_REGRESSIONS_OK=1 d027=1 d028=1 d029_d030=1 d044_resolver=1 d044_registry_isolation_superseded=1'
 
 # Re-run the pure Gate 2 engine test directly, intentionally bypassing its old
 # source-boundary assertion now that Gate 3 is allowed to change registry/editor.
