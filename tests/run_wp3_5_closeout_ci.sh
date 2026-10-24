@@ -161,6 +161,8 @@ log = Path('build/wp3_5_device_build.log').read_text()
 m = re.search(r"image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064", log)
 assert m, 'resource line not found'
 image, image_limit, ram, pool = map(int, m.groups())
+assert image == 64724, image
+assert ram == 12736, ram
 assert pool == 113000, pool
 
 symbols = Path('build/wp3_5_symbols.txt').read_text().splitlines()
@@ -174,16 +176,20 @@ lock_store = one('fmt_lock_store_storage')
 lock_runtime = one('fmt_lock_store_runtime')
 song_store = one('fmt_store_storage')
 cache_addr = int(cache[0], 16)
-assert cache_addr % 4 == 0, cache
+assert cache_addr == 0x01C0B074 and cache_addr % 4 == 0, cache
 assert int(cache[-2], 16) == 256 and '.bss' in cache, cache
-assert int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store
-assert int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime
-assert int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store
+editor = one('fmt_lock_editor_runtime')
+assert int(editor[0], 16) == 0x01C0B178 and int(editor[-2], 16) == 10 and '.bss' in editor, editor
+assert int(lock_store[0], 16) == 0x01C30168 and int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store
+assert int(lock_runtime[0], 16) == 0x01C0B18C and int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime
+assert int(song_store[0], 16) == 0x01C20000 and int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store
 
 bin_sha = hashlib.sha256(Path('build/fm1tracker.bin').read_bytes()).hexdigest()
 fwsc_sha = hashlib.sha256(Path('build/fm1tracker-0.1.fwsc').read_bytes()).hexdigest()
 wav_sha = hashlib.sha256(Path('build/host/fm1tracker.wav').read_bytes()).hexdigest()
 locked_sha = hashlib.sha256(Path('build/host/fm1tracker_wp3_5_locked.wav').read_bytes()).hexdigest()
+assert bin_sha == 'd0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae', bin_sha
+assert fwsc_sha == '5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372', fwsc_sha
 assert wav_sha == '453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440', wav_sha
 assert locked_sha == '8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8', locked_sha
 
@@ -206,7 +212,12 @@ print(f'host_wav_sha256={wav_sha}')
 print(f'locked_wav_sha256={locked_sha}')
 PY
 
+grep -F 'image_delta_vs_wp3_4=496' build/wp3_5_metrics.txt
+grep -F 'normal_ram_delta_vs_wp3_4=256' build/wp3_5_metrics.txt
 grep -F 'pool_delta_vs_wp3_4=0' build/wp3_5_metrics.txt
+grep -F 'param_cache_address=0x01c0b074' build/wp3_5_metrics.txt
 grep -F 'param_cache_bytes=256' build/wp3_5_metrics.txt
+grep -F 'fm1tracker_bin_sha256=d0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae' build/wp3_5_metrics.txt
+grep -F 'fm1tracker_fwsc_sha256=5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372' build/wp3_5_metrics.txt
 
-echo "WP3_5_MEASURED_CLOSEOUT_GATE_OK=1"
+echo "WP3_5_FROZEN_CLOSEOUT_GATE_OK=1"
