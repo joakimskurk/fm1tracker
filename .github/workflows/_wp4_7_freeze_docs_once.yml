@@ -1,4 +1,5 @@
 name: WP4.7 D043 documentation freeze once
+# Trigger after workflow creation.
 
 on:
   push:
