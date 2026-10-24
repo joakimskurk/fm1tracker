@@ -26,6 +26,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
       - name: Run aggregate D046 Phase 4 exit gate
         shell: bash
         run: |
