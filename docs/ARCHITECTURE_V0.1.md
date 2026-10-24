@@ -1,8 +1,12 @@
 # FM1Tracker V0.1 Architecture Contract
 
-Status: **Phase 0 design freeze candidate**
+Status: **historical Phase 0 baseline, amended by D047 for engine routing**
 
-This document defines the boundaries that should remain stable while the first playable firmware is built. Anything marked **provisional** may change after host/hardware testing; everything else should be treated as a contract unless measurements force a revision.
+This document defines the original boundaries used to build the first playable firmware. The tracker/platform/concurrency/data-budget rules remain useful. The original project-wide `8-BIT` versus `16-BIT` sound-mode restriction is **superseded by D047**.
+
+Current normative mixed-engine direction: `D047_MIXED_ENGINE_ARCHITECTURE.md`.
+
+Historical Phase 4 contracts D037-D046 remain authoritative for what the first 8-BIT engine family actually implemented and verified.
 
 ## 1. Product definition
 
@@ -10,15 +14,17 @@ FM1Tracker is a hardware-first tracker/sequencer for the M-VAVE FM-1.
 
 It is not a desktop tracker squeezed onto a small screen and it is not a full Furnace port. The FM-1 keyboard, buttons and encoders are part of the tracker itself.
 
-V0.1 must make this loop fast:
+The core loop remains:
 
 1. choose a track/instrument;
 2. enter STEP REC;
-3. play a note or chord;
+3. play a note or chord according to the current recording policy;
 4. advance automatically;
-5. press REST when silence is wanted;
+5. enter REST/TIE/OFF when needed;
 6. hold/select a step and turn encoders to add per-step locks;
 7. press PLAY and immediately hear the pattern.
+
+D047 adds one product rule: the chosen instrument determines the sound-engine family. A project is not globally locked to one sound family.
 
 ## 2. Platform baseline
 
@@ -26,26 +32,26 @@ Target baseline: Dinghy/Felucca/SLOOP platform.
 
 Relevant FM-1 constraints exposed by Dinghy:
 
-- JieLi AC791N / pi32v2 toolchain
-- no floating-point firmware DSP
-- no runtime 64-bit division
-- 44.1 kHz audio callback, normally 256 stereo frames
-- 5.8 ms nominal callback interval; target less than half of that for FM1Tracker audio work
-- 96 KiB normal RAM (`.data` + `.bss`)
-- 336 KiB pool RAM for large buffers
-- 568 KiB code + constants
-- 240 x 240 display
-- 27 note keys
-- 14 buttons
-- 7 encoders plus MASTER
-- USB MIDI and USB audio supplied by the platform
-- host mode available for screen/audio tests without physical hardware
+- JieLi AC791N / pi32v2 toolchain;
+- no floating-point firmware DSP;
+- no runtime 64-bit division;
+- 44.1 kHz audio callback, normally 256 stereo frames;
+- nominal callback interval about 5.8 ms;
+- 96 KiB normal RAM (`.data` + `.bss`);
+- 336 KiB-class pool RAM for large buffers in the original platform description, with exact linker limits captured by package verification;
+- 568 KiB-class code/constants region in the original platform description, with exact linker limits captured by package verification;
+- 240 x 240 display;
+- 27 note keys;
+- 14 buttons;
+- 7 encoders plus MASTER;
+- USB MIDI and USB audio supplied by the platform;
+- host mode available for screen/audio tests without physical hardware.
 
-Hard rule: the audio ISR must not draw, access flash, wait, or perform unbounded work.
+Hard rule: the audio ISR must not draw, access flash, wait, allocate dynamically or perform unbounded work.
 
 ## 3. Layering
 
-The firmware should be split conceptually into five layers even if the first Dinghy build compiles as a small number of C translation units.
+The conceptual layering remains:
 
 ```text
 UI / PANEL
@@ -54,10 +60,14 @@ TRACKER EDITOR
     |
 SEQUENCER / TRANSPORT
     |
-VOICE + ENGINE LAYER
+INSTRUMENT ROUTER
+    |
+VOICE + ENGINE FAMILIES
     |
 DINGHY PLATFORM / HAL
 ```
+
+The `INSTRUMENT ROUTER` layer is the D047 amendment. Phase 4 effectively had one family behind that boundary; WP5.0 must make the boundary explicit before FM4 is linked.
 
 ### UI / panel
 
@@ -65,15 +75,34 @@ Owns button/key/encoder interpretation, screen state and dirty-region drawing. I
 
 ### Tracker editor
 
-Owns song/pattern/step edits, cursor state, STEP REC behavior, REST insertion and parameter-lock editing.
+Owns song/pattern/step edits, cursor state, STEP REC behavior, REST/TIE/OFF insertion and parameter-lock editing.
 
 ### Sequencer / transport
 
-Owns musical time, pattern row dispatch, order playback and conversion of step data into bounded timestamped events for the audio side.
+Owns musical time, pattern row dispatch, order playback and conversion of step data into bounded runtime actions/snapshots for the audio side.
 
-### Voice + engine layer
+The sequencer must not know how a PULSE oscillator or FM operator renders audio.
 
-Owns synthesis state. It consumes compact events and renders fixed-point audio. No tracker/UI logic belongs here.
+### Instrument router
+
+Resolves tracker instrument identity to a bounded engine-family + engine adapter. It owns cross-family routing/primary-track ownership rules but not tracker timing.
+
+D047 requires:
+
+- per-instrument engine-family selection;
+- simultaneous different families across logical tracks;
+- at most one owned primary sequenced voice per track across all families;
+- deterministic family switching;
+- no active cross-track primary stealing;
+- static bounded dispatch, not a desktop plugin system.
+
+Exact runtime representation is WP5.0 work.
+
+### Voice + engine families
+
+Own synthesis state. Each family consumes compact, bounded semantic actions/snapshots and renders fixed-point audio. No tracker/UI logic belongs here.
+
+The already-verified Phase 4 8-BIT family remains one such family. FM4 becomes another after WP5.0.
 
 ### Platform / HAL
 
@@ -83,187 +112,235 @@ Dinghy/Felucca/SLOOP code. Keep upstream changes traceable. Avoid changing the H
 
 The main loop and audio ISR communicate through bounded, explicitly owned data.
 
-Preferred direction:
+General direction:
 
 ```text
-main loop/editor -> sequencer state -> event mailbox/ring -> audio ISR
+main/editor -> song/cache publication -> sequencer/audio-owned runtime
+main/audition -> bounded D034 queue -> audio
 ```
 
 Rules:
 
 - one writer per shared field;
-- 32-bit atomic stores where possible;
+- naturally aligned 32-bit publication where appropriate;
 - no shared mutable structs that can be observed half-written;
 - all queues have fixed capacity and defined overflow behavior;
-- the audio ISR never allocates memory;
-- expensive coefficient/table updates happen outside the per-sample inner loop;
-- screen refresh is dirty-region based.
+- audio never allocates memory;
+- expensive table/coefficient/cache resolution happens outside per-sample loops where possible;
+- screen refresh is dirty-region based and main-loop only;
+- adding an engine family may not add a parallel tracker clock or a private unbounded event system.
 
 ## 5. Sequencer scope
 
-V0.1 target:
+Current baseline:
 
-- 8 logical tracks
-- patterns up to 64 steps
-- four 16-step pages
-- 16 pattern slots resident in pool RAM
-- 128-entry song/order list
-- project-wide 8-BIT or 16-BIT sound mode in V0.1
-- file/data structures reserve room for future per-track engine families, but mixed 8/16 projects are not a V0.1 requirement
-- manual STEP REC while stopped is required before live recording
-- parameter locks are required before song mode
+- 8 logical tracks;
+- patterns up to 64 steps;
+- four 16-step pages;
+- 16 pattern slots resident in pool RAM;
+- 128-entry song/order direction for Phase 6;
+- manual stopped STEP REC is already implemented;
+- parameter locks are first-class data;
+- tracker effects/events are engine-independent semantic data.
 
-A logical track is a sequencer lane. Polyphony is an engine capability and is not assumed to equal the number of tracks.
+### D047 amendment
+
+The original clauses:
+
+```text
+project-wide 8-BIT or 16-BIT sound mode
+mixed 8/16 projects not required
+```
+
+are superseded.
+
+The target model is:
+
+```text
+track / row -> instrument -> engine family -> engine
+```
+
+Different tracks may use different families at the same time. An explicit NOTE-row instrument change may also cross families when the normal instrument semantics request it.
+
+A logical track is still a sequencer lane. Polyphony and engine cost are engine/runtime capabilities and do not change the eight logical-track model.
 
 ## 6. Timing model
 
-The transport must use integer/fixed-point timing only.
+The transport uses integer/fixed-point timing only.
 
-V0.1 defaults:
+Current frozen timing foundation:
 
-- step grid: 1/16 note
-- 64 steps = 4 bars in 4/4 at the default grid
-- tempo stored as integer BPM plus an optional fractional fixed-point field if measurement shows it is useful
-- pattern playback must not drift because of integer truncation; use a phase/error accumulator rather than repeatedly rounding an interval
+- 1/16-note grid baseline;
+- D020 row phase `661500`;
+- D032 effect tick phase `110250`;
+- exactly six effect ticks per row with no second tracker clock;
+- exact residual-phase/no-drift behavior.
 
-Provisional for post-V0.1:
+Future swing, general microtiming, alternate track lengths and polymeter remain explicit later work.
 
-- swing
-- per-step microtiming
-- alternate pattern lengths per track
-- polymeter
-
-Tracker effects such as NOTE DELAY can provide controlled off-grid timing before a general microtiming field is added.
+Mixed engines must consume this common musical time rather than creating independent sequencer clocks.
 
 ## 7. Song data memory budget
 
-The song representation belongs in pool RAM, not ordinary `.bss`.
+The editable song representation belongs in pool RAM, not ordinary `.bss`.
 
-Target upper bound for the first implementation: **<= 96 KiB pool RAM for all editable song data**, leaving the majority of the 336 KiB pool available for engine state, delay/sample buffers and screen helpers.
-
-A proposed 8-byte step gives:
+Current proven core:
 
 ```text
-8 bytes * 64 steps * 8 tracks = 4096 bytes per pattern
-4096 * 16 patterns            = 65536 bytes
+FmtSong core              65,896 B
+D028 lock records         16,384 B
+---------------------------------
+editable core + locks     82,280 B
 ```
 
-A bounded sparse parameter-lock pool and song metadata should keep the initial song model comfortably below the 96 KiB target.
+The existing 8-byte step must not be enlarged merely to support mixed engines; its `instrument` byte already supplies the necessary indirection.
 
-Do not optimize the step below 8 bytes until profiling shows a real need; predictable access is more valuable than bit-packing every field.
+Engine runtime state belongs outside the editable-song step matrix and must be budgeted per family/package.
 
 ## 8. Audio resource policy
 
-### Common rules
+Common rules:
 
-- Q15/Q12 or equivalent fixed-point levels and coefficients
-- 32-bit phase accumulators for oscillators
-- precomputed constant tables in flash where useful
-- control-rate envelopes/LFO/coefficient updates may run every 16 or 32 frames where audibly safe
-- saturating/clamped mixing at explicit points
-- no hidden dynamic voice allocation in the audio callback
+- integer/fixed-point levels, envelopes and coefficients;
+- bounded oscillator/operator state;
+- precomputed constant tables where useful;
+- saturating/clamped mixing at explicit points;
+- no hidden dynamic allocation in the audio callback;
+- no float;
+- no runtime 64-bit division;
+- no unbounded engine registry/plugin traversal.
 
-### CPU target
+The original aspirational target of less than roughly half of a 256-frame callback remains a useful hardware goal, but actual execution margin requires physical FM-1 measurement. Host wall time is not hardware proof.
 
-During normal playback, FM1Tracker-owned audio work should target **< 2.9 ms per 256-frame block** on hardware, leaving headroom for USB/key scanning/platform work.
+A feature that breaks the measured hardware budget must be simplified, moved to a cheaper update rate, constrained by an explicit deterministic policy, or deferred. It must not silently reduce tracker track count or substitute a different engine.
 
-A feature that breaks this budget must be simplified, moved to control rate or rejected.
+## 9. Engine-family architecture
 
-## 9. Sound-mode architecture
+### First proven family - 8-BIT/chip
 
-Both modes use the same sequencer, pattern and parameter-lock system.
+Phase 4 implements:
 
-### 8-BIT
+- PULSE;
+- NOISE;
+- TRIANGLE;
+- WAVETABLE-8;
+- common integer ADSR;
+- deterministic eight-slot allocator;
+- four-control primary pages and p-lock publication.
 
-Initial family candidates:
+This family is complete enough to be the regression baseline for WP5.0.
 
-- pulse / PWM
-- triangle
-- small wavetable
-- noise
+### Next family - FM/digital
 
-These are original chip-style engines unless a separately audited emulation core is deliberately introduced. Do not claim authentic NES/Game Boy/AY/etc. emulation unless that specific behavior is implemented and verified.
+The next engine is compact fixed-point FM4:
 
-### 16-BIT
+- four operators;
+- curated algorithms;
+- integer ratio table;
+- modulation levels/index;
+- bounded feedback;
+- measured envelope/voice strategy;
+- engine-specific p-lock page(s).
 
-Initial family candidates:
+FM4 does not get linked directly into the Phase 4 engine. WP5.0 first freezes the cross-family router.
 
-- fixed-point 4-operator FM
-- larger wavetable / phase-distortion-style digital oscillator
+### Future families
 
-Compact PCM/sample playback is desirable but is **not required for the first playable milestone** because it adds storage/import/voice-stealing concerns that should not block the tracker core.
+The architecture must permit later explicit work packages for engines such as:
+
+- modern virtual analog;
+- supersaw/unison;
+- broader wavetable/digital synthesis;
+- drum synthesis;
+- PCM/sample engines where storage/profile permits;
+- separately licensed/verified authentic chip cores.
+
+These are possibilities, not automatic V1 requirements.
+
+### Category versus project mode
+
+Names such as `8-BIT`, `FM/DIGITAL`, `MODERN` and `DRUM` may be useful browser categories. They are not project types.
 
 ## 10. Parameter-lock architecture
 
-P-locks are first-class song data.
+P-locks remain first-class song data.
 
-V0.1:
+Rules:
 
-- sparse lock storage
-- maximum 4 locks on one step
-- parameter IDs are stable numeric IDs, not UI page positions
-- values use a normalized integer domain or engine-specific integer domain documented per parameter
-- changing instrument/engine must have deterministic behavior for locks that no longer apply: ignore safely, never reinterpret an unrelated ID
+- sparse D028 storage;
+- maximum four locks on one step;
+- stable one-byte semantic parameter IDs;
+- parameter identity is independent of UI page position;
+- engine-specific scaling is defined by the owning parameter/engine contract;
+- changing instrument/engine must ignore non-applicable locks safely and never reinterpret an unrelated ID;
+- existing assigned IDs are never renumbered because the engine router becomes mixed-family.
 
-The UI may expose four encoder lanes at once, but storage is not tied to exactly four physical encoders.
+The D027 historical namespace partitions remain valid until explicitly superseded. New engines require explicit collision-safe assignments.
 
 ## 11. Tracker effect architecture
 
-The step contains one compact tracker effect slot in addition to parameter locks.
+The compact step effect slot is independent of engine family.
 
-Initial effect candidates:
+Current assigned semantics include:
 
-- ARPEGGIO
-- PITCH SLIDE UP/DOWN
-- PORTAMENTO
-- VIBRATO
-- RETRIG
-- NOTE DELAY
-- NOTE CUT
-- VOLUME SLIDE
+- ARPEGGIO;
+- PITCH SLIDE UP/DOWN;
+- PORTAMENTO;
+- VIBRATO;
+- RETRIG;
+- NOTE DELAY;
+- NOTE CUT.
 
-The UI should show names/values; hexadecimal effect notation may be displayed as a compact secondary representation but must not be required knowledge.
+A new engine family must adapt these semantic actions where applicable without inventing a parallel tracker command domain.
 
 ## 12. Persistence
 
-Dinghy settings storage is only suitable for small preferences. Songs require a dedicated flash region or an external/USB transfer strategy.
+Songs require a dedicated persistence strategy, not raw compiler-struct dumps.
 
-V0.1 persistence rules:
+Phase 6 rules remain:
 
 - never erase/write song flash from the audio ISR;
-- save only from an explicit safe state, preferably stopped/silent;
-- version every persistent structure;
-- include magic, format version, payload length and CRC;
-- preserve a migration path or fail safely to an empty song;
-- choose FM1Tracker's flash range only after the Dinghy baseline is imported and the current platform map is audited.
+- explicit safe save flow;
+- versioned format;
+- magic, payload length and CRC;
+- safe handling of corrupt/future data;
+- explicit byte order and serialization.
 
-Do not hard-code a new flash range before that audit.
+D047 adds a requirement: the serialized format must store engine family + engine per instrument and must not impose a project-wide engine-family restriction.
+
+The current runtime `FmtSongMeta.mode` field is no longer the target global playback gate. Its persistent meaning, if any, is decided explicitly in Phase 6 after WP5.0.
 
 ## 13. Host-first testing
 
-Before hardware testing, host mode should cover:
+Host/device-build verification should continue to cover:
 
 - deterministic transport timing;
-- STEP REC note/rest advancement;
-- pattern wrap and page boundaries;
-- parameter-lock insertion/replacement/removal;
-- effect decoding;
-- voice render smoke tests;
+- STEP REC/special-event behavior;
+- p-lock storage/edit/application;
+- effect decoding/timing;
+- queue overflow/recovery;
+- engine primitive vectors;
 - screen-state snapshots;
-- worst-case event queue behavior.
+- worst-case engine/resource behavior;
+- mixed-family routing once WP5.0 begins;
+- same-track cross-family instrument changes;
+- no active cross-track steal;
+- complete 8-BIT regression equivalence under the mixed router.
 
-Golden WAV tests are appropriate for stable oscillator/envelope primitives.
+Golden WAV/hash tests remain appropriate for stable deterministic engine paths.
 
-## 14. Explicit non-goals for V0.1
+## 14. Explicit non-goals / boundaries
 
-- full Furnace `.fur` compatibility
-- full Furnace engine or UI port
-- dozens of authentic chip emulators
-- sample editor
-- arbitrary plugin architecture
-- unbounded polyphony
-- live song save while audio continues
-- mixed 8-BIT/16-BIT tracks
-- full desktop-style tracker command set
+Still non-goals unless promoted by explicit work packages:
 
-These can only be reconsidered after the core tracker is measured on real hardware.
+- full Furnace `.fur` compatibility;
+- full Furnace engine/UI port;
+- dozens of authentic chip emulators by default;
+- sample editor;
+- arbitrary runtime plugin architecture;
+- unbounded polyphony;
+- silent dynamic reduction of logical track count;
+- live song save while unsafe audio/flash interaction exists;
+- full desktop-style tracker command set.
+
+**Mixed engine families are no longer a non-goal.** D047 makes them core architecture beginning with WP5.0.
