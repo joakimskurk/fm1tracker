@@ -6,6 +6,7 @@ on:
       - phase3/plocks-effects
     paths:
       - .github/workflows/_wp3_9_integrate_visual_once.yml
+      - .github/tmp/wp3_9_integrate_visual.py
 
 permissions:
   contents: write
