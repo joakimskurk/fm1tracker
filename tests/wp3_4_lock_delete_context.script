@@ -1,0 +1,61 @@
+# WP3.4 D030 full-app host gesture fixture.
+# Button ids: OCT-=0 OCT+=1 SEL=3 EDIT=6 SEQ=11 PLAY=12.
+# Encoder ids: SELECT=0 KNOB1=2 KNOB2=3 KNOB3=4 KNOB4=5.
+# Note masks are physical FM-1 key bits.
+
+# Enter ordinary SEQ, select logical track 2 and page 2.
+100 btn 11
+200 keys 8
+210 keys 0
+300 btn 1
+
+# SELECT motion before/beginning the hold must not leak into the new target.
+350 enc 0 7
+400 keys 16
+400 enc 0 1
+
+# Create two locks on T2 / global step 19: VOICE 254, FINE 126.
+500 enc 2 -1
+550 enc 3 -2
+
+# Browse from FINE back to VOICE through the SELECT encoder.
+600 enc 0 -1
+
+# Same-poll EDIT down + SEL press must only arm; it may never delete.
+700 btndown 6
+700 btn 3
+
+# Automatic screenshot at 1000 ms must still show the armed VOICE delete target.
+# Any encoder movement while armed is drained/discarded.
+900 enc 0 1
+900 enc 2 -20
+
+# Releasing EDIT cancels the arm and keeps both locks.
+1100 btnup 6
+1150 enc 0 1
+
+# PLAY cancels a pending arm before toggling transport.
+1300 btndown 6
+1400 btn 12
+1450 btnup 6
+
+# Browse back to VOICE, arm it, then an extra physical key-down cancels the arm.
+1550 enc 0 -1
+1600 btndown 6
+1700 keys 48
+1750 keys 16
+1800 btnup 6
+
+# The lock still exists: SELECT +1 reaches FINE, -1 returns to VOICE.
+1900 enc 0 1
+1950 enc 0 -1
+
+# Final valid delete: EDIT arms now, SEL confirms on a later poll.
+2500 btndown 6
+2600 btn 3
+2650 btnup 6
+
+# VOICE is now deleted exactly once; FINE remains selected internally.
+# Automatic screenshot at 3000 ms must show DELETED K1 VOICE.
+3100 keys 0
+3300 end
