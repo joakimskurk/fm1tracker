@@ -8,10 +8,10 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8/parameter pages active; D044 FROZEN; isolated implementation/tests next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9/linked 8-BIT engine integration active; D045 contract freeze next - 2026-10-24**
 
 Parent issue: #30
-Current work package: WP4.8 / #39
+Current work package: WP4.9 / #40
 Current branch: `phase4/8bit-engine`
 
 Phase 4 branch start / final Phase 3 handoff:
@@ -310,9 +310,9 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**WP4.8 - four-parameter engine pages + p-lock mapping**
+**WP4.9 - linked 8-BIT engine integration**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.7/D043 COMPLETE; WP4.8 / #39 active; D044 FROZEN; isolated parameter-page implementation/tests next**
+State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 linked integration/ownership/resource/test contract required before modifying linked production audio**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -322,16 +322,17 @@ WP4.4 issue: #34 — COMPLETE
 WP4.5 issue: #35 — COMPLETE
 WP4.6 issue: #36 — COMPLETE
 WP4.7 issue: #37 — COMPLETE
-WP4.8 issue: #39 — IN PROGRESS
+WP4.8 issue: #39 — COMPLETE
+WP4.9 issue: #40 — IN PROGRESS
 Branch: `phase4/8bit-engine`
 
-WP4.7 closed on run `40103427588`, job `120900076833`. D043 deterministic allocator passed all-eight allocation order, all 256 IDLE/RELEASE masks, same-track reuse, stale-IDLE cleanup, detached release-tail stealing, no active cross-track steal, saturation/corruption/replay/hash verification, real PI32v2 compilation and a full-app closeout with zero linked delta. Evidence: `docs/WP4_7_VERIFICATION.md`.
+WP4.8 closed on run `40104723586`, job `120903925381`. D044 passed six-ID/four-page deterministic verification, all 256 WIDTH/TABLE mappings, 4,096 exhaustive engine×slot×value resolver cases, pinned PI32v2 compilation and full-app closeout with zero linked delta. Evidence: `docs/WP4_8_VERIFICATION.md`.
 
-The complete D038-D043 oscillator/envelope/allocator primitive set remains isolated from `dinghy.c`; the running full app therefore remains the exact Phase 3/WP4.1 baseline through WP4.7.
+WP4.9 is the first package that deliberately crosses the Phase 4 isolation boundary. D045 must be frozen before `dinghy.c`, the linked D027 registry, the 2,048 B D044 row cache, engine voice state or proof-sine audio are changed.
 
-D044 is frozen in `docs/WP4_8_PARAMETER_PAGE_CONTRACT.md`: six stable IDs `0x20..0x25`, a 6 B semantic base set, one exact four-control page per engine, direct D042 envelope mapping, bounded WIDTH/TABLE transforms, <=4-lock row resolution and a future 2048 B aligned row cache. Global registry/UI/cache activation remains deferred to WP4.9 so WP4.8 stays isolated and byte-identical at full-app level.
+D045 must define exact eight-track/eight-voice ownership, engine selection/fallback, D044 registry/cache activation, D031/D032 pitch/level precedence, D033 NOTE DELAY/RETRIG/CUT ordering, D042 articulation, D043 allocation/release-tail semantics, oscillator reset rules, mix/clamp ownership, proof-sine migration, deterministic per-engine/mixed fixtures, linked resource ceilings and the boundary to WP4.10 benchmarking.
 
-The Phase 3 proof sine remains the full-app production audio implementation during isolated WP4.8 parameter-layer work. Do not pull WP4.9 proof-sine migration or full engine integration forward.
+Do not begin the final eight-track benchmark/Phase 4 closeout until WP4.9 integrated host and target evidence is green.
 
 ## Important decisions / do not regress
 
@@ -368,7 +369,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Implement the isolated D044 parameter-page resolver and focused deterministic tests from the frozen contract. Do not activate the six IDs in the linked global registry, allocate the final cache, alter the current knob UI or connect D038-D043 to `dinghy.c`; keep the Phase 3 proof sine/full-app artifacts byte-identical.
+Freeze D045 and the deterministic WP4.9 linked-integration test/resource contract in the repository before modifying `dinghy.c`, activating the six D044 IDs in the linked registry, allocating the D044 row cache or replacing the Phase 3 proof sine. Do not begin WP4.10 benchmarking yet.
 
 ## Last relevant checkpoints
 
@@ -401,6 +402,8 @@ Implement the isolated D044 parameter-page resolver and focused deterministic te
 - WP4.7 D043 verification/closeout: `bb25dad92ad71709679589376c039fbfe0a6d92c` — run `40103427588`, job `120900076833`
 - WP4.7 final static-audit correction: `14fc240486f2cf72bfaafcb072fec2c946cc4c50` — run `40103577801` SUCCESS
 
+- WP4.8 D044 verification/closeout: `9e6c5268259d50eb74a2326259a5cbf3c05d189e` — run `40104723586`, job `120903925381`
+
 ## Last updated
 
-2026-10-24 - WP4.7 / #37 COMPLETE. D043 allocator passed focused host/PI32v2 verification and final zero-delta target closeout; final audit correction run `40103577801` is green. WP4.8 / #39 is now active. Exact next action: freeze D044 stable engine parameter IDs, four-control page/default/domain mappings and bounded D027/D031 p-lock/publication semantics before production source.
+2026-10-24 - WP4.8 / #39 COMPLETE. D044 six-ID/four-page parameter resolver passed exhaustive deterministic host verification, pinned PI32v2 compilation and full-app closeout with zero linked delta; run `40104723586`, job `120903925381`. WP4.9 / #40 is now active. Exact next action: freeze D045 linked engine integration/ownership/resource/test contract before changing the linked audio path.

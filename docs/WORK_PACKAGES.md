@@ -151,7 +151,7 @@ Phase 3 is complete at host/device-build level. Physical FM-1 verification remai
 
 # Phase 4 — 8-BIT engine
 
-Status: **IN PROGRESS — WP4.1 / #31 through WP4.7 / #37 COMPLETE; WP4.8 / #39 four-parameter pages + p-lock mapping active; D044 FROZEN; isolated implementation/tests next**
+Status: **IN PROGRESS — WP4.1 / #31 through WP4.8 / #39 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 before linked source**
 
 Parent issue: #30
 
@@ -162,8 +162,8 @@ Parent issue: #30
 - **WP4.5 WAVETABLE-8** — COMPLETE — issue #35 — D041 + `WP4_5_VERIFICATION.md`; all-256-sample/table-SHA/eight-hash host/PI32v2 proof and zero linked full-app delta
 - **WP4.6 common envelope primitive** — COMPLETE — issue #36 — D042 + `WP4_6_VERIFICATION.md`; deterministic all-rate/sustain/event/stage host/PI32v2 proof and zero linked full-app delta
 - **WP4.7 deterministic voice allocation/stealing** — COMPLETE — issue #37 — D043 + `WP4_7_VERIFICATION.md`; deterministic release-tail allocator host/PI32v2 proof and zero linked full-app delta
-- **WP4.8 four-parameter pages + p-lock mapping** — IN PROGRESS — issue #39 — D044 FROZEN; isolated six-ID/page/resolver implementation + deterministic/PI32v2 verification next
-- WP4.9 pitch/retrigger integration
+- **WP4.8 four-parameter pages + p-lock mapping** — COMPLETE — issue #39 — D044 + `WP4_8_VERIFICATION.md`; six stable IDs, bounded resolver and zero linked full-app delta
+- **WP4.9 linked 8-BIT engine integration** — IN PROGRESS — issue #40 — freeze D045 integration/ownership/resource/test contract before linked source
 - WP4.10 eight-track hardware benchmark
 
 ---
