@@ -1,0 +1,52 @@
+name: WP4.9 D045 Gate 4 host smoke
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_8bit_engine.c
+      - firmware/src/fmt_8bit_linked_params.c
+      - .github/workflows/wp4_9_gate4_smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install host dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+      - name: Compile and run migrated full app
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          sh tests/run_host.sh | tee build/wp4_9_gate4_smoke.log
+          test -s build/host/fm1tracker.wav
+          sha256sum build/host/fm1tracker.wav | tee build/wp4_9_gate4_wav.sha256
+          python3 - <<'PY' | tee build/wp4_9_gate4_wav_meta.txt
+          import wave
+          with wave.open('build/host/fm1tracker.wav', 'rb') as f:
+              print('frames=%d channels=%d rate=%d width=%d' %
+                    (f.getnframes(), f.getnchannels(), f.getframerate(), f.getsampwidth()))
+          PY
+          printf '%s\n' 'WP4_9_GATE4_HOST_SMOKE_OK=1' | tee build/wp4_9_gate4_smoke_summary.txt
+      - name: Upload smoke evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate4-host-smoke
+          if-no-files-found: error
+          path: |
+            build/wp4_9_gate4_smoke.log
+            build/wp4_9_gate4_wav.sha256
+            build/wp4_9_gate4_wav_meta.txt
+            build/wp4_9_gate4_smoke_summary.txt
+            build/host/fm1tracker.wav
+            build/host/*.png
