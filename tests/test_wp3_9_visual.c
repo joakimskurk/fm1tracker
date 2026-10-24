@@ -20,6 +20,7 @@ static void prepare(FmtTrackerScreen *screen,
                     FmtLockEditor *editor)
 {
     fmt_store_reset();
+    fmt_lock_store_reset();
     fmt_tracker_screen_reset(screen);
     fmt_pattern_input_reset(input);
     fmt_step_record_reset(record);
