@@ -31,7 +31,7 @@ The complete Phase 4 incremental ceilings versus the frozen Phase 3 baseline are
 
 **Consequence:** WP4.1 is documentation/architecture only and must close with zero production firmware/DSP delta from the clean Phase 4 branch start. WP4.2-WP4.8 may build isolated deterministic primitives behind this interface. The first production migration away from the Phase 3 proof sine must be explicit, preserve D020-D034 semantics through the adapter, rerun inherited regressions and freeze new intentional audio evidence instead of silently rewriting old hashes. WP4.10 must prove the final eight-track Phase 4 configuration remains inside the D037 ceilings or record a superseding decision.
 '''
-p.write_text(s.rstrip() + entry + '\n')
+p.write_text(s.rstrip() + entry.rstrip() + '\n')
 
 # Project state: the architecture is now frozen; verification is the next action.
 p = Path('docs/PROJECT_STATE.md')
