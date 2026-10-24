@@ -27,10 +27,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
       - name: Run D038 isolated PULSE closeout
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_wp4_2_closeout_ci.sh | tee build/wp4_2_closeout.log
           grep -F 'WP4_2_ISOLATED_PRODUCTION_DELTA_OK=1' build/wp4_2_closeout.log
           grep -F 'WP4_2_TARGET_OBJECTS_OK=1' build/wp4_2_closeout.log
