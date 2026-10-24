@@ -1,0 +1,8 @@
+# Row 1 gets ARP +4/+7 plus a real D029 FINE lock at 255 (+127 Q7).
+# Button ids: SEQ=11. Encoder id KNOB2=3. White key index 2 -> global step 1.
+1 effect 1 1 71
+20 btn 11
+40 keys 4
+60 enc 3 127
+80 keys 0
+900 end
