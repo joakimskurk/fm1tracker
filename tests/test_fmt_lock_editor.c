@@ -335,7 +335,7 @@ static void test_browse_sorted_clamped_and_zero_lock(void)
     assert(fmt_lock_editor_browse(&editor, INT32_MAX));
     assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_PAN);
     fmt_lock_editor_footer(&editor, text);
-    assert(strcmp(text, "P4/4 K4 PAN 40") == 0);
+    assert(strcmp(text, "P4/4 K4 PAN 40 STORE") == 0);
 
     assert(fmt_lock_editor_browse(&editor, 1));
     assert(editor.selected_param == (FmtParamId)FMT_PARAM_TRACK_PAN);

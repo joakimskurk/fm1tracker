@@ -92,6 +92,12 @@ static uint8_t fmt_lock_editor_param_knob(FmtParamId param_id)
     }
 }
 
+static void fmt_lock_editor_storage_marker(FmtParamId param_id, char **p)
+{
+    if (param_id == (FmtParamId)FMT_PARAM_TRACK_PAN)
+        fmt_lock_editor_copy(p, " STORE");
+}
+
 static void fmt_lock_editor_set_storage_error(FmtLockEditor *editor,
                                               FmtLockStatus status)
 {
@@ -607,6 +613,7 @@ void fmt_lock_editor_footer(const FmtLockEditor *editor, char out[32])
         *p++ = ' ';
         fmt_lock_editor_copy(&p, fmt_lock_editor_param_short(editor->selected_param));
         fmt_lock_editor_copy(&p, "? SEL YES");
+        fmt_lock_editor_storage_marker(editor->selected_param, &p);
         *p = 0;
         return;
     }
@@ -617,6 +624,7 @@ void fmt_lock_editor_footer(const FmtLockEditor *editor, char out[32])
         *p++ = (char)('0' + knob);
         *p++ = ' ';
         fmt_lock_editor_copy(&p, fmt_lock_editor_param_short(editor->last_param));
+        fmt_lock_editor_storage_marker(editor->last_param, &p);
         *p = 0;
         return;
     }
@@ -643,6 +651,7 @@ void fmt_lock_editor_footer(const FmtLockEditor *editor, char out[32])
                 fmt_lock_editor_u8_dec(&p, value);
             else
                 fmt_lock_editor_copy(&p, "RANGE");
+            fmt_lock_editor_storage_marker(editor->selected_param, &p);
             *p = 0;
             return;
         }
@@ -671,6 +680,7 @@ void fmt_lock_editor_footer(const FmtLockEditor *editor, char out[32])
         *p++ = ' ';
         fmt_lock_editor_u8_dec(&p, editor->last_value);
         fmt_lock_editor_copy(&p, " LOCK");
+        fmt_lock_editor_storage_marker(editor->last_param, &p);
         *p = 0;
         return;
     }

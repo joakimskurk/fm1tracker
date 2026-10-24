@@ -849,10 +849,11 @@ static void app_main(void)
             uint32_t draws;
             uint8_t region;
 
-            (void)fmt_tracker_screen_sync(&fmt_tracker_screen_runtime,
-                                          &fmt_pattern_input_runtime,
-                                          &fmt_step_record_runtime,
-                                          &fmt_transport_runtime);
+            (void)fmt_tracker_screen_sync_feedback(&fmt_tracker_screen_runtime,
+                                                   &fmt_pattern_input_runtime,
+                                                   &fmt_step_record_runtime,
+                                                   &fmt_transport_runtime,
+                                                   &fmt_lock_editor_runtime);
             for (draws = 0u; draws < FMT_TRACKER_SCREEN_MAX_REGIONS_PER_POLL; draws++) {
                 if (!fmt_tracker_screen_take_region(&fmt_tracker_screen_runtime, &region))
                     break;
@@ -862,10 +863,11 @@ static void app_main(void)
             int was_tracker_screen = fmt_tracker_screen_runtime.active != 0u;
 
             if (was_tracker_screen) {
-                (void)fmt_tracker_screen_sync(&fmt_tracker_screen_runtime,
-                                              &fmt_pattern_input_runtime,
-                                              &fmt_step_record_runtime,
-                                              &fmt_transport_runtime);
+                (void)fmt_tracker_screen_sync_feedback(&fmt_tracker_screen_runtime,
+                                                   &fmt_pattern_input_runtime,
+                                                   &fmt_step_record_runtime,
+                                                   &fmt_transport_runtime,
+                                                   &fmt_lock_editor_runtime);
                 draw_home_static();
                 lit_drawn = ~0u;
                 note_drawn = ~0u;
