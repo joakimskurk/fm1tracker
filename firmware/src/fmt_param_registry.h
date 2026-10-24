@@ -22,13 +22,20 @@ typedef uint8_t FmtParamId;
 #define FMT_PARAM_RESERVED_FIRST     0xF0u
 #define FMT_PARAM_RESERVED_LAST      0xFEu
 
-/* One authoritative list of IDs actually assigned by WP3.1. Namespace ranges
- * intentionally contain unassigned bytes for later bounded work packages. */
+/* One authoritative list of IDs actually assigned in the linked runtime.
+ * D045 Gate 3 activates only the six frozen D044 identities in the 8-BIT
+ * namespace; 0x26..0x5F remain deliberately unassigned. */
 #define FMT_PARAM_REGISTRY(X) \
-    X(VOICE_LEVEL, 0x01u, "VOICE LEVEL") \
-    X(PITCH_FINE,  0x02u, "FINE")        \
-    X(TRACK_LEVEL, 0xA0u, "TRACK LEVEL") \
-    X(TRACK_PAN,   0xA1u, "PAN")
+    X(VOICE_LEVEL,      0x01u, "VOICE LEVEL") \
+    X(PITCH_FINE,       0x02u, "FINE")        \
+    X(BIT8_ATTACK,      0x20u, "ATTACK")      \
+    X(BIT8_DECAY,       0x21u, "DECAY")       \
+    X(BIT8_SUSTAIN,     0x22u, "SUSTAIN")     \
+    X(BIT8_RELEASE,     0x23u, "RELEASE")     \
+    X(BIT8_PULSE_WIDTH, 0x24u, "WIDTH")       \
+    X(BIT8_WAVETABLE,   0x25u, "TABLE")       \
+    X(TRACK_LEVEL,      0xA0u, "TRACK LEVEL") \
+    X(TRACK_PAN,        0xA1u, "PAN")
 
 enum {
     FMT_PARAM_NONE = 0x00u,
@@ -36,7 +43,7 @@ enum {
     FMT_PARAM_REGISTRY(FMT_PARAM_ENUM)
 #undef FMT_PARAM_ENUM
     FMT_PARAM_INVALID = 0xFFu,
-    FMT_PARAM_ASSIGNED_COUNT = 4u
+    FMT_PARAM_ASSIGNED_COUNT = 10u
 };
 
 enum {
@@ -72,6 +79,8 @@ FMT_PARAM_STATIC_ASSERT(track_before_fx, FMT_PARAM_TRACK_LAST < FMT_PARAM_CHANNE
 FMT_PARAM_STATIC_ASSERT(fx_before_global, FMT_PARAM_CHANNEL_FX_LAST < FMT_PARAM_GLOBAL_FIRST);
 FMT_PARAM_STATIC_ASSERT(global_before_reserved, FMT_PARAM_GLOBAL_LAST < FMT_PARAM_RESERVED_FIRST);
 FMT_PARAM_STATIC_ASSERT(reserved_before_invalid, FMT_PARAM_RESERVED_LAST < FMT_PARAM_INVALID);
+FMT_PARAM_STATIC_ASSERT(bit8_attack_id, FMT_PARAM_BIT8_ATTACK == 0x20u);
+FMT_PARAM_STATIC_ASSERT(bit8_table_id, FMT_PARAM_BIT8_WAVETABLE == 0x25u);
 
 /* Namespace classification describes numeric ownership, not assignment. An ID
  * can belong to a future namespace while fmt_param_lookup() still returns NULL. */
