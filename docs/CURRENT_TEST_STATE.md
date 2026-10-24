@@ -3,7 +3,7 @@
 Date: 2026-10-24  
 Purpose: **current verification overlay**
 
-Legend: ✅ verified/frozen, 🟨 committed with implementation CI pending, ⬜ future, ⛔ physical unavailable.
+Legend: ✅ verified/frozen, ⬜ active/future, ⛔ physical unavailable.
 
 ## Completed baselines
 
@@ -11,63 +11,55 @@ Legend: ✅ verified/frozen, 🟨 committed with implementation CI pending, ⬜ 
 - D046 Phase 4 all-8-BIT baseline: COMPLETE ✅ run `40124536375`, job `120963022289`
 - D048 WP5.0 mixed-engine routing: COMPLETE ✅ run `40129822006`, job `120978955451`
 - D049 WP5.1 fixed-point FM operator: COMPLETE ✅ run `40134823600`, host `120994003059`, target `120994002842`
+- D050 WP5.2 curated FM4 algorithm routing: COMPLETE ✅ run `40136425976`, host `120998804031`, target `120998804175`
 
-D049 compatibility remains exact:
+## WP5.2 final evidence
 
-- 4 B operator state ✅
-- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68` ✅
-- long SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66` ✅
-- PI32v2 object text+rodata 692 B ✅
-- full app exact WP5.0 ✅
-
-## WP5.2 / D050 current state
-
-Normative contract: `WP5_2_FM_ALGORITHM_CONTRACT.md`.  
-Pre-implementation evidence: `WP5_2_PREIMPLEMENTATION_EVIDENCE.md`.
-
-### Contract-first gate - GREEN
-
-- source-absent run `40135979431` ✅
-- job `120997461479` ✅
-- artifact `12577609841` / SHA `d3465c39b17416d58c56d98c196a18ae1c4dbd6e07d2ab7cc4ca2b3992cab85` ✅
-- four topology/evaluation fixtures ✅
-- modulation/wrap/normalization anchors ✅
-- four frozen 4,096-render hashes ✅
+- source-absent D050 run `40135979431`, job `120997461479` ✅
+- four stable algorithms/topologies ✅
+- fixed OP4 -> OP3 -> OP2 -> OP1 evaluation ✅
+- all four operators advance once/sample ✅
 - 65,536 renders per algorithm stress ✅
-- D049 and WP5.0 host regressions ✅
+- algorithm-switch phase continuity ✅
+- frozen long hashes exact ✅
+- no loops/graph traversal/heap/float/int64/divide/modulo/store/router access in render ✅
+- PI32v2 router object text+rodata 362 B / 2,048 B ceiling ✅
+- object SHA `ed85fe6ed70402bd3b0727e59b1c8eee21f6d15f264ec8dc439603968a38f469` ✅
+- full target exact WP5.0: 72,792 / 19,676 / 113,000 B ✅
+- BIN/FWSC exact WP5.0 ✅
+- evidence `WP5_2_VERIFICATION.md` ✅
 
-### Production routing implementation - COMMITTED, CI PENDING
+## WP5.3 current state - ACTIVE CONTRACT-FIRST
+
+Issue #46. Planned branch `phase5/fm4-ratios`.
 
 | Check | Status |
 |---|---|
-| `fmt_fm_algorithm.h/.c` isolated source | 🟨 |
-| source boundary versus `6ecdb646...` | 🟨 |
-| state exactly four D049 operators / 16 B | 🟨 |
-| reset/retrigger/null safety | 🟨 |
-| algorithm fallback STACK4 | 🟨 |
-| mod-depth clamp 0..16383 | 🟨 |
-| edge mapping / modulo phase accumulation | 🟨 |
-| carrier normalization 1/2/4 | 🟨 |
-| fixed OP4 -> OP3 -> OP2 -> OP1 order | 🟨 |
-| every operator advances once per sample | 🟨 |
-| exact first-12 vectors | 🟨 |
-| exact four long hashes/final phases | 🟨 |
-| 65,536-render-per-algorithm stress | 🟨 |
-| algorithm-switch phase continuity | 🟨 |
-| no loops/graph traversal/heap/float/int64/divide/modulo/store/router in render | 🟨 |
-| D049/WP5.0 inherited host gates | 🟨 |
-| pinned PI32v2 router compile | 🟨 |
-| router object <= 2,048 B | 🟨 |
-| full target/audio identity exact WP5.0 | 🟨 |
-| `WP5_2_VERIFICATION.md` | ⬜ after green CI |
+| inspect canonical base pitch/increment helper | ⬜ |
+| compact musically useful ratio set | ⬜ |
+| stable internal ratio IDs | ⬜ |
+| exact mathematical ratio meaning | ⬜ |
+| integer transform arithmetic | ⬜ |
+| exact rounding policy | ⬜ |
+| overflow/clamp policy | ⬜ |
+| supported base-increment domain | ⬜ |
+| sub-unity/fractional ratio decision | ⬜ |
+| deterministic low/mid/high vectors | ⬜ |
+| high-register edge vectors | ⬜ |
+| four-operator mapping API/state | ⬜ |
+| realtime/source ceiling | ⬜ |
+| pinned PI32v2 object ceiling | ⬜ |
+| D051 contract frozen before production source | ⬜ |
+| source-absent reference CI | ⬜ |
+| production ratio implementation | ⬜ blocked until D051 gate |
+| D049/D050 regressions remain exact | ⬜ |
+| full target remains exact WP5.0 while isolated | ⬜ |
+| `WP5_3_VERIFICATION.md` | ⬜ |
 
-Frozen long hashes:
+## Explicit WP5.3 non-goals
 
-- STACK4 `25dfde1bb29de2c70305d6abafee91fd7480e69eaa71fd1a3fbde3c1e6e855cd`
-- FAN3 `8d9ae5310369e3d5a36bcf8c44d5e74049d3d6e109362a844be2796b26330653`
-- DUAL2 `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269`
-- PARALLEL4 `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882`
+No final level/mod-index UX, feedback, envelopes, FM voice allocation/router integration, FM parameter pages/p-lock IDs or audible mixed FM production integration belong to WP5.3.
 
-WP5.2 excludes ratios, final level/mod-index UX, feedback, envelopes, voice integration, p-lock pages and audible mixed FM integration.
+## Physical hardware boundary
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
