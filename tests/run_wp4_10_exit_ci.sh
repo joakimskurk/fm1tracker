@@ -18,6 +18,9 @@ printf '%s\n' 'WP4_10_EXIT_PRODUCTION_FREEZE_OK=1 baseline=c93c39ad344760b4da0df
 sh tests/run_wp4_10_representative_host.sh | tee build/wp4_10/exit_representative.log
 grep -F 'WP4_10_FULL_POOL_LINKED_OK=1 tracks=8 rows=64 owners=512 locks=2048 engines=4' build/wp4_10/exit_representative.log
 grep -F 'WP4_10_QUEUE_PRESSURE_OK=1 short_overflow=16 long_overflow=40 recovery=1 tracker_continues=1' build/wp4_10/exit_representative.log
+grep -F 'WP4_10_D033_ALLOC_COUNTS_OK=1 representative_repeat=identical long_repeat=identical active_cross_track_steals=0 allocation_invariants=pass' build/wp4_10/exit_representative.log
+grep -F 'WP4_10_REPRESENTATIVE_REPEAT_OK=1 wav=byte_identical state_digest=identical action_alloc_counts=identical' build/wp4_10/exit_representative.log
+grep -F 'WP4_10_LONG_RUN_REPEAT_OK=1 sample_digest=identical state_digest=identical action_alloc_counts=identical' build/wp4_10/exit_representative.log
 grep -F 'WP4_10_LONG_RUN_OK=1 rows=4096 wraps=64 ticks=163840' build/wp4_10/exit_representative.log
 
 # Focused structural proof for bounded callback ownership and exact single-clock
@@ -42,5 +45,5 @@ grep -F 'fm1tracker_fwsc_sha256=20f0bbe556edcf6a00118f9983335913dda2f29fc64d3c87
 # Compact machine-readable evidence consumed by the workflow and closeout docs.
 REP_SHA="$(sed -n 's/^WP4_10_REPRESENTATIVE_WAV_SHA256=\([^ ]*\).*/\1/p' build/wp4_10/exit_representative.log | tail -n 1)"
 test -n "$REP_SHA"
-printf 'WP4_10_EXIT_OK=1 representative_wav_sha256=%s inherited_regressions=pass realtime=pass target=pinned identity=FM-1_987 phase4=exit_ready\n' "$REP_SHA" \
+printf 'WP4_10_EXIT_OK=1 representative_wav_sha256=%s inherited_regressions=pass realtime=pass d033_alloc_counts=pass repeat_identity=pass target=pinned identity=FM-1_987 phase4=exit_ready\n' "$REP_SHA" \
     | tee build/wp4_10/exit_summary.txt
