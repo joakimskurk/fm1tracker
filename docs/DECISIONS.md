@@ -411,3 +411,50 @@ All public lock operations address a song step through bounded pattern/track/ste
 **Reason:** A fixed global sparse pool preserves the V0.1 96 KiB editable-song target while making per-step p-locks first-class. Four locks on every resident step across all 16 patterns would require 32,768 records and cannot fit that target; the earlier data-model example that described 2,048 records as the whole-song worst case omitted the 16 pattern slots and is corrected by this decision. Eight-byte records use the budget already reserved by D018 and buy a 16-bit owner tag that materially improves corruption/isolation safety. Sorted active lists give deterministic lookup/iteration independent of edit order, while a shared `next` field keeps both active lists and the free list compact.
 
 **Consequence:** WP3.2 allocates exactly 16,384 bytes of new pool storage plus four bytes of allocator runtime state before measured code/linker overhead. With the WP3.1 baseline this predicts 113,000 bytes total pool use and 12,468 bytes normal RAM before linker alignment effects, leaving 231,064 bytes of pool. `FmtSong` remains 65,896 bytes and `FmtStep` remains exactly eight bytes. WP3.2 must test all 8,192 owner mappings, exhaustive reset/free-list uniqueness, deterministic set/get/replace/remove/clear, global exhaustion/recovery, cross-owner and malformed-index rejection, no-neighbor mutation and the max-four invariant. Because D027 currently exposes exactly four production-lockable IDs, the fifth-lock rejection branch must additionally be exercised by a focused storage test using a test-only lockability stub; this does not assign a fifth production parameter ID. WP3.3 owns encoder/hold-step editing, WP3.4 owns user-facing replace/delete UX, and WP3.5+ owns application of locks to playback/audio.
+
+## D029 — WP3.3 uses a white-step hold latch and relative KNOB1..4 deltas for storage-only p-lock editing
+
+Date: 2026-10-24  
+Status: accepted for the WP3.3 prototype; physical ergonomics remain provisional
+
+**Decision:** WP3.3 adds the first hardware/editor path that writes D028 locks. P-lock editing exists only in ordinary D022 SEQ/pattern context. It is unavailable in PERFORMANCE and D024 STEP REC. Transport running/stopped state does not gate WP3.3 editing because this package writes only the lock store and the current audio/playback path does not read or apply locks.
+
+A lock gesture begins on a new physical **white step-key** down while ordinary SEQ is active and no lock gesture is already active. If multiple white step-key downs arrive in the same main-loop poll, the lowest physical white key is the single gesture owner. The key is first selected through the existing D022 mapping, then the editor snapshots **pattern 0, the selected logical track and the resulting global step**. If a black track key and white step key arrive in the same poll, the white-key gesture uses the track selection that existed at the beginning of that poll; the simultaneous black-key selection is suppressed. This prevents scan/order-dependent targeting.
+
+The gesture remains active only while its owning physical white key remains held. During that hold, ordinary step selection, black-key track selection and OCT page navigation are suppressed, so the cursor/header and the snapshotted target cannot diverge. Pressing other note keys cannot retarget the gesture. Releasing the owning white key ends the gesture immediately. HOME/performance exit or entering STEP REC cancels it immediately without writing an extra value. PLAY does not cancel it; playback may start/stop while the held storage target remains fixed. A new gesture always requires a fresh white-key down after the previous gesture has ended; holding a second key across the first key's release never transfers ownership automatically.
+
+The FM-1 HAL's `fm1_enc_take()` relative detent stream is the intent signal. WP3.3 consumes/drains KNOB1..4 on every main-loop poll, even when no lock gesture is active. Deltas observed while inactive are discarded. On the poll that begins, releases or cancels a gesture, all KNOB1..4 deltas are also discarded. Therefore encoder motion that occurred before the hold can never leak into the new target, and a release occurring in the same poll as encoder movement wins over the movement. Only deltas from later polls while the gesture remains stably active can write locks. Zero delta never creates or replaces a lock.
+
+KNOB1..4 are mapped directly to the four D027 production-lockable IDs for this prototype:
+
+- `KNOB1` -> `FMT_PARAM_VOICE_LEVEL` (`0x01`)
+- `KNOB2` -> `FMT_PARAM_PITCH_FINE` (`0x02`)
+- `KNOB3` -> `FMT_PARAM_TRACK_LEVEL` (`0xA0`)
+- `KNOB4` -> `FMT_PARAM_TRACK_PAN` (`0xA1`)
+
+This encoder mapping is UI/page policy, not parameter identity; D027 numeric IDs remain semantic and independent of encoder positions.
+
+WP3.3 freezes a small **editor-normalized** value domain for only these four current IDs. Values are stored in D028's 16-bit field but valid WP3.3 editor values are `0..255`. One encoder detent changes the editor value by exactly one, with signed multi-detent deltas applied in one bounded operation and clamped to `0..255`. These numbers do not yet mean dB, cents, a pan law or engine coefficients; audio/DSP interpretation remains WP3.5+/engine work.
+
+When a parameter has no lock on the target step, the first nonzero eligible delta starts from a fixed editor reference and then applies that delta:
+
+- VOICE LEVEL reference = `255`
+- FINE PITCH reference = `128`
+- TRACK LEVEL reference = `255`
+- TRACK PAN reference = `128`
+
+The level references represent the editor's unattenuated end of its normalized range; FINE and PAN use the normalized center. They are not a claim about a future engine's internal default. If an existing lock for one of these IDs contains a value above `255`, WP3.3 treats that value as an editor-domain error and performs no mutation rather than silently clamping/reinterpreting it. A later decision may supersede the editor reference/scaling when real engine base parameters exist, but it may not silently reinterpret released persisted data.
+
+For an existing valid lock, each eligible encoder delta computes from the stored value and calls D028 `fmt_lock_set()`, which replaces in place without allocation. For a missing lock, the reference-plus-delta result is written as the first lock. A nonzero delta still creates the missing lock when the result saturates at the reference boundary, so e.g. clockwise movement from a level reference of 255 records an explicit 255 rather than disappearing as no intent.
+
+If multiple KNOB1..4 deltas are available in one poll, they are processed in fixed order KNOB1, KNOB2, KNOB3, KNOB4 as separate bounded atomic storage edits. An earlier successful edit remains valid if a later encoder in the same poll encounters POOL_FULL or another error; the ordering is deliberate and testable. D028 still guarantees that each individual `fmt_lock_set()` is corruption-safe and has no partial mutation.
+
+WP3.3 owns no delete/clear gesture. D028 statuses are surfaced only as bounded editor feedback. The editor keeps the last attempted parameter, value and status for the active hold. `OK` shows the successfully stored normalized value. STEP_FULL, POOL_FULL, BAD_ADDRESS, CORRUPT and the WP3.3 editor-domain range error show explicit error feedback without retry loops or automatic deletion. INVALID_PARAM should be unreachable through the frozen KNOB mapping but is handled safely if encountered.
+
+Minimal display feedback lives only in the existing D026 tracker footer. While a white step is held, the footer identifies p-lock hold context and the target step/track. After an encoder attempt during that hold, the footer shows the knob/parameter short name plus stored value or a concise error. Releasing/cancelling the hold restores the ordinary SEQ footer. Full per-row lock markers, browsing and detailed lock visualization remain WP3.9. Footer dirtiness remains bounded under the existing D026 max-two-regions-per-poll renderer; no drawing enters the audio ISR.
+
+WP3.3 changes storage only. Encoder p-lock writes must not alter `FmtStep.note`, instrument, volume, tracker effect fields, playback voice state, audition state or base instrument/track parameters. No lock is read by or applied to audio in this package.
+
+**Reason:** A held physical step plus relative detent movement is the direct hardware gesture already anticipated by the control map, while the existing HAL gives a reliable one-click relative intent signal so no guessed analog pickup threshold is required. Snapshotting and then freezing the target prevents track/page/cursor changes from redirecting a write. Continuously draining inactive encoders prevents stale motion from becoming an accidental lock. A normalized byte-scale editor domain is compact, readable and sufficient to prove the edit architecture without prematurely freezing DSP units.
+
+**Consequence:** WP3.3 must introduce a small bounded editor state/module, extend the host harness with deterministic encoder-delta events, and test context gating, all sixteen white-key targets across pages, all eight tracks, target snapshot/focus locking, stale-delta discard, release-before-delta precedence, fixed four-encoder ordering, first-lock references, clamping, replacement-in-place, editor-range rejection and D028 storage-error propagation. The full app must demonstrate hold-step + encoder editing without MIDI audition or unintended cursor/track movement. All Phase 2, WP3.1 and WP3.2 regressions plus the frozen default WAV remain required. Physical comfort of holding a white key while turning encoders is still a Phase 7 hardware-UX question. WP3.4 owns delete/clear UX; WP3.5+ owns p-lock application to playback/audio.
