@@ -151,7 +151,7 @@ Phase 3 is complete at host/device-build level. Physical FM-1 verification remai
 
 # Phase 4 — 8-BIT engine
 
-Status: **IN PROGRESS — WP4.1 / #31 through WP4.8 / #39 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 FROZEN; Gates 1-3 GREEN; Gate 4 next**
+Status: **IN PROGRESS — WP4.1 / #31 through WP4.9 / #40 COMPLETE; WP4.10 / #41 representative benchmark + Phase 4 closeout active**
 
 Parent issue: #30
 
@@ -163,8 +163,8 @@ Parent issue: #30
 - **WP4.6 common envelope primitive** — COMPLETE — issue #36 — D042 + `WP4_6_VERIFICATION.md`; deterministic all-rate/sustain/event/stage host/PI32v2 proof and zero linked full-app delta
 - **WP4.7 deterministic voice allocation/stealing** — COMPLETE — issue #37 — D043 + `WP4_7_VERIFICATION.md`; deterministic release-tail allocator host/PI32v2 proof and zero linked full-app delta
 - **WP4.8 four-parameter pages + p-lock mapping** — COMPLETE — issue #39 — D044 + `WP4_8_VERIFICATION.md`; six stable IDs, bounded resolver and zero linked full-app delta
-- **WP4.9 linked 8-BIT engine integration** — IN PROGRESS — issue #40 — D045 FROZEN; Gates 1-3 GREEN (`WP4_9_GATE1_VERIFICATION.md`, `WP4_9_GATE2_VERIFICATION.md`, `WP4_9_GATE3_VERIFICATION.md`); Gate 4 `dinghy.c` tracker-lane migration + integrated host/target proof next
-- WP4.10 eight-track hardware benchmark
+- **WP4.9 linked 8-BIT engine integration** — COMPLETE — issue #40 — D045 + `WP4_9_VERIFICATION.md`; final run `40116897104`, job `120939922897`; linked target 72,504 B image / 19,604 B normal RAM / 113,000 B pool
+- **WP4.10 representative eight-track benchmark + Phase 4 closeout** — IN PROGRESS — issue #41 — freeze benchmark/exit contract before any production change
 
 ---
 

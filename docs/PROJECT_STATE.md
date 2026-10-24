@@ -8,10 +8,10 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9/linked 8-BIT engine integration active; D045 FROZEN; Gates 1-3 GREEN; Gate 4 dinghy/audio migration next - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 representative benchmark + Phase 4 closeout active - 2026-10-24**
 
 Parent issue: #30
-Current work package: WP4.9 / #40
+Current work package: WP4.10 / #41
 Current branch: `phase4/8bit-engine`
 
 Phase 4 branch start / final Phase 3 handoff:
@@ -310,9 +310,9 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**WP4.9 - linked 8-BIT engine integration**
+**WP4.10 - representative eight-track benchmark and Phase 4 closeout**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 active; D045 FROZEN; Gates 1-3 GREEN; Gate 4 linked dinghy/audio migration next**
+State: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 active; final representative benchmark/exit contract must be frozen before new production changes**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -323,16 +323,15 @@ WP4.5 issue: #35 — COMPLETE
 WP4.6 issue: #36 — COMPLETE
 WP4.7 issue: #37 — COMPLETE
 WP4.8 issue: #39 — COMPLETE
-WP4.9 issue: #40 — IN PROGRESS
+WP4.9 issue: #40 — COMPLETE
+WP4.10 issue: #41 — IN PROGRESS
 Branch: `phase4/8bit-engine`
 
-WP4.8 closed on run `40104723586`, job `120903925381`. D044 passed six-ID/four-page deterministic verification, all 256 WIDTH/TABLE mappings, 4,096 exhaustive engine×slot×value resolver cases, pinned PI32v2 compilation and full-app closeout with zero linked delta. Evidence: `docs/WP4_8_VERIFICATION.md`.
+WP4.9 closed on run `40116897104`, job `120939922897`. D045 now links all eight tracker tracks through the real bounded 8-BIT engine and passed canonical per-engine/mixed/eight-track/D033/precedence fixtures, inherited non-obsolete regressions, realtime audit and pinned target build. Final resources: 72,504 B image / 19,604 B normal RAM / 113,000 B pool. Evidence: `docs/WP4_9_VERIFICATION.md`.
 
-D045 is frozen in `docs/WP4_9_LINKED_ENGINE_CONTRACT.md`. WP4.9 deliberately crosses the isolation boundary in staged gates: track-aware playback/D031/D032 publication first, pure linked-engine state/mix second, D044 registry/cache/editor activation third, and only then `dinghy.c` proof-sine migration.
+WP4.10 / #41 is the only remaining Phase 4 package. It must freeze a representative benchmark/exit contract before any new production change, then prove the linked D037-D045 path under a deterministic eight-track representative workload and finish the Phase 4 exit gate.
 
-D045 must define exact eight-track/eight-voice ownership, engine selection/fallback, D044 registry/cache activation, D031/D032 pitch/level precedence, D033 NOTE DELAY/RETRIG/CUT ordering, D042 articulation, D043 allocation/release-tail semantics, oscillator reset rules, mix/clamp ownership, proof-sine migration, deterministic per-engine/mixed fixtures, linked resource ceilings and the boundary to WP4.10 benchmarking.
-
-Do not begin the final eight-track benchmark/Phase 4 closeout until WP4.9 integrated host and target evidence is green.
+Do not begin Phase 5/FM4 until WP4.10 is green and Phase 4 is formally closed.
 
 ## Important decisions / do not regress
 
@@ -357,7 +356,7 @@ Do not begin the final eight-track benchmark/Phase 4 closeout until WP4.9 integr
 - D043: WP4.7 allocator is a 52-byte fixed eight-slot owner/recency map that reuses same-track voices, prefers IDLE, detaches OFF/CUT release tails and may steal only the oldest unowned RELEASE tail; active cross-track stealing is forbidden.
 - D044: WP4.8 freezes six 8-BIT semantic IDs (`0x20..0x25`), one exact four-control page per engine, a 6 B base set, bounded normalized WIDTH/TABLE mappings and a future aligned 2048 B row cache; global registry/UI/cache activation is deferred to WP4.9.
 - D045: WP4.9 deliberately migrates all eight tracker tracks to one fixed eight-slot 8-BIT engine through staged gates, preserving the four-byte legacy event, D034 audition lane and D020-D035 ownership while activating track-aware caches, D044 publication and bounded D038-D043 render/mix only after their prerequisite gates are green.
-- Preserve the historical default WAV unless a later deliberate decision supersedes it with explicit evidence.
+- D045 deliberately supersedes the historical proof-sine default WAV for the tracker lane. The linked 8-BIT full-app reference is `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076` / 286,464 frames; preserve it unless a later explicit decision supersedes it with evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
 ## Product direction that must not be lost
@@ -370,7 +369,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Begin D045 Gate 4 only: migrate `dinghy.c` from the Phase 3 proof-sine tracker lane to the bounded 8-BIT engine, seed deterministic 8-BIT instruments/base sets, link all eight tracker tracks through the Gate 1-3 publication/engine layers, preserve the separate D034 audition-sine lane, and add deterministic per-engine/mixed/eight-track/D033/precedence fixtures plus pinned target resource proof. Do not begin WP4.10 timing/Phase 4 closeout until Gate 4 is green.
+Freeze the WP4.10 / #41 representative eight-track benchmark and Phase 4 exit contract before any new production change. The benchmark must exercise the linked D037-D045 path, retain bounded realtime ownership, re-run applicable inherited stress/regression gates, freeze pinned target resources/artifact hashes and make no physical FM-1 execution-margin claim without hardware. Do not begin Phase 5/FM4 until WP4.10 is green.
 
 ## Last relevant checkpoints
 
@@ -408,7 +407,8 @@ Begin D045 Gate 4 only: migrate `dinghy.c` from the Phase 3 proof-sine tracker l
 - WP4.9 D045 Gate 1 verification: `362c3f825791e5def2c9367fc27e6032018e8539` — run `40108097887`, host `120913890803`, PI32v2 `120913891037`
 - WP4.9 D045 Gate 2 verification: `ceee70e94e3aaa6fd266e18490f4b3ce28ee51e5` — run `40109064516`, host `120916760172`, PI32v2 `120916760440`; replay `c2a8d4df`
 - WP4.9 D045 Gate 3 verification: `9263b754c877dc0e6076c34538a496820e2ededb` — run `40111447360`, host `120923852664`, PI32v2 `120923852448`; evidence `WP4_9_GATE3_VERIFICATION.md`
+- WP4.9 D045 final closeout: `89fabc51348078101c8e376bba7814af9d42ae80` — run `40116897104`, job `120939922897`; artifact `12570465704`; evidence `WP4_9_VERIFICATION.md`
 
 ## Last updated
 
-2026-10-24 - WP4.9 / #40 active. D045 Gates 1-3 are GREEN. Gate 3 activated exactly six D044 IDs, the 96 B base-bank/2048 B aligned row-cache publication layer and page-aware selected-track p-lock mutation, while `dinghy.c` and proof audio remained unchanged. Canonical run `40111447360`; evidence `WP4_9_GATE3_VERIFICATION.md`. Exact next action: Gate 4 only — migrate the tracker lane to the linked 8-BIT engine and prove integrated host/target behavior/resources.
+2026-10-24 - WP4.9 / #40 COMPLETE. D045 linked the real eight-track tracker lane to PULSE/NOISE/TRIANGLE/WAVETABLE-8, preserved bounded D031-D034 ownership, passed canonical Gate 5 fixtures + Gate 6 inherited/realtime closeout, and built at 72,504 B image / 19,604 B normal RAM / 113,000 B pool. Final run `40116897104`, job `120939922897`; evidence `WP4_9_VERIFICATION.md`. WP4.10 / #41 is now the only active Phase 4 package; freeze its representative benchmark/exit contract before any production change.

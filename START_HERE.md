@@ -12,7 +12,7 @@ Read in this order:
 6. [`docs/ROADMAP.md`](docs/ROADMAP.md) — long-term phase direction.
 7. [`THIRD_PARTY.md`](THIRD_PARTY.md) — external code/assets, licenses and provenance.
 
-For the current active package, also read the most recently completed verification and the active package contract named by `docs/PROJECT_STATE.md`. As of the 2026-10-24 handoff, WP3.8 is verified and WP3.9 / #28 is next with D035 required before production UI source.
+For the current active package, also read the most recently completed verification and the active package contract named by `docs/PROJECT_STATE.md`. As of the current 2026-10-24 handoff, WP4.9 / D045 is verified in `docs/WP4_9_VERIFICATION.md`, and WP4.10 / #41 is the only active Phase 4 package; freeze its representative benchmark/exit contract before any new production change.
 
 Platform provenance remains available in:
 

@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Phase 4 is active. **WP4.1 / #31 through WP4.8 / #39 are COMPLETE**; **WP4.9 / #40 linked 8-BIT engine integration is active and D045 is FROZEN**. Gates 1-3 are GREEN; Gate 4 `dinghy.c` tracker-lane migration + integrated host/target proof is next.
+Phase 4 is active. **WP4.1 / #31 through WP4.9 / #40 are COMPLETE**. The linked D037-D045 8-BIT tracker lane is production audio and passed final WP4.9 host/target closeout. **WP4.10 / #41** is now the only active Phase 4 package: representative eight-track benchmark + final Phase 4 exit gate.
 
 ---
 
@@ -143,10 +143,10 @@ Phase 4 is active. **WP4.1 / #31 through WP4.8 / #39 are COMPLETE**; **WP4.9 / #
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1/D037 through WP4.8/D044 COMPLETE; WP4.9 / #40 linked 8-BIT integration active; D045 FROZEN; Gates 1-3 GREEN; Gate 4 next**
+Status: **IN PROGRESS — WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 representative benchmark + Phase 4 closeout active**
 
 Parent issue: #30
-Active package: WP4.9 / #40 — D045 is frozen in `WP4_9_LINKED_ENGINE_CONTRACT.md`; Gates 1-3 are GREEN (`40108097887`, `40109064516`, `40111447360`). Execute Gate 4 `dinghy.c` tracker-lane migration + integrated 8-BIT host/target proof next. Preserve the separate D034 audition-sine lane and keep WP4.10 timing/closeout blocked until Gate 4 is green. Branch: `phase4/8bit-engine`.
+Active package: WP4.10 / #41 — WP4.9 closed on run `40116897104`, job `120939922897`; evidence `WP4_9_VERIFICATION.md`. Freeze the representative eight-track benchmark/Phase 4 exit contract before any new production change, then close Phase 4 without claiming physical execution margin until hardware exists. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 
