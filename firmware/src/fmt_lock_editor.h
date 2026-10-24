@@ -62,10 +62,17 @@ int fmt_lock_editor_knob_param(uint32_t knob,
                                FmtParamId *param_id,
                                uint16_t *reference_value);
 
-/* Apply one already-intent-qualified relative encoder delta. Returns 1 when a
- * nonzero delta was handled/attempted, 0 for inactive/zero/invalid knob input
- * or while D030 delete confirmation is armed. Successful writes select that
- * semantic parameter for later browse/delete. */
+/* D045 semantic write path. Caller supplies the already-resolved stable ID and
+ * normalized 0..255 reference. This owns the one D029 mutation algorithm so
+ * engine-page adapters do not duplicate lock-store logic. Returns 1 for a
+ * nonzero handled/attempted delta, 0 for inactive/armed/zero/invalid input. */
+int fmt_lock_editor_apply_param_delta(FmtLockEditor *editor,
+                                      FmtParamId param_id,
+                                      uint16_t reference_value,
+                                      int32_t delta);
+
+/* Legacy D029 common-page helper retained for Phase 3 compatibility. It maps
+ * K1..4 to the historical common IDs and delegates to the semantic helper. */
 int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
                                 uint32_t knob,
                                 int32_t delta);
