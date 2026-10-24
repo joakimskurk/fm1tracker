@@ -1,0 +1,104 @@
+name: WP4.6 common envelope verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_envelope.h
+      - firmware/src/fmt_envelope.c
+      - tests/test_wp4_6_envelope.c
+      - tests/run_wp4_6_envelope_tests.sh
+      - docs/WP4_6_ENVELOPE_CONTRACT.md
+      - .github/workflows/wp4_6_envelope_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  envelope-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove isolated source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=9ba6709d43803a0c8faa8c86d2d1f90b2c80f1f8
+          actual="$(git diff --name-only "$BASE" -- firmware/src | sort)"
+          expected="$(printf '%s\n' \
+            firmware/src/fmt_envelope.c \
+            firmware/src/fmt_envelope.h | sort)"
+          test "$actual" = "$expected"
+          git diff --exit-code "$BASE" -- firmware/src/dinghy.c
+          git diff --exit-code "$BASE" -- \
+            firmware/src/fmt_engine_pitch.c firmware/src/fmt_engine_pitch.h \
+            firmware/src/fmt_osc_pulse.c firmware/src/fmt_osc_pulse.h \
+            firmware/src/fmt_osc_noise.c firmware/src/fmt_osc_noise.h \
+            firmware/src/fmt_osc_triangle.c firmware/src/fmt_osc_triangle.h \
+            firmware/src/fmt_osc_wavetable8.c firmware/src/fmt_osc_wavetable8.h
+          echo 'WP4_6_ISOLATED_SOURCE_BOUNDARY_OK=1 new_modules=2 dinghy_delta=0 oscillator_delta=0'
+
+      - name: Run focused deterministic envelope tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_6_envelope_tests.sh
+
+      - name: Static realtime/source audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          files='firmware/src/fmt_envelope.h firmware/src/fmt_envelope.c'
+          ! grep -nE '\b(float|double|malloc|calloc|realloc|free)\b' $files
+          ! grep -nE '\b(uint64_t|int64_t|long[[:space:]]+long)\b' $files
+          ! grep -nE '\b(for|while|do)[[:space:]]*\(' firmware/src/fmt_envelope.c
+          ! grep -nE 'Fmt(Song|Step|Lock|Tracker|RtQueue)|fmt_lock_|fmt_store_' firmware/src/fmt_envelope.c
+          ! grep -nE '[[:alnum:]_)] *[%/] *[[:alnum:]_(]' firmware/src/fmt_envelope.c
+          grep -F 'uint32_t level_q16;' firmware/src/fmt_envelope.h
+          grep -F 'uint32_t rate_q16;' firmware/src/fmt_envelope.h
+          grep -F 'uint32_t decay_rate_q16;' firmware/src/fmt_envelope.h
+          grep -F 'uint32_t sustain_q16;' firmware/src/fmt_envelope.h
+          grep -F 'uint8_t stage;' firmware/src/fmt_envelope.h
+          grep -F 'fmt_envelope_rate_base_q16[16]' firmware/src/fmt_envelope.c
+          echo 'WP4_6_STATIC_AUDIT_OK=1 render_loops=0 divide_modulo=0 alloc=0 float=0 int64=0 store_traversal=0 rate_table_bytes=64'
+
+  envelope-target-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Compile D042 module for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_6_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_envelope.c \
+            -o build/wp4_6_target/fmt_envelope.o
+          test -s build/wp4_6_target/fmt_envelope.o
+          sha256sum build/wp4_6_target/fmt_envelope.o \
+            | tee build/wp4_6_target/object_sha256.txt
+          echo 'WP4_6_PI32V2_COMPILE_OK=1 modules=1 state_bytes=20 params_bytes=4 rate_table_bytes=64' \
+            | tee build/wp4_6_target/summary.txt
+
+      - name: Upload target object evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-6-envelope-target-object
+          path: build/wp4_6_target/
