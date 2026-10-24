@@ -6,7 +6,7 @@ on:
       - phase4/8bit-engine
     paths:
       - .github/workflows/_wp4_8_to_wp4_9_handoff_once.yml
-      - .github/tmp/wp4_8_to_wp4_9_handoff.py
+      - .github/tmp/wp4_8_to_wp4_9_handoff_v2.py
 
 permissions:
   contents: write
@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 .github/tmp/wp4_8_to_wp4_9_handoff.py
+          python3 .github/tmp/wp4_8_to_wp4_9_handoff_v2.py
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
