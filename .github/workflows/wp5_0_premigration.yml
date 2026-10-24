@@ -1,0 +1,53 @@
+name: WP5.0 D048 pre-migration gate
+
+on:
+  push:
+    branches:
+      - phase5/mixed-engine-routing
+    paths:
+      - tests/wp5_0_router_contract.c
+      - tests/run_wp5_0_premigration.sh
+      - docs/WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md
+      - .github/workflows/wp5_0_premigration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  premigration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run frozen D048 pre-migration evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_0_premigration.sh | tee "$RUNNER_TEMP/wp5_0_premigration.log"
+          mkdir -p build/wp5_0_premigration
+          cp "$RUNNER_TEMP/wp5_0_premigration.log" build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_PRODUCTION_FREEZE_OK=1' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_GATE_REPRODUCED=1 valid_8bit=1 song_mode_only_change=blocked instrument_gate=present' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_ROUTER_MODEL_SIZE_OK=1 bytes=8' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_IDENTITY_MODEL_OK=1 instruments=16 bytes=64' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_SHARED_CACHE_MODEL_OK=1 rows=512 bytes=2048 copies=1' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_MIXED_ROUTE_MODEL_OK=1 tracks=8 active_cross_track_steals=0' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_SWITCH_ORDER_MODEL_OK=1' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_NONNOTE_MODEL_OK=1' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_SHARED_CACHE_SOURCE_OK=1 definitions=1 size_asserts=1 bytes=2048' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_SOURCE_GATE_OK=1 baseline_song_mode_checks=1' build/wp5_0_premigration/ci.log
+          grep -F 'WP5_0_PREMIGRATION_OK=1 production=frozen gate=reproduced router_model=frozen shared_cache=2048 fm_dsp=absent' build/wp5_0_premigration/ci.log
+      - name: Upload D048 pre-migration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-0-d048-premigration
+          if-no-files-found: warn
+          path: |
+            build/wp5_0_premigration/*.log
+            build/wp5_0_premigration/*.txt
+            build/wp5_0_premigration/*.c
+            build/wp5_0_premigration/summary.txt
