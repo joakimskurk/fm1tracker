@@ -195,7 +195,6 @@ int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
     uint16_t reference, current, next;
     uint8_t replaced;
     FmtLockStatus status;
-    int32_t v;
 
     if (!editor || !editor->active || delta == 0)
         return 0;
@@ -221,12 +220,17 @@ int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
         return 1;
     }
 
-    v = (int32_t)current + delta;
-    if (v < 0)
-        v = 0;
-    else if (v > (int32_t)FMT_LOCK_EDITOR_VALUE_MAX)
-        v = (int32_t)FMT_LOCK_EDITOR_VALUE_MAX;
-    next = (uint16_t)v;
+    /* Saturate without ever forming an overflowing signed sum. This is wider
+     * than the current int16 HAL detent source so the public editor API remains
+     * deterministic for any int32 caller/test value. */
+    if (delta > 0) {
+        uint32_t room = FMT_LOCK_EDITOR_VALUE_MAX - current;
+        next = (uint32_t)delta >= room ? FMT_LOCK_EDITOR_VALUE_MAX
+                                      : (uint16_t)(current + (uint16_t)delta);
+    } else {
+        int32_t floor_delta = -(int32_t)current;
+        next = delta <= floor_delta ? 0u : (uint16_t)((int32_t)current + delta);
+    }
 
     status = fmt_lock_set(FMT_LOCK_EDITOR_PATTERN,
                           editor->track,
