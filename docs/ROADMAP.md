@@ -135,7 +135,7 @@ Final verified Phase 3 footprint after WP3.10: 66,960 B image, 13,296 B normal R
 
 Phase 3 exit criteria are satisfied at host/device-build level: worst-case lock/effect data is inside budget, editing did not corrupt song/audio state, effect/event/queue behavior is bounded and deterministic, combined stress recovered safely, and the pinned target build remained byte-identical. Physical FM-1 verification remains later hardware work.
 
-Phase 4 is active. **WP4.1 / #31 through WP4.5 / #35 are COMPLETE**; **WP4.6 / #36 common envelope is active**, with D042 required before source.
+Phase 4 is active. **WP4.1 / #31 through WP4.5 / #35 are COMPLETE**; **WP4.6 / #36 common envelope is active and D042 is FROZEN**, with isolated deterministic implementation/testing next.
 
 ---
 
@@ -143,10 +143,10 @@ Phase 4 is active. **WP4.1 / #31 through WP4.5 / #35 are COMPLETE**; **WP4.6 / #
 
 Goal: a musically complete chip-style palette.
 
-Status: **IN PROGRESS — WP4.1/D037 through WP4.5/D041 COMPLETE; WP4.6 / #36 common envelope active; D042 before source**
+Status: **IN PROGRESS — WP4.1/D037 through WP4.5/D041 COMPLETE; WP4.6 / #36 common envelope active; D042 FROZEN; isolated implementation/tests next**
 
 Parent issue: #30
-Active package: WP4.6 / #36 — freeze D042 common-envelope state/time/gate/retrigger/release/test contract before production source. WP4.1 / #31 through WP4.5 / #35 are complete; all four oscillator primitives remain isolated. Branch: `phase4/8bit-engine`.
+Active package: WP4.6 / #36 — D042 is frozen in `WP4_6_ENVELOPE_CONTRACT.md`; implement/test isolated common linear ADSR without full-app integration. WP4.1 / #31 through WP4.5 / #35 are complete; all four oscillator primitives remain isolated. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 

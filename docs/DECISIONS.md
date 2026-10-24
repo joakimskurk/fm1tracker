@@ -866,3 +866,24 @@ The isolated immutable image-data cost is exactly 256 B and mutable oscillator-s
 **Reason:** the fourth 8-BIT engine needs a broader tonal palette without introducing unbounded DSP, extra tuning math or large RAM. Eight small 32-step signed-byte waves give a deliberately lo-fi tracker palette for only 256 immutable bytes, while direct D038 phase ownership and no interpolation keep render cost trivial to bound.
 
 **Consequence:** focused tests must prove all 256 frozen samples, selector fallback, `raw*258` expansion, zero/wrap/replay/guards, unchanged D038 pitch vectors, table-data SHA and all eight long-run signatures. `fmt_osc_wavetable8.c` must compile with the real pinned PI32v2 compiler while the D038 pitch object stays byte-identical. Envelope, allocator, parameter pages and proof-sine migration remain later packages. Any table-byte, interpolation, selector, expansion or table-count change requires a superseding decision and new deterministic evidence.
+
+## D042 — WP4.6 common envelope is a 20-byte linear ADSR with hard NOTE/RETRIG articulation and division-free render rates
+
+Date: 2026-10-24
+Status: accepted — frozen before envelope production source
+
+**Decision:** WP4.6 implements one isolated common linear ADSR amplitude envelope exactly as frozen in `docs/WP4_6_ENVELOPE_CONTRACT.md`. It remains disconnected from `dinghy.c` and all four Phase 4 oscillator primitives during WP4.6.
+
+`FmtEnvelopeParams` is exactly 4 B (attack/decay/sustain/release bytes). `FmtEnvelope` is exactly 20 B: Q15.16 level, current rate, pre-resolved decay rate, sustain target and one explicit stage byte plus reserved alignment. Stage IDs are IDLE=0, ATTACK=1, DECAY=2, SUSTAIN=3 and RELEASE=4. Eight future envelope states cost exactly 160 B mutable RAM.
+
+Level is `0..0x7FFF0000`; render returns unsigned Q15 `0..32767`. Sustain maps exactly as `(control * 257) >> 1`. A/D/R control 0 is instantaneous. Nonzero A/D/R use a frozen 16-entry `uint32_t` base-rate table indexed by the low nibble and shifted by the high nibble, so time resolution requires no runtime division and the render loop contains only fixed add/subtract/compare/clamp work. The 64 B rate table spans roughly 1.07 ms to 63.24 s full-scale slopes at 44.1 kHz.
+
+D042 resolves event articulation explicitly. Ordinary NOTE hard-restarts the envelope from level zero but does not restart oscillator phase; TIE and EMPTY make no envelope call; D033 RETRIG performs the same hard envelope restart while D037 separately restarts oscillator phase/state; OFF and NOTE CUT start RELEASE from the exact current level. Zero-time stages collapse immediately without dummy rendered frames. `fmt_envelope_render()` advances the current linear stage before returning its Q15 level, matching the existing proof-lane ramp direction.
+
+Frozen neutral/default params are A24/D0/S255/R72, approximately 3.02 ms attack and 23.97 ms full-scale release. The frozen long sequence A64/D96/S160, 4096 renders, R112 gate-off, 4096 renders transitions ATTACK->DECAY on render 705, DECAY->SUSTAIN on total render 1755, RELEASE->IDLE on release render 3534 and yields FNV-1a32 `0x40A44A2E` with final level zero/IDLE.
+
+The primitive is intentionally isolated in WP4.6. Full-app image/RAM/pool/WAV/BIN/FWSC delta must remain exactly zero versus WP4.5. The only isolated immutable data is the 64 B rate table; there is no pool storage or allocation.
+
+**Reason:** Phase 4 now has four deterministic oscillator primitives but still needs one common articulation boundary before allocator and engine integration. Linear ADSR gives familiar tracker articulation and explicit TIE legato while keeping state small. A compact rate table plus nibble shifting removes division from the audio render path, makes worst-case work trivial to bound and spans useful millisecond-to-minute slopes without floating point.
+
+**Consequence:** Focused tests must prove exact state/layout, all 256 rate controls, sustain mapping, NOTE/TIE/RETRIG/OFF semantics, zero-time edges, monotonic ramps, exact terminal levels, default timing and the frozen long-run hash. `fmt_envelope.c` must compile with the real pinned PI32v2 compiler and contain no render loop/division/float/int64/allocation/store traversal. Final allocator, parameter mapping and full engine integration remain WP4.7-WP4.9. Any change to hard articulation, stage topology, rate table, update ordering or live retiming requires a superseding decision and new deterministic evidence.

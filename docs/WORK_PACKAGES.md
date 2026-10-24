@@ -151,7 +151,7 @@ Phase 3 is complete at host/device-build level. Physical FM-1 verification remai
 
 # Phase 4 — 8-BIT engine
 
-Status: **IN PROGRESS — WP4.1 / #31 through WP4.5 / #35 COMPLETE; WP4.6 / #36 common envelope active; D042 before source**
+Status: **IN PROGRESS — WP4.1 / #31 through WP4.5 / #35 COMPLETE; WP4.6 / #36 common envelope active; D042 FROZEN; isolated implementation/tests next**
 
 Parent issue: #30
 
@@ -160,7 +160,7 @@ Parent issue: #30
 - **WP4.3 NOISE** — COMPLETE — issue #33 — D039 + `WP4_3_VERIFICATION.md`; maximal-period deterministic host/PI32v2 proof and zero linked full-app delta
 - **WP4.4 TRIANGLE** — COMPLETE — issue #34 — D040 + `WP4_4_VERIFICATION.md`; exhaustive quantized-surface deterministic host/PI32v2 proof and zero linked full-app delta
 - **WP4.5 WAVETABLE-8** — COMPLETE — issue #35 — D041 + `WP4_5_VERIFICATION.md`; all-256-sample/table-SHA/eight-hash host/PI32v2 proof and zero linked full-app delta
-- **WP4.6 common envelope primitive** — IN PROGRESS — issue #36 — freeze D042 state/time/gate/retrigger/release/test contract before source
+- **WP4.6 common envelope primitive** — IN PROGRESS — issue #36 — D042 FROZEN; isolated ADSR implementation + rate/event/stage/PI32v2 verification next
 - WP4.7 deterministic voice allocation/stealing
 - WP4.8 four-parameter pages + p-lock mapping
 - WP4.9 pitch/retrigger integration
