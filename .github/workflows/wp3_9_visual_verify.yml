@@ -5,6 +5,7 @@ on:
     branches:
       - phase3/plocks-effects
     paths:
+      - firmware/src/dinghy.c
       - firmware/src/fmt_tracker_screen.h
       - firmware/src/fmt_tracker_screen.c
       - firmware/src/fmt_lock_editor.h
