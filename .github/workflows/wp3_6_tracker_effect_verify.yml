@@ -11,6 +11,8 @@ on:
       - tests/host.c
       - tests/test_fmt_tracker_effect.c
       - tests/run_tracker_effect_tests.sh
+      - tests/test_wp3_6_tick_grid.c
+      - tests/run_wp3_6_tick_grid_tests.sh
       - tests/run_wp3_6_effect_audio_host.sh
       - tests/wp3_6_effect_*.script
       - .github/workflows/wp3_6_tracker_effect_verify.yml
@@ -28,6 +30,8 @@ jobs:
           fetch-depth: 0
       - name: Run D032 tracker effect core tests
         run: sh tests/run_tracker_effect_tests.sh
+      - name: Run exact D020/D032 rendered-frame tick grid
+        run: sh tests/run_wp3_6_tick_grid_tests.sh
       - name: Run inherited playback parameter tests
         run: sh tests/run_playback_params_tests.sh
       - name: Run inherited playback tests
