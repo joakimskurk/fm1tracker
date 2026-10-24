@@ -5,7 +5,6 @@ This file is the current regression index. Exact historical vectors, hashes and 
 Legend:
 
 - ✅ verified/frozen as stated
-- 🟨 committed/frozen, CI evidence pending
 - ⬜ active/future requirement
 - ⛔ physical hardware unavailable
 
@@ -23,8 +22,8 @@ Legend:
 | exact D032 six-tick tracker clock | ✅ |
 | exact D034 32-entry SPSC queue | ✅ |
 | no still-owned active cross-track primary stealing | ✅ |
-| no float in firmware DSP | ✅ through WP5.0, required for WP5.1 |
-| no runtime 64-bit division in firmware DSP | ✅ through WP5.0, required for WP5.1 |
+| no float in firmware DSP | ✅ through WP5.1, required onward |
+| no runtime 64-bit division in firmware DSP | ✅ through WP5.1, required onward |
 | physical AC791N execution margin | ⛔ no physical FM-1 |
 
 ## Completed regression baselines
@@ -79,61 +78,79 @@ Complete, D047/D048.
 
 Evidence: `WP5_0_VERIFICATION.md`.
 
-## WP5.1 / D049 fixed-point FM operator - ACTIVE
+## WP5.1 / D049 fixed-point FM operator - COMPLETE
 
-Normative contract: `WP5_1_FM_OPERATOR_CONTRACT.md`.
-
-### Contract freeze
-
-| Check | Status |
-|---|---|
-| D049 committed before FM operator production source | ✅ frozen |
-| operator state exactly 4 B | ✅ frozen |
-| uint32 phase, one cycle = 2^32, natural wrap | ✅ frozen |
-| sample current phase before advance | ✅ frozen |
-| signed int32 phase modulation in same phase-unit scale | ✅ frozen |
-| Q15 operator level clamps 0..32767 | ✅ frozen |
-| 257-entry positive quarter-wave table | ✅ frozen |
-| table payload exactly 514 B | ✅ frozen |
-| 22-bit fractional linear interpolation | ✅ frozen |
-| output domain -32767..32767 | ✅ frozen |
-| table binary SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68` | ✅ frozen |
-| 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66` | ✅ frozen |
-| isolated target object ceiling <= 4,096 B text+rodata | ✅ frozen |
-| full app must remain exact WP5.0 identity | ✅ frozen |
-| contract-first reference CI | 🟨 pending run |
-
-### Production implementation gates
+Normative contract: `WP5_1_FM_OPERATOR_CONTRACT.md`.  
+Evidence: `WP5_1_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_1_VERIFICATION.md`.
 
 | Check | Status |
 |---|---|
-| generated table tool/data matches frozen hash | ⬜ |
-| `FmtFmOperator` compile-time size assert | ⬜ |
-| reset/retrigger/null safety | ⬜ |
-| sine anchor vectors | ⬜ |
-| non-node interpolation vectors | ⬜ |
-| broad exact half-cycle sign symmetry | ⬜ |
-| positive/negative/INT32 edge modulation vectors | ⬜ |
-| level clamp and sign-mirror vectors | ⬜ |
-| sample-before-advance vector | ⬜ |
-| phase wrap / zero-increment behavior | ⬜ |
-| frozen 4,096-render output hash/final phase | ⬜ |
-| no float/double | ⬜ |
-| no heap | ⬜ |
-| no runtime divide/modulo in primitive render/sine | ⬜ |
-| no 64-bit arithmetic in primitive | ⬜ |
-| pinned JieLi target module compile | ⬜ |
-| exact isolated object sections recorded | ⬜ |
-| full normal WAV remains exact WP5.0 | ⬜ |
-| full target resource/BIN/FWSC remains exact WP5.0 | ⬜ |
-| semantically applicable WP5.0/D046 regressions remain green | ⬜ |
-| `WP5_1_VERIFICATION.md` | ⬜ |
+| D049 committed before production FM operator source | ✅ |
+| source-absent contract/reference CI | ✅ run `40131135259`, job `120982895786` |
+| operator state exactly 4 B | ✅ |
+| uint32 phase, 2^32 cycle, natural wrap | ✅ |
+| sample current phase before advance | ✅ |
+| signed int32 phase modulation | ✅ |
+| Q15 level clamps 0..32767 | ✅ |
+| output domain -32767..32767 | ✅ |
+| generated 257-entry positive quarter-wave table | ✅ |
+| table payload 514 B | ✅ |
+| 22-bit fractional linear interpolation | ✅ |
+| table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68` | ✅ |
+| generator reproduces checked-in table exactly | ✅ |
+| exact sine/interpolation vectors | ✅ |
+| 65,536 half-cycle sign-symmetry probes | ✅ |
+| positive/negative/INT32 modulation edges | ✅ |
+| level clamp/sign mirror | ✅ |
+| reset/retrigger/null safety | ✅ |
+| phase wrap / zero-increment hold | ✅ |
+| 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66` | ✅ |
+| final phase `f1532bdf` | ✅ |
+| no loop/heap/float/int64/divide/modulo/store/router access in primitive | ✅ |
+| pinned PI32v2 compile | ✅ |
+| object text+rodata 692 B / 4,096 B ceiling | ✅ |
+| object SHA `46868461ac6910d499975dbd93d06ee0af9db905d01c32583321eeaea0e33fad` | ✅ |
+| normal WP5.0 WAV unchanged | ✅ |
+| D046 representative WAV unchanged | ✅ |
+| WP5.0 router regression | ✅ |
+| full target remains 72,792 / 19,676 / 113,000 B | ✅ |
+| BIN `a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125` | ✅ |
+| FWSC `cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073` | ✅ |
+| canonical run `40134823600`, host `120994003059`, target `120994002842` | ✅ |
 
-No WP5.2+ feature is allowed in this package.
+The D049 operator remains isolated from `dinghy.c`; no audible FM production path exists yet.
+
+## WP5.2 curated FM4 algorithm routing - ACTIVE CONTRACT-FIRST
+
+Issue #45.
+
+| Check | Status |
+|---|---|
+| inspect D049 and current FM4 constraints | ⬜ |
+| curated algorithm count | ⬜ |
+| stable internal algorithm IDs | ⬜ |
+| exact graph topology | ⬜ |
+| exact per-sample operator evaluation order | ⬜ |
+| signed modulation accumulation/scaling | ⬜ |
+| overflow/saturation semantics | ⬜ |
+| carrier sum/output normalization | ⬜ |
+| pre-feedback mutable-state requirement | ⬜ |
+| deterministic graph fixtures | ⬜ |
+| long-run graph hashes | ⬜ |
+| realtime/source ceiling | ⬜ |
+| pinned target object ceiling | ⬜ |
+| D050 contract frozen before production source | ⬜ |
+| source-absent pre-implementation CI | ⬜ |
+| production routing implementation | ⬜ blocked until D050 gate |
+| D049 operator regression remains exact | ⬜ |
+| full app remains exact WP5.0 while routing is isolated | ⬜ |
+| `WP5_2_VERIFICATION.md` | ⬜ |
+
+WP5.2 excludes ratios, final level/mod-index UX, feedback, envelopes, voice integration, FM p-lock pages and audible mixed FM integration.
 
 ## Remaining Phase 5
 
-WP5.2 algorithms, WP5.3 ratios, WP5.4 levels/mod index, WP5.5 feedback, WP5.6 envelope, WP5.7 FM voice/router integration, WP5.8 FM pages/p-locks, WP5.9 mixed validation, WP5.10 worst-case Phase 5 exit.
+WP5.3 ratios, WP5.4 levels/mod index, WP5.5 feedback, WP5.6 envelope, WP5.7 FM voice/router integration, WP5.8 FM pages/p-locks, WP5.9 mixed validation, WP5.10 worst-case Phase 5 exit.
 
 ## Later mandatory core
 

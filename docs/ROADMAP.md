@@ -29,7 +29,8 @@ If measured CPU/RAM permits, target roughly 3-6 voices for at least one polyphon
 - Phase 4 first complete 8-BIT engine family: COMPLETE
 - Phase 5 mixed-engine routing + FM4: IN PROGRESS
   - WP5.0 mixed-engine routing: COMPLETE
-  - WP5.1 fixed-point FM operator primitive: ACTIVE
+  - WP5.1 fixed-point FM operator primitive: COMPLETE
+  - WP5.2 curated FM4 algorithm routing: ACTIVE
 - mandatory live performance capture milestone: PLANNED after engine foundations
 - Phase 6 song/order/persistence: PLANNED
 - Phase 7 physical hardware UX freeze: BLOCKED until physical FM-1 is available
@@ -37,6 +38,8 @@ If measured CPU/RAM permits, target roughly 3-6 voices for at least one polyphon
 - Phase 9 optional extensions: DEFERRED
 
 Canonical WP5.0 closeout: `docs/WP5_0_VERIFICATION.md`, run `40129822006`, job `120978955451`.
+
+Canonical WP5.1 closeout: `docs/WP5_1_VERIFICATION.md`, run `40134823600`, host job `120994003059`, target job `120994002842`.
 
 ## Architecture direction after D047/D048
 
@@ -82,26 +85,38 @@ D047/D048 are implemented and verified. Final target is 72,792 B image / 19,676 
 
 No FM4 DSP was introduced in WP5.0.
 
-### WP5.1 - fixed-point FM operator primitive - ACTIVE
+### WP5.1 - fixed-point FM operator primitive - COMPLETE
 
-Issue #44.
+D049 established the isolated deterministic FM primitive:
 
-Contract-first goals:
+- one 4 B uint32 phase state;
+- signed int32 phase modulation;
+- Q15 level/output conventions;
+- generated 257-entry quarter-wave carrier table;
+- exact interpolation and deterministic long-vector identity;
+- no loop/heap/float/int64/divide/modulo in the primitive;
+- pinned PI32v2 object text+rodata 692 B;
+- exact WP5.0 full-app identity retained because the operator remains isolated.
 
-- freeze exact integer operator state and phase format;
-- freeze deterministic integer carrier lookup;
-- freeze signed phase-modulation input;
-- freeze bounded operator level/output behavior;
-- freeze reset and overflow/saturation semantics;
-- create exact host vectors before implementation;
-- prove no float, heap or runtime 64-bit division;
-- compile with pinned JieLi/AC79 target and measure exact resource delta.
+This package intentionally does not make FM audible yet.
 
-WP5.1 deliberately excludes algorithms, ratios, feedback, envelopes, voice integration, p-lock pages and mixed production FM playback.
+### WP5.2 - curated algorithm routing - ACTIVE
 
-### WP5.2 - curated algorithm routing
+Issue #45. Contract-first D050 work.
 
-Small musically useful static algorithm set with exact deterministic fixtures.
+Goals:
+
+- select a small musically useful four-operator algorithm set, not an unrestricted matrix;
+- freeze stable internal algorithm IDs;
+- freeze exact topology and per-sample evaluation order;
+- freeze modulation accumulation/scaling and overflow rules;
+- freeze carrier summing/output normalization;
+- keep routing static and bounded;
+- define exact graph fixtures and long-run hashes before implementation;
+- compile and measure the isolated routing object with pinned PI32v2;
+- preserve D049 and exact WP5.0 full-app identity while routing remains isolated.
+
+WP5.2 excludes ratios, final level/mod-index UX, feedback, envelopes, voice integration, p-lock pages and mixed audible playback.
 
 ### WP5.3 - ratio table
 
