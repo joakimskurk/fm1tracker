@@ -1,4 +1,5 @@
 name: WP4.9 D045 Gate 5 linked host verification
+# Discovery rerun after host probe declaration/hash-output fixes.
 
 on:
   push:
