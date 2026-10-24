@@ -1,0 +1,54 @@
+name: WP4.10 D046 Phase 4 exit
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/**
+      - firmware/hal/**
+      - firmware/loader/**
+      - firmware/app.ld
+      - build.sh
+      - tools/**
+      - tests/**
+      - .github/workflows/wp4_10_exit_ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase4-exit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run aggregate D046 Phase 4 exit gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp4_10_exit_ci.sh | tee build/wp4_10_exit_ci.log
+          grep -F 'WP4_10_EXIT_PRODUCTION_FREEZE_OK=1' build/wp4_10_exit_ci.log
+          grep -F 'WP4_10_FULL_POOL_LINKED_OK=1 tracks=8 rows=64 owners=512 locks=2048 engines=4' build/wp4_10_exit_ci.log
+          grep -F 'WP4_10_REALTIME_AUDIT_OK=1' build/wp4_10_exit_ci.log
+          grep -F 'WP4_9_CLOSEOUT_OK=1 gates=5,6 host=linked_8bit target=pinned d037_ceiling=pass hardware_margin_claim=none' build/wp4_10_exit_ci.log
+          grep -F 'WP4_10_EXIT_OK=1' build/wp4_10_exit_ci.log
+      - name: Upload Phase 4 exit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-10-d046-phase4-exit
+          if-no-files-found: warn
+          path: |
+            build/wp4_10_exit_ci.log
+            build/wp4_10/*.log
+            build/wp4_10/*.txt
+            build/wp4_9_closeout_*.log
+            build/wp4_9_closeout_*.txt
+            build/wp4_9_closeout_symbols.txt
+            build/host/wp4_10_representative.wav
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
