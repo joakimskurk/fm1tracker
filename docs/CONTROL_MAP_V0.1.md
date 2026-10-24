@@ -89,7 +89,7 @@ The header exposes:
 - `CURnn` edit position;
 - `PLYnn` while running or `STOP` while stopped;
 - current BPM;
-- `P01` for the current Phase 2 pattern-0 editor/proof path;
+- `P01` for the current Phase 2/3 pattern-0 editor/proof path;
 - selected track `T1..T8`;
 - current page `PG1/4..PG4/4`;
 - visible global row range.
@@ -204,21 +204,74 @@ A project setting may later choose STOP AT END, but no such setting exists yet.
 
 ## 5. Parameter locks
 
-Primary future gesture:
+D029/WP3.3 freezes the first real p-lock editor prototype.
 
-1. select or hold a step via its white key;
-2. turn KNOB1..4;
-3. the changed parameter is stored as a lock on that step.
+### Hold-step gesture
 
-Rules planned for Phase 3:
+P-lock editing is available only in ordinary SEQ/pattern mode. It is deliberately disabled in PERFORMANCE and STEP REC because STEP REC owns all 27 note keys as pitches.
 
-- maximum four locks per step in V0.1;
-- turning a parameter that already has a lock replaces its value;
-- encoder movement must not create a lock until it crosses a small pickup/intent threshold or an explicit relative delta is observed;
-- the screen immediately shows the locked parameter name/value;
-- a locked step receives a distinct LED/UI marker.
+1. press and **hold** one white step key;
+2. that key is selected through the existing D022 mapping;
+3. pattern 0, the currently selected track and the resulting global step are snapshotted as the lock target;
+4. while the key remains held, turn KNOB1..4 to create/replace locks on that exact target;
+5. release the owning white key to leave p-lock hold mode.
 
-Deletion gesture remains unfrozen until the first Phase 3 prototype.
+A quick white-key tap with no later encoder movement therefore behaves like ordinary step selection and creates no lock.
+
+While the p-lock hold is active, other step keys, black track selectors and OCT page navigation cannot retarget the editor. The cursor/header remain on the snapshotted target. HOME or entering STEP REC cancels the hold without an extra write. PLAY is allowed to start/stop while the hold remains active because WP3.3 only edits storage; locks are not applied to playback yet.
+
+If several white step keys go down in one input poll, the lowest physical white key owns the gesture. If a black track key and white step key arrive together, the hold uses the track that was selected before that poll and the simultaneous black-key change is suppressed.
+
+### Encoder intent and stale-delta protection
+
+The FM-1 HAL already reports signed relative detent steps. One physical encoder click is one relative step.
+
+KNOB1..4 are drained every main-loop poll, even when no p-lock hold is active. Encoder deltas observed while inactive are discarded. Deltas from the same poll that starts, releases or cancels a hold are also discarded.
+
+This means a knob movement made before the step is held can never leak into the new lock target. Only movement observed on later polls while the same white key remains held can write.
+
+### Current four-parameter mapping
+
+| Encoder | D027 parameter | Editor reference |
+| --- | --- | ---: |
+| KNOB1 | VOICE LEVEL (`0x01`) | 255 |
+| KNOB2 | FINE PITCH (`0x02`) | 128 |
+| KNOB3 | TRACK LEVEL (`0xA0`) | 255 |
+| KNOB4 | TRACK PAN (`0xA1`) | 128 |
+
+This is UI mapping only. The parameter IDs remain semantic and independent of encoder position.
+
+### WP3.3 value domain
+
+For the four current parameters, WP3.3 uses an editor-normalized `0..255` range stored in D028's 16-bit value field.
+
+- one detent = `+1` / `-1`;
+- multi-detent deltas are applied in one bounded operation;
+- values clamp at 0 and 255;
+- an existing current-ID lock above 255 is rejected as an editor-domain error rather than silently reinterpreted;
+- a missing lock starts from the parameter's reference value above, then applies the first nonzero delta;
+- a nonzero encoder movement creates the lock even if clamping leaves the result at the reference boundary.
+
+These values do **not** yet define dB, cents, a pan law or engine coefficient scaling. Those semantics belong to later playback/engine packages.
+
+If several KNOB1..4 deltas are available in one poll, they are handled in fixed KNOB1 -> KNOB4 order as separate bounded storage edits.
+
+### Feedback
+
+WP3.3 uses only the existing tracker footer for immediate feedback while the key is held:
+
+- hold context shows target step/track;
+- a successful encoder action shows the knob/parameter and stored normalized value;
+- storage failures such as STEP FULL, POOL FULL or CORRUPT are shown explicitly;
+- releasing/cancelling the key restores the ordinary SEQ footer.
+
+Full row lock markers, lock browsing and detailed visual treatment remain WP3.9. Lock delete/clear gestures remain WP3.4.
+
+### Storage-only rule
+
+WP3.3 p-lock editing changes lock storage only. It does not alter the note, instrument, volume or tracker-effect fields, does not change a base instrument/track parameter and does not alter the proof/audition voice. Playback does not consume p-locks yet.
+
+Physical comfort of holding a white key while turning encoders remains provisional until Phase 7 hardware testing.
 
 ## 6. Focused step edit
 
@@ -230,7 +283,8 @@ During playback:
 
 - D026 keeps playhead and selected edit row visually separate;
 - the playhead does not steal/scroll the cursor-owned edit viewport;
-- selecting steps and changing future p-locks is allowed only when shared-state handoff is atomic;
+- D029 allows storage-only p-lock editing during playback because the current audio path does not read lock storage;
+- future lock application must preserve atomic/bounded shared-state handoff before p-locks are consumed by audio;
 - pattern/song structure edits that could invalidate currently executing data may be deferred until a safe boundary in early versions;
 - flash save remains unavailable while audio is active if the platform write path causes dropouts.
 
@@ -242,6 +296,7 @@ The following must be explicitly evaluated before V1 control freeze:
 - whether FX-as-REST is discoverable enough;
 - whether SELECT-as-TIE and FX+SELECT-as-OFF are comfortable and understandable;
 - whether holding a white key while turning encoders is physically comfortable;
+- whether the D029 focus latch feels natural or a later latch/toggle mode is needed;
 - whether page switching should remain on OCT buttons;
 - whether live parameter locking needs latch mode so the user does not need three hands;
 - whether the current lowest-note/full-release STEP REC chord behavior matches user expectation;
