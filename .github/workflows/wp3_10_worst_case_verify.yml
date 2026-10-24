@@ -1,0 +1,35 @@
+name: WP3.10 focused worst-case verification
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - tests/test_wp3_10_worst_case.c
+      - tests/run_wp3_10_worst_case.sh
+      - .github/workflows/wp3_10_worst_case_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-worst-case:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Run D036 focused worst-case stress
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp3_10_worst_case.sh
+
+      - name: Upload focused stress evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-10-focused-worst-case
+          if-no-files-found: warn
+          path: build/wp3_10_worst_case.log
