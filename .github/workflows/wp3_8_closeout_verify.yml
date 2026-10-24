@@ -1,0 +1,221 @@
+name: WP3.8 full closeout verification
+# Permanent D034 queue closeout gate on the clean production tree.
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/wp3_8_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-queue-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Verify D034 queue contract and full-app behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build build/host build/tests
+          sh tests/run_rt_queue_tests.sh | tee build/wp3_8_queue_unit.log
+          grep -F 'FMT_RT_QUEUE_TESTS_OK=1' build/wp3_8_queue_unit.log
+          grep -F 'event_bytes=8 queue_bytes=268 capacity=32 usable=32 overflow=reject_newest wrap=1 discard_o1=1 malformed_reject=1' build/wp3_8_queue_unit.log
+
+          sh tests/run_wp3_8_queue_audio_host.sh | tee build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_CONTROL_WAV_SHA256=8933b4ae192e314dbaa729b929ebfc0195178842ccd9e89306deffd71a9db1b6' build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_FIFO_WAV_SHA256=8933b4ae192e314dbaa729b929ebfc0195178842ccd9e89306deffd71a9db1b6' build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_HARDWARE_WAV_SHA256=1b13d55424dd16e36c1820501dcf6b3232a3e1d3bfb357259f74e85a45858b18' build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_MIDI_WAV_SHA256=f095db1bee4fa26c6ca56d298b30402b0a43a4ae700b31bf52854943151cfc71' build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_OVERFLOW_WAV_SHA256=31c55a429e53edf84fe5b8bc634b8fab42b45e5ad744e0b6a4505655e3b92a2f' build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_RECOVERY_WAV_SHA256=42207d5ee151619f525d4416f3e77b79fe2d9f0746bb5f111c88858a2ca32b93' build/wp3_8_queue_audio_gate.log
+          grep -F 'WP3_8_QUEUE_AUDIO_BEHAVIOR_OK=1 fifo=1 hardware=1 midi=1 overflow_silence=1 recovery=1 queue_midi_neutral=1' build/wp3_8_queue_audio_gate.log
+
+      - name: Preserve D033, D032 and D031 deterministic audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_tracker_event_tests.sh | tee build/wp3_8_d033_unit.log
+          grep -F 'FMT_TRACKER_EVENT_TESTS_OK=1' build/wp3_8_d033_unit.log
+          sh tests/run_wp3_7_event_audio_host.sh | tee build/wp3_8_d033_audio.log
+          grep -F 'WP3_7_EVENT_AUDIO_BEHAVIOR_OK=1 delay=1 cut=1 cut0=1 retrig=1 invalid_noop=1 midi_events=0' build/wp3_8_d033_audio.log
+
+          sh tests/run_tracker_effect_tests.sh | tee build/wp3_8_d032_unit.log
+          grep -F 'FMT_TRACKER_EFFECT_TESTS_OK=1' build/wp3_8_d032_unit.log
+          sh tests/run_wp3_6_tick_grid_tests.sh | tee build/wp3_8_tick_grid.log
+          grep -F 'WP3_6_TICK_GRID_TESTS_OK=1' build/wp3_8_tick_grid.log
+          sh tests/run_wp3_6_effect_audio_host.sh | tee build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_CONTROL_WAV_SHA256=8933b4ae192e314dbaa729b929ebfc0195178842ccd9e89306deffd71a9db1b6' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_ARP_WAV_SHA256=5e95abbdc6a0a9a65af402b7393b9b4088e968297d239679cd78b3872595a743' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_SLIDE_WAV_SHA256=2e205d5d46a6c604fbe6c5976dbf57f252dc4288de70ee69a66b7a6769d4e50e' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_SLIDE_DOWN_WAV_SHA256=9bc32956995fe8ada92c3bf2fde80d6b9f6e3a1cd32e06343a170ed70e1e3edc' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_PORTA_WAV_SHA256=2d84235e03ca33d055baf2b2d0d3a430a1b28d3ff4f0faa913d5556f52f1f7e7' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_VIBRATO_WAV_SHA256=e14673fca74449f31783a44168edbf7146b0a1aa73f492dd9460febb7542c4a4' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_ARP_FINE_WAV_SHA256=5ab516bc70ca571e4dfa43330075e08c389d1fb5ae1a668bc14231f1a50fd950' build/wp3_8_d032_audio.log
+          grep -F 'WP3_6_INVALID_WAV_SHA256=8933b4ae192e314dbaa729b929ebfc0195178842ccd9e89306deffd71a9db1b6' build/wp3_8_d032_audio.log
+
+          sh tests/run_wp3_5_locked_audio_host.sh | tee build/wp3_8_d031_audio.log
+          grep -F 'WP3_5_LOCKED_AUDIO_SHA256=8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8' build/wp3_8_d031_audio.log
+          grep -F 'WP3_5_LOCKED_AUDIO_BEHAVIOR_OK=1 pre_equal=1 combined_level=1 fine_pitch=1 empty_mute=1 unlocked_restore=1 midi_events=0' build/wp3_8_d031_audio.log
+
+      - name: Run complete inherited regressions and measured device build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp tests/run_wp3_5_closeout_ci.sh tests/.wp3_8_measure.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('tests/.wp3_8_measure.sh')
+          s = p.read_text()
+
+          def once(old, new):
+              global s
+              assert s.count(old) == 1, (old[:120], s.count(old))
+              s = s.replace(old, new, 1)
+
+          # Keep the inherited behavioral/device checks but let this package
+          # measure its own image/RAM addresses and artifact hashes.
+          once("assert image == 64724, image\nassert ram == 12736, ram\nassert pool == 113000, pool\n",
+               "assert pool == 113000, pool\n")
+          once("assert cache_addr == 0x01C0B074 and cache_addr % 4 == 0, cache\n",
+               "assert cache_addr % 4 == 0, cache\n")
+          once("assert int(editor[0], 16) == 0x01C0B178 and int(editor[-2], 16) == 10 and '.bss' in editor, editor\n",
+               "assert int(editor[-2], 16) == 10 and '.bss' in editor, editor\n")
+          once("assert int(lock_store[0], 16) == 0x01C30168 and int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store\n",
+               "assert int(lock_store[-2], 16) == 16384 and '.pool' in lock_store, lock_store\n")
+          once("assert int(lock_runtime[0], 16) == 0x01C0B18C and int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime\n",
+               "assert int(lock_runtime[-2], 16) == 4 and '.bss' in lock_runtime, lock_runtime\n")
+          once("assert int(song_store[0], 16) == 0x01C20000 and int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store\n",
+               "assert int(song_store[-2], 16) == 65896 and '.pool' in song_store, song_store\n")
+          once("assert bin_sha == 'd0380ac6cd2ee0e5edb1eab3e4d3937bb62eb074d27219927b3e8b7e52a244ae', bin_sha\nassert fwsc_sha == '5e14f28985fcda4c3f54dbe8a45ff020aba65a565696972fde30d4fa366d3372', fwsc_sha\n",
+               "")
+          once("base_image, base_ram, base_pool = 64228, 12480, 113000\nprint('WP3_5_METRICS')\n",
+               "base_image, base_ram, base_pool = 65940, 13008, 113000\nprint('WP3_8_METRICS')\n")
+          s = s.replace('image_delta_vs_wp3_4', 'image_delta_vs_wp3_7')
+          s = s.replace('normal_ram_delta_vs_wp3_4', 'normal_ram_delta_vs_wp3_7')
+          s = s.replace('pool_delta_vs_wp3_4', 'pool_delta_vs_wp3_7')
+
+          drop_prefixes = (
+              "grep -F 'image_delta_vs_wp3_7=496'",
+              "grep -F 'normal_ram_delta_vs_wp3_7=256'",
+              "grep -F 'param_cache_address=0x01c0b074'",
+              "grep -F 'fm1tracker_bin_sha256=d0380ac6",
+              "grep -F 'fm1tracker_fwsc_sha256=5e14f289",
+          )
+          lines = []
+          for line in s.splitlines():
+              if line.startswith(drop_prefixes):
+                  continue
+              if line == 'echo "WP3_5_FROZEN_CLOSEOUT_GATE_OK=1"':
+                  line = 'echo "WP3_8_INHERITED_AND_MEASURED_GATE_OK=1"'
+              lines.append(line)
+          p.write_text('\n'.join(lines) + '\n')
+          PY
+          sh tests/.wp3_8_measure.sh | tee build/wp3_8_inherited_measure.log
+          grep -F 'WP3_8_INHERITED_AND_MEASURED_GATE_OK=1' build/wp3_8_inherited_measure.log
+          rm -f tests/.wp3_8_measure.sh
+
+      - name: Verify D034 target object, symbols and measured resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?RUNNER_TEMP required}"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall \
+              -Ifirmware/src -c firmware/src/fmt_rt_queue.c -o build/wp3_8_fmt_rt_queue.o
+          test -s build/wp3_8_fmt_rt_queue.o
+          echo 'WP3_8_JIELI_QUEUE_COMPILE_OK=1'
+
+          SYMBOLS=build/wp3_5_symbols.txt
+          grep -E 'fmt_rt_queue_runtime$' "$SYMBOLS" | tee build/wp3_8_queue_runtime_symbol.txt
+          grep -E 'fmt_rt_queue_overflow_seen$' "$SYMBOLS" | tee build/wp3_8_overflow_seen_symbol.txt
+          grep -E 'fmt_tracker_row_event_runtime$' "$SYMBOLS" | tee build/wp3_8_d033_runtime_symbol.txt
+          grep -E 'fmt_tracker_effect_runtime$' "$SYMBOLS" | tee build/wp3_8_d032_runtime_symbol.txt
+
+          python3 - <<'PY' | tee build/wp3_8_measured_metrics.txt
+          import hashlib, re
+          from pathlib import Path
+
+          log = Path('build/wp3_5_device_build.log').read_text()
+          m = re.search(r"image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064", log)
+          assert m
+          image, image_limit, ram, pool = map(int, m.groups())
+          assert pool == 113000, pool
+
+          symbols = Path('build/wp3_5_symbols.txt').read_text().splitlines()
+          def one(name):
+              hits = [x.split() for x in symbols if x.rstrip().endswith(name)]
+              assert len(hits) == 1, (name, hits)
+              return hits[0]
+
+          queue = one('fmt_rt_queue_runtime')
+          overflow_seen = one('fmt_rt_queue_overflow_seen')
+          d033 = one('fmt_tracker_row_event_runtime')
+          d032 = one('fmt_tracker_effect_runtime')
+          assert int(queue[-2], 16) == 268 and '.bss' in queue, queue
+          assert int(queue[0], 16) % 4 == 0, queue
+          assert int(overflow_seen[-2], 16) == 4 and '.bss' in overflow_seen, overflow_seen
+          assert int(d033[-2], 16) == 4 and '.bss' in d033, d033
+          assert int(d032[-2], 16) == 12 and '.bss' in d032, d032
+
+          def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          print('WP3_8_MEASURED_METRICS')
+          print(f'image_bytes={image}')
+          print(f'normal_ram_bytes={ram}')
+          print(f'pool_ram_bytes={pool}')
+          print(f'image_delta_vs_wp3_7={image-65940}')
+          print(f'normal_ram_delta_vs_wp3_7={ram-13008}')
+          print(f'pool_delta_vs_wp3_7={pool-113000}')
+          print(f'image_remaining_bytes={image_limit-image}')
+          print(f'normal_ram_remaining_bytes={98304-ram}')
+          print(f'pool_remaining_bytes={344064-pool}')
+          print(f'queue_address=0x{int(queue[0],16):08x}')
+          print('event_bytes=8')
+          print('queue_bytes=268')
+          print('overflow_seen_bytes=4')
+          print('capacity=32')
+          print(f'fm1tracker_bin_sha256={sha("build/fm1tracker.bin")}')
+          print(f'fm1tracker_fwsc_sha256={sha("build/fm1tracker-0.1.fwsc")}')
+          print(f'default_wav_sha256={sha("build/host/fm1tracker.wav")}')
+          print(f'd031_locked_wav_sha256={sha("build/host/fm1tracker_wp3_5_locked.wav")}')
+          for name in ('control','fifo','hardware','midi','overflow','recovery'):
+              print(f'wp3_8_{name}_wav_sha256={sha(f"build/host/fm1tracker_wp3_8_{name}.wav")}')
+          PY
+          grep -F 'pool_delta_vs_wp3_7=0' build/wp3_8_measured_metrics.txt
+          grep -F 'event_bytes=8' build/wp3_8_measured_metrics.txt
+          grep -F 'queue_bytes=268' build/wp3_8_measured_metrics.txt
+          grep -F 'overflow_seen_bytes=4' build/wp3_8_measured_metrics.txt
+          grep -F 'capacity=32' build/wp3_8_measured_metrics.txt
+          grep -F 'default_wav_sha256=453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440' build/wp3_8_measured_metrics.txt
+          grep -F 'd031_locked_wav_sha256=8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8' build/wp3_8_measured_metrics.txt
+          echo 'WP3_8_MEASURED_CLOSEOUT_GATE_OK=1'
+
+      - name: Upload WP3.8 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp3-8-runtime-queue-evidence
+          if-no-files-found: warn
+          path: |
+            build/wp3_8_*.log
+            build/wp3_8_*.txt
+            build/wp3_8_*.o
+            build/wp3_5_device_build.log
+            build/wp3_5_symbols.txt
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
+            build/host/fm1tracker_wp3_5_locked.wav
+            build/host/fm1tracker_wp3_6_*.wav
+            build/host/fm1tracker_wp3_7_*.wav
+            build/host/fm1tracker_wp3_8_*.wav
