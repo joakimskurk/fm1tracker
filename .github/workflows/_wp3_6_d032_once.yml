@@ -30,7 +30,7 @@ jobs:
 
           ## D032 — WP3.6 tracker effects use exact six-tick D020 timing and bounded persistent pitch state
 
-          Date: 2026-10-24  
+          Date: 2026-10-24
           Status: accepted before WP3.6 production source
 
           **Decision:** WP3.6 uses the existing `FmtStep.effect/effect_value` bytes as a tracker-effect command domain that remains separate from D027 p-lock parameter IDs. Assigned commands are `NONE=0x00`, `ARPEGGIO=0x01`, `SLIDE_UP=0x02`, `SLIDE_DOWN=0x03`, `PORTAMENTO=0x04`, and `VIBRATO=0x05`; all other command bytes resolve safely to NONE. `FmtStep` remains exactly 8 bytes.
