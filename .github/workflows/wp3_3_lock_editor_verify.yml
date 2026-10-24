@@ -1,111 +1,46 @@
-name: WP3.3 p-lock editor verification
+name: WP3.3 p-lock editor verification (historical)
 
+# WP3.3 is complete. This workflow is intentionally manual-only and always
+# verifies the exact final source/workflow checkpoint that passed run
+# 40054322180 / job 120753812201. Durable evidence lives in
+# docs/WP3_3_VERIFICATION.md.
 on:
-  push:
-    branches:
-      - phase3/plocks-effects
-    paths:
-      - .github/workflows/wp3_3_lock_editor_verify.yml
-      - firmware/src/dinghy.c
-      - firmware/src/fmt_lock_editor.h
-      - firmware/src/fmt_lock_editor.c
-      - tests/host.c
-      - tests/test_fmt_lock_editor.c
-      - tests/run_lock_editor_tests.sh
-      - tests/wp3_3_lock_editor_context.script
-      - tests/run_lock_editor_context_host.sh
-      - tests/run_wp3_3_closeout_ci.sh
-      - docs/PROJECT_STATE.md
-      - docs/DECISIONS.md
-      - docs/CONTROL_MAP_V0.1.md
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  lock-editor-closeout:
+  lock-editor-historical:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout FM1Tracker
+      - name: Checkout verified WP3.3 checkpoint
         uses: actions/checkout@v4
         with:
+          ref: df5d7e07fc763909a141c99283cfd2be19cff847
           fetch-depth: 0
 
       - name: Install inherited host-screen dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Verify WP3.3 scope
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import subprocess
-          base = '361c5efa308ade56a35fd3b50e6a77c9e3ee41bb'
-          allowed = {
-              '.github/workflows/wp3_3_lock_editor_verify.yml',
-              'docs/PROJECT_STATE.md',
-              'docs/DECISIONS.md',
-              'docs/CONTROL_MAP_V0.1.md',
-              'firmware/src/dinghy.c',
-              'firmware/src/fmt_lock_editor.h',
-              'firmware/src/fmt_lock_editor.c',
-              'tests/host.c',
-              'tests/test_fmt_lock_editor.c',
-              'tests/run_lock_editor_tests.sh',
-              'tests/wp3_3_lock_editor_context.script',
-              'tests/run_lock_editor_context_host.sh',
-              'tests/run_wp3_3_closeout_ci.sh',
-          }
-          changed = set(subprocess.check_output(
-              ['git', 'diff', '--name-only', base, 'HEAD'], text=True
-          ).splitlines())
-          unexpected = sorted(changed - allowed)
-          assert not unexpected, unexpected
-          print('WP3_3_SCOPE_OK=1')
-          PY
-
-      - name: Run complete WP3.3 gate
+      - name: Run frozen WP3.3 closeout gate
         shell: bash
         run: sh tests/run_wp3_3_closeout_ci.sh
 
-      - name: Upload WP3.3 evidence
+      - name: Upload historical WP3.3 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: wp3-3-lock-editor-evidence
+          name: wp3-3-lock-editor-historical
           path: |
             build/wp3_3_lock_editor_tests.log
-            build/wp3_3_param_registry_tests.log
-            build/wp3_3_lock_store_tests.log
-            build/wp3_3_model_tests.log
-            build/wp3_3_store_tests.log
-            build/wp3_3_transport_tests.log
-            build/wp3_3_playback_tests.log
-            build/wp3_3_pattern_input_tests.log
-            build/wp3_3_step_record_tests.log
-            build/wp3_3_tracker_screen_tests.log
-            build/wp3_3_wp2_5_context.log
-            build/wp3_3_wp2_6_context.log
-            build/wp3_3_wp2_7_context.log
-            build/wp3_3_wp2_8_context.log
-            build/wp3_3_wp2_9_screen.log
-            build/wp3_3_phase2_integration.log
-            build/wp3_3_phase2_full_app.log
             build/wp3_3_lock_editor_context_gate.log
             build/wp3_3_lock_editor_context_host.log
             build/wp3_3_host_audio.txt
             build/wp3_3_device_build.log
             build/wp3_3_symbols.txt
-            build/wp3_3_lock_editor_symbol.txt
-            build/wp3_3_lock_storage_symbol.txt
-            build/wp3_3_lock_runtime_symbol.txt
-            build/wp3_3_song_store_symbol.txt
             build/wp3_3_metrics.txt
-            build/wp3_3_fmt_lock_editor.o
             build/fm1tracker.bin
             build/fm1tracker-0.1.fwsc
             build/host/fm1tracker.wav
             build/host/fm1tracker_wp3_3_lock_editor-1000.ppm
             build/host/fm1tracker_wp3_3_lock_editor-3000.ppm
-            build/host/fm1tracker_wp3_3_lock_editor-1000.png
-            build/host/fm1tracker_wp3_3_lock_editor-3000.png
