@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 mkdir -p build/tests build/wp4_9_gate2
 
 BASE=fe5816fc4c8fae23b5dd7781f7ea9ddafab2b01b
+EXPECTED_REPLAY=c2a8d4df
 
 # Gate 2 may add exactly one pure engine module pair. Gate 1 publication,
 # D044 registry/cache/editor activation and dinghy migration remain frozen.
@@ -44,8 +45,8 @@ cc -std=c11 -O2 -Wall -Wextra -Werror -Ifirmware/src \
 ./build/tests/test_wp4_9_gate2 | tee build/wp4_9_gate2/focused.log
 grep -F 'WP4_9_GATE2_TESTS_OK=1' build/wp4_9_gate2/focused.log
 grep -F 'osc_state_bytes=8 voice_bytes=44 engine_bytes=404 slots=8 mix_clamp=32767 identity_reset=1 phase_reuse=1 retrig_reset=1 release_tail=1 malformed_silence=1' build/wp4_9_gate2/focused.log
-grep -E '^WP4_9_GATE2_REPLAY_FNV1A32=[0-9a-f]{8}$' build/wp4_9_gate2/focused.log
-printf '%s\n' 'WP4_9_GATE2_FOCUSED_OK=1'
+grep -F "WP4_9_GATE2_REPLAY_FNV1A32=$EXPECTED_REPLAY" build/wp4_9_gate2/focused.log
+printf '%s\n' 'WP4_9_GATE2_FOCUSED_OK=1 replay_frozen=1'
 
 files='firmware/src/fmt_8bit_engine.h firmware/src/fmt_8bit_engine.c'
 ! grep -nE '\b(float|double|malloc|calloc|realloc|free)\b' $files
@@ -82,6 +83,7 @@ test "$HOST_FRAMES" = '286464'
 printf '%s\n' "WP4_9_GATE2_PROOF_AUDIO_UNCHANGED_OK=1 sha256=$HOST_SHA frames=$HOST_FRAMES"
 
 REPLAY="$(sed -n 's/^WP4_9_GATE2_REPLAY_FNV1A32=//p' build/wp4_9_gate2/focused.log)"
+test "$REPLAY" = "$EXPECTED_REPLAY"
 printf '%s\n' \
     "WP4_9_GATE2_OK=1 replay_fnv1a32=$REPLAY engine_bytes=404 slots=8 lifecycle=deterministic mix=bounded pi32v2=pending dinghy_migration=0 gate3_activation=0" \
     | tee build/wp4_9_gate2/summary.txt
