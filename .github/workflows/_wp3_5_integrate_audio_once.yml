@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
       - name: Apply exact D031 integration patch
         shell: bash
         run: |
