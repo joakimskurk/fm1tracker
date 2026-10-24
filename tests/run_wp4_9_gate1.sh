@@ -44,10 +44,12 @@ grep -F 'WP4_9_GATE1_TESTS_OK=1' build/wp4_9_gate1/focused.log
 grep -F 'tracks=8 playback_event_bytes=4 track_event_bytes=4 d031_legacy=256 d031_extra=1792 d032_legacy=256 d032_extra=1792 boundary_step1_frame=5513' build/wp4_9_gate1/focused.log
 grep -F 'legacy_track0_wrappers=1 track_isolation=1 invalid_address_fallback=1 dinghy_migration=0' build/wp4_9_gate1/focused.log
 
-# Inherited component regressions must remain exact before Gate 2.
-./tests/run_playback_tests.sh | tee build/wp4_9_gate1/playback_legacy.log
-./tests/run_playback_params_tests.sh | tee build/wp4_9_gate1/d031_legacy.log
-./tests/run_tracker_effect_tests.sh | tee build/wp4_9_gate1/d032_legacy.log
+# Inherited component regressions must remain exact before Gate 2. Invoke them
+# through sh because the repository deliberately does not depend on executable
+# mode bits for these portable test helpers.
+sh tests/run_playback_tests.sh | tee build/wp4_9_gate1/playback_legacy.log
+sh tests/run_playback_params_tests.sh | tee build/wp4_9_gate1/d031_legacy.log
+sh tests/run_tracker_effect_tests.sh | tee build/wp4_9_gate1/d032_legacy.log
 grep -F 'FMT_PLAYBACK_TESTS_OK=1' build/wp4_9_gate1/playback_legacy.log
 grep -F 'FMT_PLAYBACK_PARAMS_TESTS_OK=1' build/wp4_9_gate1/d031_legacy.log
 grep -F 'FMT_TRACKER_EFFECT_TESTS_OK=1' build/wp4_9_gate1/d032_legacy.log
@@ -55,7 +57,7 @@ printf '%s\n' 'WP4_9_GATE1_INHERITED_COMPONENTS_OK=1 playback=1 d031=1 d032=1'
 
 # Gate 1 must not change the inherited proof-sine output because dinghy.c is
 # intentionally untouched until Gate 4.
-./tests/run_host.sh
+sh tests/run_host.sh
 HOST_SHA="$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')"
 HOST_FRAMES="$(python3 - <<'PY'
 import wave
