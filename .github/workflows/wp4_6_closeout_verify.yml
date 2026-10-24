@@ -1,0 +1,54 @@
+name: WP4.6 common envelope closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_envelope.h
+      - firmware/src/fmt_envelope.c
+      - tests/test_wp4_6_envelope.c
+      - tests/run_wp4_6_envelope_tests.sh
+      - tests/run_wp4_6_closeout_ci.sh
+      - docs/WP4_6_ENVELOPE_CONTRACT.md
+      - .github/workflows/wp4_6_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-6-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D042 isolated common-envelope closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_6_closeout_ci.sh | tee build/wp4_6_closeout.log
+          grep -F 'WP4_6_ISOLATED_PRODUCTION_DELTA_OK=1' build/wp4_6_closeout.log
+          grep -F 'WP4_6_TARGET_OBJECT_OK=1' build/wp4_6_closeout.log
+          grep -F 'WP4_6_DEVICE_BASELINE' build/wp4_6_closeout.log
+          grep -F 'WP4_6_D042_EXIT_OK=1' build/wp4_6_closeout.log
+          grep -F 'WP4_6_CLOSEOUT_OK=1' build/wp4_6_closeout.log
+
+      - name: Upload WP4.6 closeout evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-6-envelope-closeout-evidence
+          path: |
+            build/wp4_6_*.log
+            build/wp4_6_*.txt
+            build/wp4_6_target/
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
