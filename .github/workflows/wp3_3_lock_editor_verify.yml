@@ -14,6 +14,7 @@ on:
       - tests/run_lock_editor_tests.sh
       - tests/wp3_3_lock_editor_context.script
       - tests/run_lock_editor_context_host.sh
+      - tests/run_wp3_3_closeout_ci.sh
       - docs/PROJECT_STATE.md
       - docs/DECISIONS.md
       - docs/CONTROL_MAP_V0.1.md
@@ -23,7 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  lock-editor-focused:
+  lock-editor-closeout:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout FM1Tracker
@@ -31,10 +32,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install host screenshot dependency
+      - name: Install inherited host-screen dependency
         run: python3 -m pip install --disable-pip-version-check Pillow
 
-      - name: Verify focused WP3.3 scope
+      - name: Verify WP3.3 scope
         shell: bash
         run: |
           set -euo pipefail
@@ -54,49 +55,56 @@ jobs:
               'tests/run_lock_editor_tests.sh',
               'tests/wp3_3_lock_editor_context.script',
               'tests/run_lock_editor_context_host.sh',
+              'tests/run_wp3_3_closeout_ci.sh',
           }
           changed = set(subprocess.check_output(
               ['git', 'diff', '--name-only', base, 'HEAD'], text=True
           ).splitlines())
           unexpected = sorted(changed - allowed)
           assert not unexpected, unexpected
-          print('WP3_3_FOCUSED_SCOPE_OK=1')
+          print('WP3_3_SCOPE_OK=1')
           PY
 
-      - name: Run D029 editor tests
+      - name: Run complete WP3.3 gate
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build
-          sh tests/run_lock_editor_tests.sh | tee build/wp3_3_lock_editor_tests.log
-          grep -F 'FMT_LOCK_EDITOR_TESTS_OK=1' build/wp3_3_lock_editor_tests.log
-          grep -F 'state_bytes=8 pattern=0 knobs=4 value_domain=0_255 references=255,128,255,128' build/wp3_3_lock_editor_tests.log
-          grep -F 'targets=64x8 snapshot=1 replace_in_place=1 pool_full=1 corrupt=1 range_reject=1' build/wp3_3_lock_editor_tests.log
+        run: sh tests/run_wp3_3_closeout_ci.sh
 
-      - name: Run inherited p-lock foundations
-        shell: bash
-        run: |
-          set -euo pipefail
-          sh tests/run_param_registry_tests.sh | grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1'
-          sh tests/run_lock_store_tests.sh | grep -F 'FMT_LOCK_STORE_TESTS_OK=1'
-          sh tests/run_pattern_input_tests.sh | grep -F 'FMT_PATTERN_INPUT_TESTS_OK=1'
-          echo 'WP3_3_FOUNDATION_REGRESSIONS_OK=1'
-
-      - name: Run real full-app hold-step encoder fixture
-        shell: bash
-        run: |
-          set -euo pipefail
-          sh tests/run_lock_editor_context_host.sh | tee build/wp3_3_lock_editor_context_gate.log
-          grep -F 'WP3_3_LOCK_EDITOR_CONTEXT_HOST_OK=1 midi_events=0' build/wp3_3_lock_editor_context_gate.log
-
-      - name: Upload focused WP3.3 screenshots
+      - name: Upload WP3.3 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: wp3-3-lock-editor-focused
+          name: wp3-3-lock-editor-evidence
           path: |
             build/wp3_3_lock_editor_tests.log
+            build/wp3_3_param_registry_tests.log
+            build/wp3_3_lock_store_tests.log
+            build/wp3_3_model_tests.log
+            build/wp3_3_store_tests.log
+            build/wp3_3_transport_tests.log
+            build/wp3_3_playback_tests.log
+            build/wp3_3_pattern_input_tests.log
+            build/wp3_3_step_record_tests.log
+            build/wp3_3_tracker_screen_tests.log
+            build/wp3_3_wp2_5_context.log
+            build/wp3_3_wp2_6_context.log
+            build/wp3_3_wp2_7_context.log
+            build/wp3_3_wp2_8_context.log
+            build/wp3_3_wp2_9_screen.log
+            build/wp3_3_phase2_integration.log
+            build/wp3_3_phase2_full_app.log
             build/wp3_3_lock_editor_context_gate.log
             build/wp3_3_lock_editor_context_host.log
+            build/wp3_3_host_audio.txt
+            build/wp3_3_device_build.log
+            build/wp3_3_symbols.txt
+            build/wp3_3_lock_editor_symbol.txt
+            build/wp3_3_lock_storage_symbol.txt
+            build/wp3_3_lock_runtime_symbol.txt
+            build/wp3_3_song_store_symbol.txt
+            build/wp3_3_metrics.txt
+            build/wp3_3_fmt_lock_editor.o
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/host/fm1tracker.wav
             build/host/fm1tracker_wp3_3_lock_editor-1000.ppm
             build/host/fm1tracker_wp3_3_lock_editor-3000.ppm
             build/host/fm1tracker_wp3_3_lock_editor-1000.png
