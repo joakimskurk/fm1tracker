@@ -1,5 +1,5 @@
 name: WP3.6 full closeout verification
-# Final measured gate trigger after exact D020/D032 tick-grid fix.
+# Final measured gate trigger after green focused run 40073502834.
 
 on:
   push:
