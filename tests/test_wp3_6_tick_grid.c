@@ -18,7 +18,7 @@ int main(void)
     assert(FMT_TRACKER_EFFECT_TICK_PHASE == 110250u);
     assert(FMT_TRACKER_EFFECT_TICK_PHASE * FMT_TRACKER_EFFECT_TICKS_PER_ROW ==
            FMT_TRANSPORT_PHASE_PER_STEP);
-    assert(FMT_TRANSPORT_BPM_DEFAULT == 120u);
+    assert(FMT_TRANSPORT_DEFAULT_BPM == 120u);
 
     fmt_transport_reset(&transport);
     fmt_tracker_effect_state_reset(&effect);
