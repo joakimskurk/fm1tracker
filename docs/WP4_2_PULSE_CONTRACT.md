@@ -60,6 +60,8 @@ integer_increment(n) = INC_C9[n % 12] >> (10 - n / 12)
 
 The legal Q7 maximum can interpolate from MIDI 127 toward the internal MIDI-128 increment, so the helper must safely support the internal lookup point `128` even though stored tracker notes remain `0..127`.
 
+The public/legal D037 engine-pitch domain still ends at `16383`; MIDI 128 is **not** a legal engine pitch. It exists only as the private upper lookup value needed when interpolating the legal maximum fractional pitch below MIDI 128.
+
 Fractional semitones use the already-proven D031 interpolation rule from `fmt_playback_interp_inc()`:
 
 ```text
@@ -301,7 +303,7 @@ Focused host tests must prove at least:
 9. zero increment holds phase/output;
 10. deterministic identical-state identical-output replay;
 11. all frozen pitch vectors in Section 2;
-12. monotonic integer-semitone phase increments over MIDI 0..128;
+12. monotonic integer-semitone phase increments over legal MIDI 0..127, plus the exact maximum-Q7 vector whose interpolation exercises the private MIDI-128 upper lookup;
 13. monotonic Q7 increments over the full `0..16383` input domain;
 14. pitch helper never returns zero in the legal D037 domain;
 15. representative long-render hash from a fixed initial state, pitch and width;
