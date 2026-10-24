@@ -6,24 +6,25 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 ## Current phase
 
-**Phase 3 - p-locks and tracker effects — COMPLETE**
+**Phase 4 - 8-BIT engine**
 
-State: **COMPLETE - WP3.1-WP3.10 host/device-build exit satisfied - 2026-10-24**
+State: **IN PROGRESS - WP4.1 active; D037 engine-interface architecture freeze next - 2026-10-24**
 
-Parent issue: #20 — CLOSED / completed
-Current branch: `phase3/plocks-effects`
+Parent issue: #30
+Current work package: WP4.1 / #31
+Current branch: `phase4/8bit-engine`
 
-Phase 3 branch start / completed Phase 2 handoff:
+Phase 4 branch start / final Phase 3 handoff:
 
-`c3693d8c7bb3d5306794aa232d6d25bef50c6c99`
+`d14955f23a11044e8a348884feca24f8978fd700`
 
-Final Phase 3 closeout workflow checkpoint:
-
-`e90d0232c179ea92e2295171403697ceaf5e3ecf`
-
-Final Phase 3 production firmware checkpoint remains the WP3.9 source tree:
+Final Phase 3 production firmware baseline inherited by Phase 4:
 
 `354bf7d356774ad828f1f660bd456dbab7f0490d`
+
+Final Phase 3 closeout run/job:
+
+`40084706845` / `120845144453`
 
 ## Completed Phase 3 packages
 
@@ -309,12 +310,13 @@ Final firmware artifacts:
 
 ## Next milestone
 
-**Phase 4 / WP4.1 - 8-BIT engine interface contract**
+**WP4.1 - 8-BIT engine interface contract**
 
-State: **READY TO START - create/use `phase4/8bit-engine`, freeze D037 before production engine source**
+State: **IN PROGRESS - D037 architecture freeze next; no production engine DSP begun**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31
+Branch: `phase4/8bit-engine`
 
 D037 must freeze engine/voice ownership, fixed-point pitch, note/tie/off/retrigger adapter semantics, per-track/per-voice state, sample/mix format, p-lock/effect integration boundary, realtime work bounds and the complete Phase 4 resource budget before PULSE/NOISE/TRIANGLE/WAVETABLE-8 production DSP is written.
 
@@ -347,7 +349,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Create/use the Phase 4 branch `phase4/8bit-engine`, then start WP4.1 / #31 by freezing D037 in the repository **before any production oscillator/engine DSP source**. Preserve every Phase 2/3 deterministic regression as the migration baseline.
+Freeze D037 for WP4.1 / #31 in the repository **before any production oscillator/engine DSP source**. Preserve every Phase 2/3 deterministic regression as the migration baseline and define explicit Phase 4 image/RAM/pool headroom before WP4.2.
 
 ## Last relevant checkpoints
 
@@ -366,4 +368,4 @@ Create/use the Phase 4 branch `phase4/8bit-engine`, then start WP4.1 / #31 by fr
 
 ## Last updated
 
-2026-10-24 - WP3.10 / #29 and Phase 3 / #20 closed after final run `40084706845`. Phase 3 is COMPLETE at host/device-build level with zero WP3.10 production delta. Phase 4 / #30 and WP4.1 / #31 are created; next step is the D037 engine-interface freeze on `phase4/8bit-engine`.
+2026-10-24 - Phase 4 branch `phase4/8bit-engine` created from clean Phase 3 handoff `d14955f2...`. #30 and WP4.1 / #31 are IN PROGRESS. Exact next action is the D037 engine-interface architecture freeze; no Phase 4 production engine DSP has begun.

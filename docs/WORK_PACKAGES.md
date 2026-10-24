@@ -151,11 +151,11 @@ Phase 3 is complete at host/device-build level. Physical FM-1 verification remai
 
 # Phase 4 — 8-BIT engine
 
-Status: **READY TO START — WP4.1 / #31; D037 required before production engine source**
+Status: **IN PROGRESS — WP4.1 / #31 active; D037 required before production engine source**
 
 Parent issue: #30
 
-- **WP4.1 engine interface contract** — READY TO START — issue #31
+- **WP4.1 engine interface contract** — IN PROGRESS — issue #31 — freeze D037 before source
 - WP4.2 PULSE
 - WP4.3 NOISE
 - WP4.4 TRIANGLE
