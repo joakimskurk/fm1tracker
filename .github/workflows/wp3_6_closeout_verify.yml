@@ -27,6 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build build/host build/tests
           sh tests/run_tracker_effect_tests.sh | tee build/wp3_6_effect_tests.log
           grep -F 'FMT_TRACKER_EFFECT_TESTS_OK=1' build/wp3_6_effect_tests.log
           grep -F 'state_bytes=12 pitch_q7=1 fine_precedence=1 porta_memory=1 invalid_fallback=1 no_store_mutation=1' build/wp3_6_effect_tests.log
