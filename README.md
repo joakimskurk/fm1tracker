@@ -2,148 +2,161 @@
 
 A hardware-first tracker/sequencer firmware for the **M-VAVE FM-1**.
 
-FM1Tracker is inspired by classic trackers and by workflow ideas demonstrated by [Furnace](https://tildearrow.org/furnace/), but it is **not a port of the full Furnace desktop engine**. The goal is a compact, fixed-point tracker designed around the FM-1 panel: keyboard step entry, a dedicated rest workflow, parameter locks, 64-step patterns, and two curated sound worlds: **8-BIT** and **16-BIT**.
+FM1Tracker is inspired by classic trackers and workflow ideas demonstrated by Furnace, but it is **not a port of the full Furnace desktop engine**. It is a compact, deterministic, fixed-point instrument built around the FM-1 panel: keyboard STEP REC, REST/TIE/OFF entry, parameter locks, tracker effects, 64-step patterns, eight logical tracks and a growing set of native synthesis engines.
 
-## Current status
+## Product direction
 
-**Phase 1 — clean Dinghy baseline is complete. Phase 2 has not started yet.**
+FM1Tracker is **one tracker with freely selectable instrument engines**, not separate 8-BIT and 16-BIT projects.
 
-The repository contains the pinned Dinghy-derived platform baseline plus a verified identity-only FM1Tracker layer:
+Each instrument owns an engine family + engine identity. Different tracks may therefore eventually combine chip-style, FM/digital, modern synth and drum engines in the same project, subject to measured FM-1 CPU/RAM/voice budgets.
 
-- visible app name: `FM1TRACKER`;
-- fixed FM-1 package identity: `FM-1_987`;
-- host artifacts: `build/host/fm1tracker.wav` and `fm1tracker-*.png`;
-- device artifacts: `build/fm1tracker.bin` and versioned `fm1tracker-*.fwsc`;
-- the host WAV is bit-identical to the pristine Dinghy-derived baseline;
-- protected HAL/loader/platform/test-tone implementation remained unchanged through Phase 1;
-- the full renamed device build and inherited safety checks pass with the pinned official external JieLi SDK release;
-- reference budgets are recorded in `docs/WP1_5_VERIFICATION.md`.
+The current 8-BIT/chip family is the first complete engine family. FM4 is next. The accepted architecture change is frozen in:
 
-No tracker engine, STEP REC implementation, p-lock implementation, song mode, 8-BIT engine or 16-BIT FM4 engine has been added yet. The next bounded work package is **WP2.1 — compile-time tracker data model**.
+- `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
 
-For exact continuation state, start with [`START_HERE.md`](START_HERE.md) and [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
+D047 supersedes the original project-wide 8-BIT/16-BIT restriction for future work, but deliberately does **not** rewrite or invalidate the already-verified Phase 4 implementation.
 
-## Core idea
+## Current status - 2026-10-24
 
-- Play notes directly from the FM-1 keyboard.
-- Enter notes into a pattern one step at a time with automatic step advance.
-- Insert rests without leaving step-record mode.
-- Use the 16 white keys as physical step selectors/pages in sequencer edit mode.
-- Hold a step and turn an encoder to create per-step parameter locks.
-- Keep tracker power — note, instrument, volume, effects and locks — without requiring the user to memorize hexadecimal commands.
-- Build a small, deterministic engine specifically for the FM-1 instead of trying to embed the entire Furnace application.
+- Phase 1 - clean Dinghy baseline: **COMPLETE**
+- Phase 2 - tracker core: **COMPLETE**
+- Phase 3 - p-locks/effects/runtime ingress: **COMPLETE**
+- Phase 4 - first engine family, 8-BIT/chip: **WP4.1-WP4.9 COMPLETE; WP4.10 closeout active**
 
-## Planned sound modes
+The linked production tracker currently has:
 
-### 8-BIT
+- 8 logical tracks x 64 steps x 16 patterns;
+- exact integer transport;
+- keyboard STEP REC;
+- REST / TIE / NOTE OFF semantics;
+- bounded tracker screen;
+- 2,048-record sparse p-lock pool, max four locks per step;
+- ARP / slide / portamento / vibrato / retrig / note delay / note cut;
+- bounded 32-entry main-to-audio audition queue;
+- PULSE, NOISE, TRIANGLE and WAVETABLE-8 engines;
+- common integer ADSR;
+- deterministic release-tail voice allocation;
+- engine-aware four-parameter p-lock pages;
+- all eight tracks linked through the real 8-BIT engine.
 
-A deliberately small chip-style palette built from inexpensive fixed-point synthesis blocks. Initial engines are pulse, noise, triangle and WAVETABLE-8. Authentic machine/chip profiles may be explored later, but are not a V0.1 requirement.
+WP4.9's verified linked target uses:
 
-### 16-BIT
+- 72,504 B image;
+- 19,604 B normal RAM;
+- 113,000 B pool RAM;
+- package identity `FM-1_987`.
 
-A broader early-digital palette centered initially on a compact fixed-point four-operator FM engine. PCM/sample playback is deliberately deferred until the tracker core and both initial synthesis modes are proven.
+WP4.10 / D046 is verification-only Phase 4 closeout. The representative benchmark and structural realtime audit have been implemented, but the first aggregate exit workflow run `40120541899` is red. Phase 4 is therefore **not yet marked complete**. The immediate task is to isolate that aggregate failure, obtain a complete green closeout and write `docs/WP4_10_VERIFICATION.md`.
+
+For exact continuation state, always start with:
+
+1. `START_HERE.md`
+2. `docs/PROJECT_STATE.md`
+3. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
+
+## Engine architecture
+
+The tracker/sequencer remains engine-agnostic. The target relationship is:
+
+```text
+track / tracker row
+        |
+        v
+    instrument
+        |
+        +-- engine family
+        +-- engine
+        +-- engine parameters/state
+```
+
+The current `FmtStep.instrument` indirection and 4-byte `FmtInstrumentHeader` already provide the basic data-model boundary required for this direction.
+
+After Phase 4 closes, Phase 5 begins with **WP5.0 - mixed-engine routing contract + migration** before FM4 production integration. WP5.0 will remove the current song-level project-mode gate while preserving all proven tracker timing, p-lock, effect, queue and 8-BIT behavior.
+
+The planned next engine family is compact fixed-point four-operator FM. Later engine packages may explore modern virtual analog, supersaw/unison, broader wavetable/digital synthesis, drums, PCM or authentic chip cores when resource/licensing evidence supports them.
+
+Architectural support for future engines does not make every engine a V1 requirement.
+
+## Live performance direction
+
+The long-term product identity is:
+
+**tracker depth underneath, immediate instrument workflow on top.**
+
+The accepted future core includes:
+
+- PLAY continuing while REC arms/disarms live capture;
+- fast capture-target track switching;
+- drum performance/capture;
+- metronome/count-in;
+- CHANNEL and GLOBAL performance/automation scopes;
+- bounded capture of notes, p-locks and effect gestures into editable tracker data;
+- mixed engine families across the eight logical tracks;
+- measured polyphony without silently reducing tracker track count.
+
+See `docs/LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
 ## Platform
 
-The firmware baseline is pinned from [Dinghy](https://github.com/zvenson/dinghy), which provides the FM-1 update/rescue path, USB MIDI/audio, display, panel input, settings, host-mode testing and build-time hardware safety checks. Dinghy is GPL-3.0-only and is based on Felucca/SLOOP.
+The firmware baseline is pinned from Dinghy/Felucca/SLOOP and targets JieLi AC791N / pi32v2.
 
-FM1Tracker follows the FM-1 platform constraints from the beginning:
+Core realtime rules include:
 
-- fixed-point DSP; no floating point in firmware
-- no runtime 64-bit division
-- bounded audio ISR work
-- no screen/flash work in the audio ISR
-- host-mode tests before hardware testing where practical
-- explicit RAM/pool/flash budgets
+- fixed-point/integer firmware DSP;
+- no floating point in firmware audio work;
+- no runtime 64-bit division;
+- bounded audio callback work;
+- no screen/flash work in the audio ISR;
+- no heap/dynamic plugin architecture in realtime paths;
+- deterministic overflow/failure policies;
+- host-mode tests before physical hardware testing where practical;
+- explicit RAM/pool/image budgets.
 
-## Host verification
+The fixed package/device identity remains:
 
-Prerequisites: a C compiler, Python 3 and Pillow.
+`FM-1_987`
 
-```sh
-./tests/run_host.sh
-```
+The verified external AC79 SDK pin remains:
 
-Current outputs:
+`d179b4484759423312073f5fbb232501aa491047`
 
-```text
-build/host/fm1tracker.wav
-build/host/fm1tracker-1000.png
-build/host/fm1tracker-3000.png
-```
+## Build
 
-The exact verified hashes and CI runs are recorded in:
+Host verification uses the repository test scripts under `tests/`.
 
-- `docs/WP1_3_VERIFICATION.md`
-- `docs/WP1_4_VERIFICATION.md`
-- `docs/WP1_5_VERIFICATION.md`
-- `docs/TEST_MATRIX.md`
-
-## Device build
-
-The verified build entry point is:
+The device build entry point remains:
 
 ```sh
 ./build.sh --release 0.1
 ```
 
-Required external inputs:
+The official JieLi toolchain and pinned AC79 SDK remain external build inputs and are not vendored into the repository. See `THIRD_PARTY.md` and the verification documents for exact provenance.
 
-1. JieLi `pi32v2` toolchain:
+## Hardware limitation
 
-```sh
-tools/get_toolchain.sh
-```
+No physical FM-1 is currently available for this project.
 
-2. Exact official JieLi AC79 SDK release, kept outside this repository:
+Host and pinned device-build evidence can prove deterministic behavior, code/resource budgets and structural realtime bounds, but it does **not** prove physical install/boot behavior, sound quality, control ergonomics or actual AC791N callback execution margin.
 
-```sh
-git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
-  https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK
-```
-
-The verified SDK tag resolves to commit:
-
-`d179b4484759423312073f5fbb232501aa491047`
-
-`JIELI_TOOLCHAIN` and `AC79_SDK` may point elsewhere if your copies live in different locations.
-
-The AC79 SDK remains an external build dependency and is **not vendored** into this repository. `THIRD_PARTY.md` and `docs/WP1_5_VERIFICATION.md` record the exact provenance, hashes and verification state.
-
-### Phase 1 reference build budget
-
-The verified clean renamed baseline uses:
-
-- app image/code: 55,088 B of 581,564 B;
-- normal RAM (`.data + .bss`): 12,368 B of 98,304 B;
-- pool RAM: 30,720 B of 344,064 B.
-
-These are measured build outputs from the renamed device build. The nominal audio callback period is about 5.805 ms for 256 frames at 44.1 kHz, but actual hardware render time has **not** been measured because no physical FM-1 is currently available.
+Those remain explicit later hardware gates rather than inferred claims.
 
 ## Furnace relationship
 
-Furnace is an important design and interoperability reference. Most of Furnace is GPL-2.0-or-later, while bundled components/emulation cores can have their own licenses. FM1Tracker therefore does **not** assume that a Furnace component is reusable merely because it exists in the Furnace tree. Any code or emulation core considered for inclusion requires an explicit license and resource audit first.
+Furnace remains an important design/interoperability reference, not the firmware architecture to transplant. Third-party cores require explicit license, provenance and resource audits before inclusion.
 
-Longer term, interoperability through a documented export/subset format is preferable to embedding the full Furnace engine.
+Longer term, documented interchange/conversion is preferred over embedding the full Furnace engine.
 
 ## Design priorities
 
-1. Fast musical entry on the physical hardware.
-2. Step recording from the keyboard must feel immediate.
-3. Parameter locks are a first-class feature, not an afterthought.
-4. Tracker concepts should be visible and inspectable without making the UI cryptic.
+1. Fast musical entry on physical FM-1 hardware.
+2. Tracker/sequencer behavior stays deterministic regardless of sound engine.
+3. Instruments choose engines; projects are not locked to one sound family.
+4. Parameter locks are first-class semantic data.
 5. Audio timing and memory limits win over feature count.
-6. 8-BIT and 16-BIT share one sequencer and song model.
-7. Legal provenance for every imported source file or emulation core must remain clear.
-
-## References
-
-- Furnace: https://tildearrow.org/furnace/
-- Furnace source/license: https://github.com/tildearrow/furnace
-- Dinghy: https://github.com/zvenson/dinghy
-- SLOOP: https://github.com/isod89/sloop-fm1
-- Felucca: https://github.com/hugelton/Felucca
+6. Eight logical tracks remain stable while polyphony/engine cost is measured independently.
+7. New engines must fit a bounded static router rather than creating a desktop-style plugin system.
+8. Legal provenance for every imported source/core remains explicit.
 
 ## License
 
-FM1Tracker firmware uses the GPL-3.0-only Dinghy/Felucca/SLOOP platform baseline. Third-party components retain their own notices and compatible licenses. See `THIRD_PARTY.md` and the provenance documents before adding external code.
+FM1Tracker firmware uses the GPL-3.0-only Dinghy/Felucca/SLOOP platform baseline. Third-party components retain their own compatible notices/licenses. See `THIRD_PARTY.md` before adding external code.
