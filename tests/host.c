@@ -27,6 +27,7 @@
 static volatile uint32_t fm1_ms;
 static struct { uint32_t notes, buttons; } fm1_in;
 static uint32_t host_edges, host_released;
+static int32_t host_enc_steps[7];
 static uint32_t fm1_input_edges(uint32_t *released)
 {
     uint32_t b = host_edges;
@@ -38,7 +39,14 @@ static uint32_t fm1_input_edges(uint32_t *released)
     return b;
 }
 static uint32_t fm1_input_note_edges(void) { return 0; }   /* (the script sets fm1_in.notes) */
-static int32_t fm1_enc_take(uint32_t e) { (void)e; return 0; }
+static int32_t fm1_enc_take(uint32_t e)
+{
+    int32_t value;
+    if (e >= 7u) return 0;
+    value = host_enc_steps[e];
+    host_enc_steps[e] = 0;
+    return value;
+}
 static void fm1_led_key(uint32_t id, int on) { (void)id; (void)on; }
 
 /* the screen: 240 x 240 RGB565, as the ST7789 gets it (gfx.c sends the bytes swapped) */
@@ -94,23 +102,30 @@ static void app_audio(int32_t *out, uint32_t n);
 static void app_main(void);
 
 /* the script: at t ms, keys down (bit k = key k, 0 = F3), a button edge,
- * a held-button press/release, or a MIDI message. A script file (the second
- * argument) replaces it, a line each:
+ * a held-button press/release, a relative encoder delta, or a MIDI message.
+ * A script file (the second argument) replaces it, a line each:
  *   "T keys MASK", "T btn ID", "T btndown ID", "T btnup ID",
- *   "T midi ST D1 D2", "T end"
+ *   "T enc ID DELTA", "T midi ST D1 D2", "T end"
  * `btn` preserves the historical one-shot press-edge behavior; btndown/btnup
- * additionally maintain fm1_in.buttons and release edges like the real HAL. */
-typedef struct { uint32_t t, keys; int btn; uint8_t st, d1, d2, btn_action; } host_ev_t;
+ * additionally maintain fm1_in.buttons and release edges like the real HAL.
+ * `enc` accumulates signed relative detent steps until fm1_enc_take(ID). */
+typedef struct {
+    uint32_t t, keys;
+    int btn;
+    uint8_t st, d1, d2, btn_action;
+    uint8_t enc;
+    int16_t enc_delta;
+} host_ev_t;
 enum { HOST_BTN_PULSE = 0u, HOST_BTN_DOWN = 1u, HOST_BTN_UP = 2u };
 static const host_ev_t SCRIPT0[] = {
-    {200, 1u << 7, -1, 0, 0, 0, 0},                                /* C4 */
-    {700, 1u << 7 | 1u << 11 | 1u << 14, -1, 0, 0, 0, 0},          /* + E4 G4: a chord */
-    {1500, 0, -1, 0, 0, 0, 0},
-    {1700, 0, -1, 0x90, 81, 120, 0},                               /* MIDI in: A5 */
-    {2300, 0, -1, 0x80, 81, 0, 0},
-    {2500, 0, BTN_OCT_UP, 0, 0, 0, 0},
-    {2700, 1u << 2 | 1u << 9, -1, 0, 0, 0, 0},                     /* G4 + D5, an octave up */
-    {3400, 0, -1, 0, 0, 0, 0},
+    {200, 1u << 7, -1, 0, 0, 0, 0, 0, 0},                                /* C4 */
+    {700, 1u << 7 | 1u << 11 | 1u << 14, -1, 0, 0, 0, 0, 0, 0},          /* + E4 G4: a chord */
+    {1500, 0, -1, 0, 0, 0, 0, 0, 0},
+    {1700, 0, -1, 0x90, 81, 120, 0, 0, 0},                               /* MIDI in: A5 */
+    {2300, 0, -1, 0x80, 81, 0, 0, 0, 0},
+    {2500, 0, BTN_OCT_UP, 0, 0, 0, 0, 0, 0},
+    {2700, 1u << 2 | 1u << 9, -1, 0, 0, 0, 0, 0, 0},                     /* G4 + D5, an octave up */
+    {3400, 0, -1, 0, 0, 0, 0, 0, 0},
 };
 static const host_ev_t *script = SCRIPT0;
 static uint32_t script_n = sizeof SCRIPT0 / sizeof SCRIPT0[0], end_ms = 6500, frame_fps;
@@ -124,14 +139,16 @@ static void read_script(const char *path)
     uint32_t n = 0;
     if (!f) { perror(path); exit(1); }
     while (fgets(line, sizeof line, f) && n < 4096u) {
-        host_ev_t e = {0, 0, -1, 0, 0, 0, HOST_BTN_PULSE};
+        host_ev_t e = {0, 0, -1, 0, 0, 0, HOST_BTN_PULSE, 0, 0};
         unsigned a = 0, b = 0, c = 0;
+        int d = 0;
         if (line[0] == '#' || sscanf(line, "%u %15s", &e.t, what) != 2) continue;
         if (!strcmp(what, "end")) { end_ms = e.t; continue; }
         if (!strcmp(what, "keys")) { sscanf(line, "%*u %*s %i", (int *)&e.keys); }
         else if (!strcmp(what, "btn")) { sscanf(line, "%*u %*s %d", &e.btn); }
         else if (!strcmp(what, "btndown")) { sscanf(line, "%*u %*s %d", &e.btn); e.btn_action = HOST_BTN_DOWN; }
         else if (!strcmp(what, "btnup")) { sscanf(line, "%*u %*s %d", &e.btn); e.btn_action = HOST_BTN_UP; }
+        else if (!strcmp(what, "enc")) { sscanf(line, "%*u %*s %u %d", &a, &d); e.enc = (uint8_t)a; e.enc_delta = (int16_t)d; }
         else if (!strcmp(what, "midi")) { sscanf(line, "%*u %*s %i %u %u", (int *)&a, &b, &c); e.st = (uint8_t)a; e.d1 = (uint8_t)b; e.d2 = (uint8_t)c; }
         else continue;
         ev[n++] = e;
@@ -191,6 +208,9 @@ static void platform_poll(void)                 /* one call = one millisecond */
         if (script[step].st) {
             mq[mq_w % 64u][0] = script[step].st; mq[mq_w % 64u][1] = script[step].d1; mq[mq_w % 64u][2] = script[step].d2;
             mq_w++;
+        } else if (script[step].enc_delta) {
+            if (script[step].enc < 7u)
+                host_enc_steps[script[step].enc] += script[step].enc_delta;
         } else if (script[step].btn >= 0) {
             uint32_t bit = 1u << (uint32_t)script[step].btn;
             if (script[step].btn_action == HOST_BTN_PULSE) {
