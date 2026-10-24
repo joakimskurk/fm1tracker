@@ -356,9 +356,6 @@ int fmt_lock_editor_apply_delta(FmtLockEditor *editor,
         return 1;
     }
 
-    /* Saturate without ever forming an overflowing signed sum. This is wider
-     * than the current int16 HAL detent source so the public editor API remains
-     * deterministic for any int32 caller/test value. */
     if (delta > 0) {
         uint32_t room = FMT_LOCK_EDITOR_VALUE_MAX - current;
         next = (uint32_t)delta >= room ? FMT_LOCK_EDITOR_VALUE_MAX
@@ -437,6 +434,11 @@ int fmt_lock_editor_arm_delete(FmtLockEditor *editor)
     if (!editor || !editor->active || editor->delete_armed)
         return 0;
     if (editor->selected_param == (FmtParamId)FMT_PARAM_NONE) {
+        if (editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_CORRUPT ||
+            editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_BAD_ADDRESS ||
+            editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_INVALID_PARAM ||
+            editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_INTERNAL)
+            return 1;
         editor->last_param = (FmtParamId)FMT_PARAM_NONE;
         editor->last_value = 0u;
         editor->last_status = (uint8_t)FMT_LOCK_EDITOR_STATUS_NOT_FOUND;
@@ -650,8 +652,7 @@ void fmt_lock_editor_footer(const FmtLockEditor *editor, char out[32])
         return;
     }
 
-    if (editor->last_param == (FmtParamId)FMT_PARAM_NONE ||
-        editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_NONE) {
+    if (editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_NONE) {
         fmt_lock_editor_copy(&p, "PLOCK S");
         fmt_lock_editor_two_digits(&p, (uint32_t)editor->step + 1u);
         fmt_lock_editor_copy(&p, " T");
