@@ -3,8 +3,8 @@ from pathlib import Path
 p = Path('tests/host.c')
 s = p.read_text()
 
-old = '''#include "fmt_store.h"\n#include "fmt_tracker_effect.h"\n'''
-new = '''#include "fmt_store.h"\n#include "fmt_tracker_effect.h"\n#include "fmt_tracker_event.h"\n#include "fmt_transport.h"\n#include "fmt_8bit_engine.h"\n\n/* D045 host-only read probes. platform.c includes this harness before dinghy.c\n * defines the externally visible runtime objects, so declare only those public\n * test-visible symbols here. No firmware debug hook is added. */\nextern FmtTransport fmt_transport_runtime;\nextern FmtTrackerEffectState fmt_tracker_effect_runtime;\nextern FmtTrackerEffectState fmt_tracker_effect_runtime_extra[FMT_TRACKS - 1u];\nextern FmtTrackerRowEventState fmt_tracker_row_event_runtime;\nextern FmtTrackerRowEventState fmt_tracker_row_event_runtime_extra[FMT_TRACKS - 1u];\nextern Fmt8BitEngine fmt_8bit_engine_runtime;\n'''
+old = '''#include "fmt_8bit_linked_params.h"\n#include "fmt_8bit_engine.h"\n'''
+new = '''#include "fmt_8bit_linked_params.h"\n#include "fmt_8bit_engine.h"\n#include "fmt_tracker_event.h"\n#include "fmt_transport.h"\n\n/* D045 host-only read probes. platform.c includes this harness before dinghy.c\n * defines the externally visible runtime objects, so declare only those public\n * test-visible symbols here. No firmware debug hook is added. */\nextern FmtTransport fmt_transport_runtime;\nextern FmtTrackerEffectState fmt_tracker_effect_runtime;\nextern FmtTrackerEffectState fmt_tracker_effect_runtime_extra[FMT_TRACKS - 1u];\nextern FmtTrackerRowEventState fmt_tracker_row_event_runtime;\nextern FmtTrackerRowEventState fmt_tracker_row_event_runtime_extra[FMT_TRACKS - 1u];\nextern Fmt8BitEngine fmt_8bit_engine_runtime;\n'''
 assert s.count(old) == 1, s.count(old)
 s = s.replace(old, new, 1)
 
