@@ -1,0 +1,99 @@
+name: WP4.9 D045 Gate 3 verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/fmt_8bit_linked_params.h
+      - firmware/src/fmt_8bit_linked_params.c
+      - firmware/src/fmt_8bit_params.h
+      - firmware/src/fmt_lock_editor.h
+      - firmware/src/fmt_lock_editor.c
+      - firmware/src/fmt_model.h
+      - firmware/src/fmt_param_registry.h
+      - tests/test_fmt_param_registry.c
+      - tests/test_fmt_lock_store.c
+      - tests/test_wp4_9_gate3.c
+      - tests/run_wp4_9_gate3.sh
+      - .github/workflows/wp4_9_gate3_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate3-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run D045 Gate 3 host verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_9_gate3.sh | tee build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_SOURCE_BOUNDARY_OK=1' build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_FOCUSED_OK=1' build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_STATIC_AUDIT_OK=1' build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_INHERITED_EDITOR_REGRESSIONS_OK=1' build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_GATE2_REGRESSION_OK=1 replay_fnv1a32=c2a8d4df' build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_PROOF_AUDIO_UNCHANGED_OK=1' build/wp4_9_gate3_ci.log
+          grep -F 'WP4_9_GATE3_OK=1 registry_ids=10 base_bank_bytes=96 row_cache_bytes=2048 page_aware_editor=1 pi32v2=pending dinghy_migration=0' build/wp4_9_gate3_ci.log
+
+      - name: Upload D045 Gate 3 host evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate3-host
+          if-no-files-found: error
+          path: |
+            build/wp4_9_gate3/
+            build/wp4_9_gate3_ci.log
+            build/host/fm1tracker.wav
+
+  gate3-pi32v2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+
+      - name: Compile Gate 3 modules for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp4_9_gate3_target
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          for src in fmt_8bit_linked_params fmt_lock_editor fmt_param_registry; do
+            "$CC" -target pi32v2 -Os -ffunction-sections -fno-builtin -Wall -Werror \
+              -Ifirmware/src -c "firmware/src/$src.c" \
+              -o "build/wp4_9_gate3_target/$src.o"
+            test -s "build/wp4_9_gate3_target/$src.o"
+          done
+          sha256sum \
+            build/wp4_9_gate3_target/fmt_8bit_linked_params.o \
+            build/wp4_9_gate3_target/fmt_lock_editor.o \
+            build/wp4_9_gate3_target/fmt_param_registry.o \
+            | tee build/wp4_9_gate3_target/object_sha256.txt
+          printf '%s\n' 'WP4_9_GATE3_PI32V2_OK=1 modules=3 base_bank_bytes=96 row_cache_bytes=2048 dinghy_migration=0 object_hashes=frozen_pending' \
+            | tee build/wp4_9_gate3_target/summary.txt
+
+      - name: Upload D045 Gate 3 target evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-gate3-pi32v2
+          if-no-files-found: error
+          path: build/wp4_9_gate3_target/
