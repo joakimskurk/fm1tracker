@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, `WORK_PACKAGES.m
 
 **Phase 4 - 8-BIT engine**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 representative benchmark + Phase 4 closeout active - 2026-10-24**
+State: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 active; D046 FROZEN; benchmark/exit implementation next - 2026-10-24**
 
 Parent issue: #30
 Current work package: WP4.10 / #41
@@ -312,7 +312,7 @@ Final firmware artifacts:
 
 **WP4.10 - representative eight-track benchmark and Phase 4 closeout**
 
-State: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 active; final representative benchmark/exit contract must be frozen before new production changes**
+State: **IN PROGRESS - WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 active; D046 FROZEN; verification-only benchmark/exit implementation next**
 
 Phase 4 parent issue: #30
 WP4.1 issue: #31 — COMPLETE
@@ -329,7 +329,7 @@ Branch: `phase4/8bit-engine`
 
 WP4.9 closed on run `40116897104`, job `120939922897`. D045 now links all eight tracker tracks through the real bounded 8-BIT engine and passed canonical per-engine/mixed/eight-track/D033/precedence fixtures, inherited non-obsolete regressions, realtime audit and pinned target build. Final resources: 72,504 B image / 19,604 B normal RAM / 113,000 B pool. Evidence: `docs/WP4_9_VERIFICATION.md`.
 
-WP4.10 / #41 is the only remaining Phase 4 package. It must freeze a representative benchmark/exit contract before any new production change, then prove the linked D037-D045 path under a deterministic eight-track representative workload and finish the Phase 4 exit gate.
+D046 is frozen in `docs/WP4_10_PHASE4_EXIT_CONTRACT.md`. WP4.10 / #41 is verification/benchmark/closeout only unless a real defect is found. The next implementation must build the frozen full-pool representative workload, long linked run, concurrent D034 pressure, structural realtime audit, inherited regression gate and pinned target identity proof without changing production source.
 
 Do not begin Phase 5/FM4 until WP4.10 is green and Phase 4 is formally closed.
 
@@ -357,6 +357,7 @@ Do not begin Phase 5/FM4 until WP4.10 is green and Phase 4 is formally closed.
 - D044: WP4.8 freezes six 8-BIT semantic IDs (`0x20..0x25`), one exact four-control page per engine, a 6 B base set, bounded normalized WIDTH/TABLE mappings and a future aligned 2048 B row cache; global registry/UI/cache activation is deferred to WP4.9.
 - D045: WP4.9 deliberately migrates all eight tracker tracks to one fixed eight-slot 8-BIT engine through staged gates, preserving the four-byte legacy event, D034 audition lane and D020-D035 ownership while activating track-aware caches, D044 publication and bounded D038-D043 render/mix only after their prerequisite gates are green.
 - D045 deliberately supersedes the historical proof-sine default WAV for the tracker lane. The linked 8-BIT full-app reference is `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076` / 286,464 frames; preserve it unless a later explicit decision supersedes it with evidence.
+- D046: WP4.10 is production-frozen verification/benchmark work. It saturates all 2,048 D028 records across all 512 pattern-0 track/rows, exercises all four engines + D031/D032/D033/D044 + D043 tail contention + D034 queue pressure, proves structural realtime bounds and pinned target identity, and treats host elapsed time as diagnostic only.
 - No float in firmware DSP and no runtime 64-bit division.
 
 ## Product direction that must not be lost
@@ -369,7 +370,7 @@ No physical FM-1 is currently available. Host/device-build evidence does not cla
 
 ## Exact next action
 
-Freeze the WP4.10 / #41 representative eight-track benchmark and Phase 4 exit contract before any new production change. The benchmark must exercise the linked D037-D045 path, retain bounded realtime ownership, re-run applicable inherited stress/regression gates, freeze pinned target resources/artifact hashes and make no physical FM-1 execution-margin claim without hardware. Do not begin Phase 5/FM4 until WP4.10 is green.
+Implement D046 verification only: first the deterministic 2,048-lock / 512-row linked workload and long-run state/count digest, then concurrent D034 pressure + structural realtime audit, inherited regressions and exact pinned target identity. Keep production byte-identical to `c93c39ad344760b4da0dfbc76829ca5fef886174` unless a real defect is proven. Do not begin Phase 5/FM4 until the complete WP4.10 exit gate is green.
 
 ## Last relevant checkpoints
 
@@ -408,7 +409,8 @@ Freeze the WP4.10 / #41 representative eight-track benchmark and Phase 4 exit co
 - WP4.9 D045 Gate 2 verification: `ceee70e94e3aaa6fd266e18490f4b3ce28ee51e5` — run `40109064516`, host `120916760172`, PI32v2 `120916760440`; replay `c2a8d4df`
 - WP4.9 D045 Gate 3 verification: `9263b754c877dc0e6076c34538a496820e2ededb` — run `40111447360`, host `120923852664`, PI32v2 `120923852448`; evidence `WP4_9_GATE3_VERIFICATION.md`
 - WP4.9 D045 final closeout: `89fabc51348078101c8e376bba7814af9d42ae80` — run `40116897104`, job `120939922897`; artifact `12570465704`; evidence `WP4_9_VERIFICATION.md`
+- WP4.10 D046 contract: `aaceafc24322611bf00255bf028466d7d88643de` — `WP4_10_PHASE4_EXIT_CONTRACT.md`
 
 ## Last updated
 
-2026-10-24 - WP4.9 / #40 COMPLETE. D045 linked the real eight-track tracker lane to PULSE/NOISE/TRIANGLE/WAVETABLE-8, preserved bounded D031-D034 ownership, passed canonical Gate 5 fixtures + Gate 6 inherited/realtime closeout, and built at 72,504 B image / 19,604 B normal RAM / 113,000 B pool. Final run `40116897104`, job `120939922897`; evidence `WP4_9_VERIFICATION.md`. WP4.10 / #41 is now the only active Phase 4 package; freeze its representative benchmark/exit contract before any production change.
+2026-10-24 - WP4.10 / #41 active with D046 FROZEN in `WP4_10_PHASE4_EXIT_CONTRACT.md`. WP4.9 production remains the immutable baseline unless stress exposes a real defect. Exact next action: implement the frozen representative full-pool/long-run/queue/realtime/target verification gates, then produce `WP4_10_VERIFICATION.md` and close Phase 4 only if every gate is green.

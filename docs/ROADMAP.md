@@ -146,7 +146,7 @@ Goal: a musically complete chip-style palette.
 Status: **IN PROGRESS — WP4.1/D037 through WP4.9/D045 COMPLETE; WP4.10 / #41 representative benchmark + Phase 4 closeout active**
 
 Parent issue: #30
-Active package: WP4.10 / #41 — WP4.9 closed on run `40116897104`, job `120939922897`; evidence `WP4_9_VERIFICATION.md`. Freeze the representative eight-track benchmark/Phase 4 exit contract before any new production change, then close Phase 4 without claiming physical execution margin until hardware exists. Branch: `phase4/8bit-engine`.
+Active package: WP4.10 / #41 — D046 FROZEN in `WP4_10_PHASE4_EXIT_CONTRACT.md`. Implement the production-frozen representative 2,048-lock/eight-track benchmark, long-run + D034 pressure + structural realtime audit, inherited regressions and exact pinned target identity; then close Phase 4 without claiming physical execution margin until hardware exists. Branch: `phase4/8bit-engine`.
 
 Required starting engines:
 
@@ -161,7 +161,7 @@ Also:
 - deterministic voice allocation/stealing;
 - primary parameter pages + p-lock mapping;
 - pitch/retrigger integration;
-- measured eight-track hardware benchmark.
+- representative eight-track host/device-build benchmark with physical execution-margin measurement explicitly deferred until hardware exists.
 
 Eight voices are the initial budget target, not a promise about final polyphonic-track capacity.
 

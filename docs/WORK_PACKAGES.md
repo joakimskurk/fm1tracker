@@ -164,7 +164,7 @@ Parent issue: #30
 - **WP4.7 deterministic voice allocation/stealing** — COMPLETE — issue #37 — D043 + `WP4_7_VERIFICATION.md`; deterministic release-tail allocator host/PI32v2 proof and zero linked full-app delta
 - **WP4.8 four-parameter pages + p-lock mapping** — COMPLETE — issue #39 — D044 + `WP4_8_VERIFICATION.md`; six stable IDs, bounded resolver and zero linked full-app delta
 - **WP4.9 linked 8-BIT engine integration** — COMPLETE — issue #40 — D045 + `WP4_9_VERIFICATION.md`; final run `40116897104`, job `120939922897`; linked target 72,504 B image / 19,604 B normal RAM / 113,000 B pool
-- **WP4.10 representative eight-track benchmark + Phase 4 closeout** — IN PROGRESS — issue #41 — freeze benchmark/exit contract before any production change
+- **WP4.10 representative eight-track benchmark + Phase 4 closeout** — IN PROGRESS — issue #41 — D046 FROZEN in `WP4_10_PHASE4_EXIT_CONTRACT.md`; verification-only full-pool/long-run/queue/realtime/pinned-target exit implementation next
 
 ---
 

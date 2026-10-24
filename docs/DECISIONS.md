@@ -953,3 +953,24 @@ WP4.9 uses staged gates: (1) track-aware playback/D031/D032 publication with tra
 **Reason:** Phase 4 primitives are individually verified but not yet a product engine. D045 crosses that boundary without mixing in live-performance polyphony or the final timing benchmark, while keeping event/cache ownership and RAM cost statically bounded.
 
 **Consequence:** No linked engine source may precede D045. WP4.9 closes only with all four engines audible through the real tracker adapter, deterministic eight-track ownership/timing/p-lock evidence, new intentional full-app hashes and resource measurements inside D037. WP4.10 remains the representative timing benchmark/Phase 4 exit gate.
+
+## D046 — WP4.10 is a production-frozen representative linked-engine benchmark and Phase 4 exit gate
+
+Date: 2026-10-24
+Status: accepted — frozen before WP4.10 benchmark/test implementation
+
+**Decision:** `docs/WP4_10_PHASE4_EXIT_CONTRACT.md` is normative. WP4.10 is verification/benchmark/closeout work, not a feature package. The linked D045 production baseline is `c93c39ad344760b4da0dfbc76829ca5fef886174`; if no real defect is found, production source/HAL/loader/link/build/tooling must remain byte-identical to that checkpoint. Any defect requires the smallest bounded fix, a focused regression, explicit resource/artifact delta and a complete exit-gate rerun.
+
+D046 freezes a representative 8-track / 64-row workload using all four engines simultaneously, deterministic engine rotation at rows 16/32/48, and an eight-row NOTE/TIE/NOTE/OFF/NOTE/TIE/event/NOTE ownership cycle. The full D028 pool is intentionally saturated as exactly `8 * 64 * 4 = 2048` records: even rows combine D031 VOICE LEVEL/FINE/TRACK LEVEL with the engine-defining D044 slot-0 parameter; odd rows fill the complete D044 four-slot page. Values span boundary and representative bytes, with slow RELEASE rows forcing D043 detached-tail contention on the following NOTE row.
+
+Every track/row also receives deterministic D032/D033 command/value pressure across the complete assigned command domain and the boundary values `0..6,255`. Exact D020/D032 timing remains authoritative; the long linked run crosses at least 4096 rows / 64 pattern wraps while retaining deterministic row/tick/action/allocation counts and state digests. D043 may reclaim only unowned RELEASE tails and must never steal a still-owned active cross-track primary voice.
+
+D034 remains a separate 32-entry audition queue and four-sine manual lane. The representative linked workload includes concurrent full-queue/overflow/recovery epochs while all eight tracker tracks run, proving bounded 32-event consumption, O(1) overflow discard, fail-to-silence manual recovery and tracker timing/state independence.
+
+“Benchmark” without a physical FM-1 means deterministic functional workload + structural realtime-bound proof + pinned target build/resource evidence. Host elapsed time may be recorded for diagnostics only and is never a pass/fail hardware-timing proxy. The structural audit freezes one eight-slot engine scan per tracker sample, at most eight tick-due checks on a non-row-boundary running frame, exactly eight fixed row events on a row-boundary frame, at most one D033 scheduled action per due track tick, and no allocator/list/store/screen/float/runtime-64-bit-divide/spin/retry work in the audio path.
+
+Pinned target inputs remain `jieli-linux-toolchains-20260730.1`, AC79 SDK `d179b4484759423312073f5fbb232501aa491047`, identity `FM-1_987`. With no production fix, exact WP4.9 target identity must remain 72,504 B image / 19,604 B normal RAM / 113,000 B pool, BIN `214fba8ec0af4be3120bc91dafbaa24e7d4d8a5a6de7395de2473f12374c4215`, FWSC `20f0bbe556edcf6a00118f9983335913dda2f29fc64d3c87997bfd6756bcf119`, and the normal linked host WAV remains `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`.
+
+**Reason:** WP4.9 proved correctness of the linked engine but the phase still needs one declared representative whole-system workload that combines maximum p-lock storage pressure, all engines/tracks, effect/event timing, release-tail contention and queue pressure before Phase 5 begins. Structural bounds and a real pinned target build are meaningful without hardware; host wall-clock timing is not a substitute for measured AC791N callback margin.
+
+**Consequence:** WP4.10 may add only tests, fixtures, benchmark instrumentation, CI, documentation and evidence unless those tests expose a real bounded defect. The final evidence is `docs/WP4_10_VERIFICATION.md`. Phase 4 / #30 and WP4.10 / #41 may close at host/device-build level only after D046's representative/full-pool/long-run/queue/realtime/inherited/target gates are green. Physical install/audio/quality/execution-margin verification remains explicitly pending until a physical FM-1 exists. Phase 5/FM4 must not start earlier.
