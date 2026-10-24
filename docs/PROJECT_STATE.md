@@ -8,7 +8,7 @@ A new chat/session should read `START_HERE.md`, then this file, then `WORK_PACKA
 
 **Phase 3 — p-locks and tracker effects**
 
-State: **IN PROGRESS — WP3.4 complete; WP3.5 ready to start — 2026-10-24**
+State: **IN PROGRESS — WP3.5 active — 2026-10-24**
 
 Parent issue: #20
 
@@ -36,12 +36,8 @@ D028 freezes one owner-checked global sparse pool of 2,048 eight-byte lock recor
 
 ## Completed WP3.3
 
-**WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22
-
-Verified source/workflow checkpoint:
-
-`df5d7e07fc763909a141c99283cfd2be19cff847`
-
+**WP3.3 — hold-step + encoder p-lock editing** — COMPLETE — issue #22  
+Verified checkpoint: `df5d7e07fc763909a141c99283cfd2be19cff847`  
 Final run `40054322180`, job `120753812201` — **SUCCESS**.  
 Evidence: `docs/WP3_3_VERIFICATION.md`
 
@@ -51,106 +47,124 @@ D029 freezes ordinary-SEQ held-white-step target ownership, stale/begin/release 
 
 **WP3.4 — p-lock browse / single-lock delete UX** — COMPLETE — issue #23
 
-WP3.4 start head:
-
-`8ffa2a3de00f89946aca37fa7015fd3940851c93`
-
-Final verified source/workflow checkpoint:
+Verified source/workflow checkpoint:
 
 `178ba57a19adc8e25106f1c63e0df2f16478fb33`
 
-Final GitHub Actions:
+Final run `40064122343`, job `120783658593` — **SUCCESS**.  
+Evidence: `docs/WP3_4_VERIFICATION.md`
 
-- run `40064122343`
-- job `120783658593` (`lock-delete-closeout`)
-- result **SUCCESS**
+D030 freezes SELECT browse in sorted D028 order plus deliberate EDIT arm -> later SEL one-lock deletion, with same-poll rejection, cancellation safety, exactly-one-record recovery and no clear-all panel gesture.
 
-Durable evidence: `docs/WP3_4_VERIFICATION.md`
+Final WP3.4 baseline:
 
-### D030 behavior
+| Resource | Used | Limit | Free |
+|---|---:|---:|---:|
+| app image | 64,228 B | 581,564 B | 517,336 B |
+| normal RAM | 12,480 B | 98,304 B | 85,824 B |
+| pool RAM | 113,000 B | 344,064 B | 231,064 B |
 
-D030 preserves the D029 held-white-step target and adds bounded browse/delete behavior:
+`FmtLockEditor` is 10 B. Package identity remains `FM-1_987`.
 
-- SELECT encoder browses existing locks in D028 ascending semantic parameter-ID order;
-- browse clamps at first/last and never wraps;
-- successful KNOB edit selects that parameter;
-- EDIT arms one selected lock for deletion but does not mutate storage;
-- only a later-poll SEL press confirms;
-- same-poll EDIT+SEL never deletes;
-- EDIT release, target/context exit, PLAY or unrelated focus/navigation intent cancels a pending arm;
-- SELECT/K1..4 deltas are drained/discarded while armed;
-- confirmation revalidates and calls D028 remove exactly once;
-- exactly one record returns to the free list;
-- deterministic post-delete selection moves to old ordinal, new last or NONE;
-- zero-lock / NOT_FOUND / BAD_ADDRESS / CORRUPT are safe and non-mutating;
-- current-ID RANGE values may be browsed and deleted without reinterpretation;
-- no user-facing clear-all gesture exists in WP3.4;
-- feedback stays in the tracker footer;
-- locks remain storage-only and are not consumed by playback/audio.
-
-`FmtLockEditor` is now exactly **10 B** ordinary RAM: the two new bytes are semantic selection and delete-arm state.
-
-Reviewed WP3.4 raw framebuffers:
-
-- armed 1000 ms: `6ce56a09073b4d70ec5ff7001ae787966f17d6bf610f1db2e239df152e14205d`
-- deleted 3000 ms: `f0185637136d5b609ebae1adbfbba7a62989a9246cb63093e6263242040e6cc6`
-
-Full-app marker:
-
-```text
-WP3_4_LOCK_DELETE_CONTEXT_HOST_OK=1 midi_events=0 same_poll_confirm=fixture play_cancel=fixture unrelated_key_cancel=fixture valid_delete=fixture
-```
-
-### Final WP3.4 resources
-
-| Resource | Used | Limit | Free | Delta vs WP3.3 |
-|---|---:|---:|---:|---:|
-| app image | 64,228 B | 581,564 B | 517,336 B | +2,512 B |
-| normal RAM | 12,480 B | 98,304 B | 85,824 B | +4 B |
-| pool RAM | 113,000 B | 344,064 B | 231,064 B | +0 B |
-
-Final linked symbols:
-
-```text
-01c0b078 .bss  0000000a fmt_lock_editor_runtime
-01c0b08c .bss  00000004 fmt_lock_store_runtime
-01c20000 .pool 00010168 fmt_store_storage
-01c30168 .pool 00004000 fmt_lock_store_storage
-```
-
-Final artifacts:
-
-- `fm1tracker.bin`: `0f828e989888158b09cdb137f7e429f97c42f4c3e30d8d814abd349d9971ed42`
-- `fm1tracker-0.1.fwsc`: `de23d8ff997d60178b3b7b9e1490c90696b5c22f3660d187edaa40cf08598a57`
-- package identity: `FM-1_987`
-- evidence artifact ID `12548328977`
-- evidence ZIP SHA-256 `e2da7f2e514cd107765cf8835f883e46bc32eef6e2eb9bc3cf8de721aac104d2`
-
-Frozen pre-p-lock-playback WAV remains byte-identical:
+Frozen pre-p-lock-playback WAV:
 
 `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
 
-## Next milestone
+## Current milestone
 
 **WP3.5 — basic pitch/volume p-lock playback**
 
-State: **READY TO START — issue #24 — no WP3.5 production implementation has begun**
+State: **IN PROGRESS — 2026-10-24**
 
-Before source, D031 must freeze at least:
+GitHub issue: #24
 
-- which current D027 IDs are applied in WP3.5 and which remain storage-only;
-- exact normalized-value -> playback/DSP interpretation;
-- VOICE LEVEL / TRACK LEVEL composition if both are accepted;
+WP3.5 start head:
+
+`01b35603ec387e079e4af512f8a8109e413d2714`
+
+No WP3.5 production implementation existed at this checkpoint.
+
+### Exact objective
+
+Apply the first deliberately small subset of D027/D028 p-locks to deterministic tracker playback/audio without mutating stored base data, without letting the audio path traverse mutable editor-owned lock structures unsafely, and without pulling WP3.6 modulation effects or WP3.8 general queue architecture forward.
+
+D031 must be recorded in `DECISIONS.md` before any WP3.5 playback/audio source change and must freeze:
+
+- which current D027 IDs are consumed by playback in WP3.5;
+- exact normalized `0..255` interpretation for each accepted parameter;
+- level composition/order if VOICE LEVEL and TRACK LEVEL are both accepted;
 - FINE PITCH center/range and integer/fixed-point mapping;
-- whether TRACK PAN belongs now or later;
-- row-boundary application timing under D020/D021;
-- unlocked-row/base-value restore or persistence semantics;
-- NOTE/TIE/OFF/EMPTY interaction;
-- out-of-domain lock behavior;
-- bounded sequencer/audio ownership/handoff model;
-- deterministic audio evidence and whether the old frozen WAV is preserved or explicitly superseded.
+- whether TRACK PAN is included now or remains storage-only;
+- D020/D021 row-boundary timing for lock application;
+- unlocked-row/base-value behavior: row-local restore versus persistence;
+- NOTE / TIE / OFF / EMPTY interaction;
+- structurally valid but playback-domain-invalid lock handling;
+- bounded sequencer/audio ownership and handoff;
+- maximum row-boundary work and event/payload size;
+- deterministic host-audio evidence and the exact rule for preserving or superseding the frozen pre-lock WAV.
 
-Do not write WP3.5 audio/playback source before D031 exists.
+### Existing playback/audio facts verified at package start
+
+The current D021/D025 proof path is still deliberately one lane only: pattern 0 / logical track 0.
+
+`FmtPlayback` is 1 B and `FmtPlaybackEvent` is exactly 4 B:
+
+```text
+boundary, step, kind, note
+```
+
+`fmt_playback_start()` dispatches the current row before frame 0, then starts transport. `fmt_playback_end_frame()` is called after each rendered frame; when D020 crosses a row boundary it decodes the new row for the **next rendered frame**.
+
+The current event decoder reads only `FmtStep.note`. It classifies ordinary NOTE / TIE / OFF / NONE and does not inspect D028 locks.
+
+The current audio callback owns transport writes and applies each row event directly to one dedicated proof voice. There is no general sequencer event queue yet.
+
+D028 lock storage is a mutable sparse singly-linked pool shared with the main-loop editor. Direct audio-ISR traversal of that mutable linked list is **not assumed safe** merely because the current proof lane is small. D031 must choose an explicit bounded ownership strategy before source.
+
+### Reviewed architectural direction before D031
+
+The preferred narrow direction to evaluate is:
+
+- keep WP3.5 on the existing pattern-0 / track-0 proof lane;
+- consume only parameters with semantics that can be defined against the current proof sine without inventing Phase 4/5 engine contracts;
+- preserve TRACK PAN as storage-only unless a stereo proof adds real value without widening scope;
+- interpret locks as **row-local overrides** that are recomputed at every row boundary from explicit base defaults plus that row's locks, rather than allowing a lock to leak indefinitely through later unlocked rows;
+- resolve/validate the maximum four row locks outside the per-sample render loop and hand audio a fixed bounded row snapshot/event, never a D028 linked-list pointer;
+- keep per-frame DSP work constant and independent of lock count;
+- retain D021's exact boundary ordering: the new row snapshot becomes active on the next rendered frame;
+- treat malformed/corrupt/out-of-domain lock data as a deterministic safe base/default for that parameter, never as an unbounded retry or raw DSP value.
+
+This direction is not yet D031 and must not be coded until the exact value maps, payload and ownership are frozen.
+
+### Required verification
+
+1. D031 exists before source changes;
+2. accepted playback-lock subset is explicit and minimal;
+3. no audio render loop traverses D028 linked lists;
+4. row-resolution work is hard-bounded by max four locks;
+5. unlocked rows have deterministic base/default parameter values;
+6. lock effect cannot leak into later unlocked rows unless D031 explicitly says so;
+7. NOTE/TIE/OFF/EMPTY interaction is exact and boundary-tested;
+8. out-of-domain/corrupt lock data fails safely;
+9. stored row/lock data remains byte-for-byte unchanged by playback;
+10. per-frame audio work remains fixed/bounded;
+11. deterministic host audio proves each accepted parameter independently and in combination;
+12. historical no-lock/default pattern behavior remains byte-identical if D031 says the no-lock path is unchanged;
+13. all Phase 2 + WP3.1–WP3.4 regressions remain green;
+14. full JieLi device build/resource delta is recorded;
+15. no WP3.6+ effect semantics are pulled forward.
+
+### Strict non-goals
+
+- no arpeggio/slide/porta/vibrato — WP3.6;
+- no retrig/note-delay/note-cut — WP3.7;
+- no broad/general event queue — WP3.8;
+- no full row lock/effect visualization — WP3.9;
+- no new synth-engine implementation;
+- no new parameter IDs unless D031 proves an unavoidable missing semantic identity;
+- no live-performance capture/automation;
+- no persistence/file-format work;
+- no final hardware control-map freeze.
 
 ## Important decisions / do not regress
 
@@ -158,25 +172,26 @@ Do not write WP3.5 audio/playback source before D031 exists.
 - D010: p-locks are first-class bounded sequencer data.
 - D018: `FmtStep` remains exactly 8 B.
 - D019: one pool-backed runtime `FmtSong`.
-- D020-D026: completed Phase 2 timing/editor/display semantics remain regression requirements.
+- D020: exact integer frame-domain transport.
+- D021: step 0 before frame 0; crossed row applies to next frame.
+- D025: explicit NONE/NOTE/TIE/OFF semantics.
 - D027: stable one-byte semantic parameter identity.
 - D028: 2,048-record owner-checked global sparse lock pool, max four per step.
-- D029: held-white-step snapshot + relative KNOB1..4 storage editing.
-- D030: SELECT browse + armed EDIT -> later SEL one-lock deletion; no clear-all panel UX.
-- Preserve the frozen pre-playback-lock WAV unless D031 explicitly supersedes the affected audio regression with deterministic replacement evidence.
+- D029/D030: deterministic storage editor/browse/delete behavior.
+- Preserve the frozen pre-lock WAV unless D031 deliberately supersedes the affected audio regression with explicit replacement evidence.
 - No float in firmware DSP and no runtime 64-bit division.
 
 ## Product direction that must not be lost
 
-`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction. Current Phase 3 locks are ordinary track/step-owned data. Do not silently force future GLOBAL/master automation into D028 ownership.
+`docs/LIVE_PERFORMANCE_CAPTURE_VISION.md` remains accepted future core direction. WP3.5 is only the first deterministic playback application of ordinary track/step p-lock data. It must not define future GLOBAL/master automation ownership.
 
 ## Hardware limitation still open
 
-No physical FM-1 is currently available. Host/device-build verification does not claim physical p-lock hold/browse/delete comfort, actual panel scan feel, display update feel, physical install/boot/audio behavior or measured AC791N execution timing.
+No physical FM-1 is currently available. Host/device-build verification cannot claim physical audio quality, AC791N execution margin, install/boot behavior or final p-lock musical ergonomics.
 
 ## Exact next action
 
-Start WP3.5 / issue #24 as its own package from the actual current branch HEAD, mark it IN PROGRESS, inspect the existing playback/audio ownership path, freeze D031 before source, then implement only the smallest bounded basic p-lock playback slice. Do not begin WP3.6.
+Inspect the proof voice/audio and D028 read APIs deeply enough to freeze D031. Record D031 before changing `fmt_playback.*`, `dinghy.c` audio behavior or any row-event representation. Do not begin WP3.6.
 
 ## Last relevant checkpoints
 
@@ -186,8 +201,8 @@ Start WP3.5 / issue #24 as its own package from the actual current branch HEAD, 
 - WP3.2 verified: `da2f5afe9b1da6defc3857b91f52b40d7525f33b`
 - WP3.3 verified: `df5d7e07fc763909a141c99283cfd2be19cff847`
 - WP3.4 verified: `178ba57a19adc8e25106f1c63e0df2f16478fb33`
-- WP3.4 final run: `40064122343`
+- WP3.5 start head: `01b35603ec387e079e4af512f8a8109e413d2714`
 
 ## Last updated
 
-2026-10-24 — WP3.4 verified complete. WP3.5 / issue #24 is READY TO START; no WP3.5 source exists.
+2026-10-24 — WP3.5 / issue #24 marked IN PROGRESS at `01b35603...`. D031 must be frozen before any playback/audio source change.
