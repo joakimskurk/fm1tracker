@@ -1,5 +1,6 @@
 name: WP5.1 D049 contract freeze
 
+# D049 gate intentionally installs Pillow because the inherited host runner emits a PNG.
 on:
   workflow_dispatch:
   push:
