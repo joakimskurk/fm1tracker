@@ -9,7 +9,7 @@ Date: 2026-10-25
 Status: **ACCEPTED**  
 Normative: `D047_MIXED_ENGINE_ARCHITECTURE.md`
 
-One engine-agnostic tracker. Instruments own family + engine identity. Historical project-wide future family restriction is superseded.
+One engine-agnostic tracker. Instruments own family + engine identity.
 
 ## D048 - mixed-engine routing
 
@@ -17,7 +17,7 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_0_MIXED_ENGINE_ROUTING_CONTRACT.md`  
 Evidence: `WP5_0_VERIFICATION.md`
 
-Per-instrument family routing, 64 B identity publication, 8 B family route, bounded static dispatch, song mode non-gating, one shared row cache, fail-safe unsupported family behavior and exact D046 regression baseline.
+Per-instrument family routing, bounded static dispatch, song mode non-gating, shared row cache, fail-safe unsupported-family behavior and exact D046 regression baseline.
 
 ## D049 - fixed-point FM operator
 
@@ -25,16 +25,7 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_1_FM_OPERATOR_CONTRACT.md`  
 Evidence: `WP5_1_VERIFICATION.md`
 
-Frozen compatibility:
-
-- one uint32 phase = 4 B state;
-- 2^32 phase cycle / natural wrap / sample-before-advance;
-- signed int32 phase modulation;
-- Q15 level 0..32767;
-- generated 257-entry quarter-wave table;
-- table SHA `6062d337f69ac6ae99b7da9cdf95f87aea1ee04a9110f26839f0a85f74efff68`;
-- 4,096-render SHA `499f9d5bbb14c5a4016b7fbd8dbfa6784df88cf9cb673695eaaf64d4b4710e66`;
-- PI32v2 object 692 B.
+Frozen compatibility includes 4 B phase state, uint32 phase, signed int32 phase modulation, Q15 level, generated quarter-wave sine table and exact deterministic render semantics. PI32v2 object 692 B.
 
 ## D050 - curated four-operator FM routing
 
@@ -42,7 +33,7 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_2_FM_ALGORITHM_CONTRACT.md`  
 Evidence: `WP5_2_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_2_VERIFICATION.md`
 
-Stable algorithm IDs:
+Stable algorithms:
 
 ```text
 0 STACK4    OP4 -> OP3 -> OP2 -> OP1
@@ -51,26 +42,13 @@ Stable algorithm IDs:
 3 PARALLEL4 OP1 + OP2 + OP3 + OP4
 ```
 
-Frozen compatibility:
-
-- fixed evaluation OP4 -> OP3 -> OP2 -> OP1;
-- every operator renders exactly once/sample;
-- routing state = four D049 operators = 16 B;
-- invalid algorithm -> STACK4;
-- mod depth 0..16383;
-- edge mapping `sample * depth * 4`;
-- multiple phase offsets accumulate modulo 2^32;
-- carrier counts 1/2/4 with sign-safe power-of-two normalization;
-- no runtime graph traversal;
-- algorithm changes preserve operator phase continuity;
-- PI32v2 router object 362 B, SHA `ed85fe6ed70402bd3b0727e59b1c8eee21f6d15f264ec8dc439603968a38f469`;
-- full app remains exact WP5.0 while routing is isolated.
+Frozen compatibility includes fixed OP4 -> OP3 -> OP2 -> OP1 evaluation, exactly one render/operator/sample, 16 B routing state, mod depth 0..16383, modulo-2^32 phase accumulation and deterministic carrier normalization. PI32v2 router object 362 B.
 
 ## D051 - curated FM4 ratio/pitch mapping
 
-Status: **ACCEPTED, CONTRACT FROZEN, PRE-IMPLEMENTATION GATE GREEN, ISOLATED IMPLEMENTATION AUTHORIZED**  
+Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_3_FM_RATIO_CONTRACT.md`  
-Evidence: `WP5_3_PREIMPLEMENTATION_EVIDENCE.md`
+Evidence: `WP5_3_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_3_VERIFICATION.md`
 
 Stable ratio IDs:
 
@@ -95,33 +73,33 @@ Stable ratio IDs:
 
 Frozen compatibility:
 
-- exactly 16 V1 ratio IDs;
-- unsigned Q8 ratio values;
+- unsigned Q8 ratios;
 - canonical base-increment domain `0..1293741834`;
-- malformed larger base values clamp to `1293741834` before ratio scaling;
-- output increment ceiling `0x7fffffff`;
-- precomputed per-ratio base thresholds prevent accidental wrapped/folded operator increments;
+- malformed larger base values clamp before scaling;
+- output ceiling `0x7fffffff`;
+- precomputed per-ratio clamp thresholds;
 - exact 32-bit split-Q8 round-half-up transform;
-- no runtime division/modulo;
-- no 64-bit integer arithmetic;
+- no runtime division/modulo or 64-bit integer arithmetic;
 - invalid ratio ID -> UNITY;
-- no persistent ratio state;
-- `map4` performs exactly four mappings;
-- exhaustive 16,384 pitch x 16 ratio reference SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
+- stateless four-output mapping;
+- exhaustive 16,384 x 16 reference SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
 - 27,615 legal pitch/ratio pairs intentionally saturate at the D051 ceiling;
-- future PI32v2 ratio object ceiling 1,024 B;
-- D051 ceiling is not an anti-aliasing or bandlimiting claim.
+- PI32v2 ratio object 264 B, SHA `aa5bd8b9e1afa72054af2effeefbf468cfbb8b2b8d978e028540a30dc162956d`;
+- full app remains exact WP5.0 while the primitive is isolated.
 
-Canonical D051 source-absent gate:
+Canonical D051 source-absent gate: run `40138575267`, job `121005262360`.
 
-- run `40138575267`
-- job `121005262360`
-- head `e3b1272a442091dd9cc140f3d6d357f6215438b5`
-- artifact ID `12577928512`
-- artifact SHA `f6ff75f9dd2128f3d79cffd467ee1b88b1422a5daa788516387b7e9c50e19014`
-- conclusion SUCCESS
+Canonical D051 implementation verification: run `40139154497`, host `121006986068`, target `121006985928`.
 
-Only isolated `fmt_fm_ratio.h/.c` implementation is now authorized. `dinghy.c` integration and WP5.4+ functionality remain forbidden until their own work packages.
+D051's increment ceiling is not an anti-aliasing or bandlimiting claim.
+
+## D052
+
+Status: **NOT YET DEFINED**
+
+WP5.4 / issue #47 must freeze D052 contract-first before any production level/modulation-index mapping source is added.
+
+D052 must preserve D047-D051 and decide only the bounded control mapping into D050 `level_q15[4]` and modulation-depth semantics. Feedback, envelopes, voice integration and tracker-facing parameter IDs remain later packages.
 
 ## Current precedence
 
@@ -129,7 +107,7 @@ Only isolated `fmt_fm_ratio.h/.c` implementation is now authorized. `dinghy.c` i
 - D048 governs common family routing/ownership.
 - D049 governs one FM operator.
 - D050 governs four-operator connection/evaluation.
-- D051 governs base-pitch to operator-ratio mapping only.
-- WP5.4 must preserve D047-D051 and add only final level/mod-index mapping after WP5.3 is fully verified and closed.
+- D051 governs base-pitch to operator-ratio mapping.
+- D052 does not exist yet.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.

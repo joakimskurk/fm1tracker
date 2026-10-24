@@ -8,14 +8,15 @@ License: GPL-3.0-only unless otherwise noted. See `THIRD_PARTY.md`.
 
 ## Current status
 
-**Phase 5 is in progress. WP5.0 mixed-engine routing, WP5.1 fixed-point FM operator and WP5.2 curated FM4 routing are complete. WP5.3 integer ratio/pitch mapping is active contract-first.**
+**Phase 5 is in progress. WP5.0 mixed-engine routing, WP5.1 fixed-point FM operator, WP5.2 curated FM4 routing and WP5.3 integer ratio/pitch mapping are complete. WP5.4 level/modulation-index mapping is next and must begin contract-first.**
 
 Completed engine foundation:
 
 - complete 8-BIT family: PULSE, NOISE, TRIANGLE, WAVETABLE-8;
 - D047/D048 per-instrument mixed-engine routing;
 - D049 deterministic fixed-point FM operator;
-- D050 deterministic four-operator routing.
+- D050 deterministic four-operator routing;
+- D051 deterministic 16-ID integer FM ratio mapping.
 
 ## Mixed-engine architecture
 
@@ -31,8 +32,7 @@ D049 operator:
 - uint32 phase / signed int32 phase modulation;
 - Q15 level/output;
 - generated 257-entry quarter-wave table;
-- PI32v2 object 692 B;
-- evidence `docs/WP5_1_VERIFICATION.md`.
+- PI32v2 object 692 B.
 
 D050 routing:
 
@@ -46,26 +46,35 @@ D050 routing:
 - fixed OP4 -> OP3 -> OP2 -> OP1 evaluation;
 - every operator advances once/sample;
 - 16 B routing state;
-- exact deterministic hashes/stress;
-- PI32v2 router object 362 B;
-- full app remains exact WP5.0.
+- PI32v2 router object 362 B.
 
-Canonical WP5.2 exit: run `40136425976`, host `120998804031`, target `120998804175`, evidence `docs/WP5_2_VERIFICATION.md`.
+D051 ratio mapping:
 
-## Active work package
+- 16 stable ratios from 0.5x to 16x;
+- exact Q8 integer mapping;
+- deterministic clamp/rounding semantics;
+- exhaustive 262,144-output verification;
+- PI32v2 ratio object 264 B;
+- source remains isolated from `dinghy.c`.
 
-**WP5.3 - FM4 integer ratio table and pitch mapping**, issue #46, branch `phase5/fm4-ratios`.
+Canonical WP5.3 final run: `40139154497`, host `121006986068`, target `121006985928`, evidence `docs/WP5_3_VERIFICATION.md`.
 
-WP5.3 begins contract-first. D051 must freeze a compact musically useful ratio set, stable IDs, exact integer arithmetic, rounding, high-register clamp/overflow behavior and deterministic pitch fixtures before production ratio source exists.
+Full running application remains exact WP5.0: 72,792 B image / 19,676 B normal RAM / 113,000 B pool, identity `FM-1_987`.
 
-WP5.3 does not include final level/mod-index UX, feedback, envelopes, voice integration, p-lock pages or audible mixed FM playback.
+## Next work package
+
+**WP5.4 - FM4 operator level and modulation-index mapping**, issue #47, expected branch `phase5/fm4-levels`.
+
+WP5.4 starts contract-first. D052 must decide the smallest musically useful bounded control model for D050 `level_q15[4]` and modulation-depth semantics, including whether one global modulation depth is sufficient or a bounded per-operator/per-edge model is justified.
+
+WP5.4 does not include feedback, envelopes, voice integration, tracker-facing p-lock pages/IDs or audible mixed FM playback.
 
 ## FM4 sequence
 
 1. WP5.1 fixed-point operator - COMPLETE
 2. WP5.2 curated algorithms - COMPLETE
-3. WP5.3 integer ratios/pitch mapping - ACTIVE
-4. WP5.4 levels / modulation index
+3. WP5.3 integer ratios/pitch mapping - COMPLETE
+4. WP5.4 levels / modulation index - NEXT
 5. WP5.5 bounded feedback
 6. WP5.6 envelope strategy
 7. WP5.7 voice allocation/integration

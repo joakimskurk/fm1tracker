@@ -34,70 +34,63 @@ Per-instrument family/engine routing implemented and verified. Canonical run `40
 
 ### WP5.2 - curated FM4 algorithm routing - COMPLETE - issue #45 - D050
 
-Stable IDs/topologies:
+Four static algorithms, fixed OP4 -> OP3 -> OP2 -> OP1 evaluation, deterministic carrier normalization and 16 B routing state. PI32v2 router object 362 B. Canonical run `40136425976`, host `120998804031`, target `120998804175`. Evidence `WP5_2_VERIFICATION.md`.
 
-```text
-0 STACK4    OP4 -> OP3 -> OP2 -> OP1
-1 FAN3      OP2 + OP3 + OP4 -> OP1
-2 DUAL2     OP4 -> OP3 plus OP2 -> OP1
-3 PARALLEL4 OP1 + OP2 + OP3 + OP4
-```
+### WP5.3 - integer ratio table + pitch mapping - COMPLETE - issue #46 - D051
+
+Stable V1 ratios:
+
+`0.5, 1.0, 1.25, 1.4140625, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 12.0, 16.0`
 
 Verified:
 
-- fixed OP4 -> OP3 -> OP2 -> OP1 evaluation;
-- all four operators advance exactly once/sample;
-- 16 B routing state, no extra history;
-- bounded signed modulation and modulo-2^32 phase accumulation;
-- deterministic carrier normalization;
-- source-absent D050 evidence before implementation;
-- four exact long hashes and 65,536-render-per-algorithm stress;
-- algorithm-switch phase continuity;
-- PI32v2 router object 362 B text+rodata;
+- D051 frozen before source;
+- source-absent reference run `40138575267` / job `121005262360`;
+- unsigned Q8 split scaling with deterministic clamp/rounding;
+- 262,144 exhaustive legal pitch/ratio outputs, SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
+- only `fmt_fm_ratio.h/.c` added under production firmware;
+- PI32v2 ratio object 264 B, SHA `aa5bd8b9e1afa72054af2effeefbf468cfbb8b2b8d978e028540a30dc162956d`;
+- canonical final run `40139154497`, host `121006986068`, target `121006985928`;
 - full application remains exact WP5.0.
 
-Canonical implementation head `bc054bc697304afe94fe18b2990396e6a1667dbf`, run `40136425976`, host `120998804031`, target `120998804175`. Evidence `WP5_2_VERIFICATION.md`.
+Evidence: `WP5_3_VERIFICATION.md`.
 
-### WP5.3 - integer ratio table + pitch mapping - ACTIVE - issue #46
+### WP5.4 - levels / modulation index - NEXT - issue #47
 
-Goal: convert one already-resolved base phase increment into four operator increments through a compact stable ratio set, using bounded integer arithmetic only.
+Goal: define, implement and verify the smallest bounded integer control layer that maps FM4 instrument controls to D050 `level_q15[4]` and modulation-depth semantics.
 
 Required order:
 
-1. inspect `fmt_engine_pitch.*`, D049 phase conventions and D050 input boundary;
-2. select a compact musically useful ratio set;
-3. freeze stable ratio IDs and exact mathematical meanings;
-4. freeze integer arithmetic and rounding;
-5. freeze overflow/clamp and supported base-increment domain;
-6. explicitly decide sub-unity/fractional ratio scope;
-7. define deterministic low/mid/high and edge fixtures;
-8. define four-operator mapping API and any state requirement;
-9. define realtime/source and PI32v2 object ceilings;
-10. write/freeze D051 before production source;
-11. pass a source-absent reference gate;
-12. only then implement and verify;
-13. write `WP5_3_VERIFICATION.md` before WP5.4 begins.
+1. inspect D049 Q15 level and D050 modulation/carrier behavior;
+2. decide a musically useful carrier/modulator control model;
+3. explicitly decide global versus bounded per-operator/per-edge modulation representation;
+4. freeze stable internal control domains;
+5. freeze exact integer mappings, zero/nominal/max semantics, rounding and clamp policy;
+6. prove all four D050 algorithms and representative D051 ratio combinations;
+7. freeze source/realtime/PI32v2 ceilings;
+8. write/freeze D052 before production mapping source;
+9. pass source-absent reference CI;
+10. only then implement and verify;
+11. write `WP5_4_VERIFICATION.md` before WP5.5 begins.
 
 Allowed:
 
-- immutable ratio descriptors/tables;
-- integer base-increment -> operator-increment transform;
-- stable internal ratio IDs;
-- deterministic rounding/clamp policy;
-- host fixtures/hashes;
-- pinned target object measurement;
-- inherited D049/D050/WP5.0 regressions.
+- immutable level/mod-index mapping tables;
+- bounded integer transforms;
+- stable internal DSP control domains;
+- deterministic host vectors/hashes;
+- pinned PI32v2 object measurement;
+- inherited D049/D050/D051/WP5.0 regressions.
 
 Out of scope:
 
-- final operator level/mod-index UX, WP5.4;
 - feedback, WP5.5;
 - envelope strategy, WP5.6;
 - FM voice/D048 integration, WP5.7;
-- FM pages/p-lock IDs, WP5.8;
+- FM tracker pages/p-lock IDs, WP5.8;
 - audible mixed 8-BIT + FM4, WP5.9.
 
-### WP5.4 - levels / modulation index - PLANNED
+D052 does not exist yet.
 
 ### WP5.5 - bounded feedback - PLANNED
 

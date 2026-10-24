@@ -21,8 +21,8 @@ Legend:
 | D032 exact six-tick tracker clock | ✅ |
 | D034 exact 32-entry SPSC queue | ✅ |
 | no active still-owned cross-track primary stealing | ✅ |
-| no float in firmware DSP | ✅ through WP5.2, required onward |
-| no runtime 64-bit division in firmware DSP | ✅ through WP5.2, required onward |
+| no float in firmware DSP | ✅ through WP5.3, required onward |
+| no runtime 64-bit division in firmware DSP | ✅ through WP5.3, required onward |
 | physical AC791N execution margin | ⛔ no physical FM-1 |
 
 ## Completed baselines
@@ -87,37 +87,59 @@ Frozen D050 hashes:
 - DUAL2 `c4c31cabf4b8e121591c4c1e0923aee67523eaf7d5b60b60ca1a545c13fc2269`
 - PARALLEL4 `d316c3e5467cbfc606c788f669a3b19dba13535969dcce3b67b2821f0977a882`
 
-## WP5.3 integer ratio table + pitch mapping - ACTIVE CONTRACT-FIRST
+### D051 WP5.3 integer ratio/pitch mapping
 
-Issue #46.
+- D051 frozen before production ratio source ✅
+- source-absent run `40138575267`, job `121005262360` ✅
+- 16 stable Q8 ratio IDs ✅
+- invalid-ID -> UNITY ✅
+- canonical base max `1293741834` ✅
+- output ceiling `0x7fffffff` ✅
+- deterministic 32-bit split-Q8 round-half-up ✅
+- all high-register first-clamp anchors exact ✅
+- exhaustive 16,384 pitch x 16 ratio mapping ✅
+- exhaustive payload 1,048,576 B / 262,144 outputs ✅
+- intentional ceiling outputs 27,615 ✅
+- exhaustive SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c` ✅
+- source boundary only `fmt_fm_ratio.h/.c` ✅
+- no loops/runtime div/mod/int64/float/heap/external DSP deps ✅
+- D038/D049/D050 unchanged ✅
+- inherited D049/D050/WP5.0 host regressions exact ✅
+- PI32v2 ratio object 264 B / 1,024 B ceiling ✅
+- object SHA `aa5bd8b9e1afa72054af2effeefbf468cfbb8b2b8d978e028540a30dc162956d` ✅
+- full target exact 72,792 / 19,676 / 113,000 B ✅
+- BIN/FWSC exact WP5.0 ✅
+- canonical run `40139154497`, host `121006986068`, target `121006985928` ✅
+- evidence `WP5_3_VERIFICATION.md` ✅
+
+## WP5.4 level/modulation-index mapping - NEXT CONTRACT-FIRST
+
+Issue #47.
 
 | Check | Status |
 |---|---|
-| inspect `fmt_engine_pitch.*` and D049/D050 boundaries | ⬜ |
-| compact musically useful ratio set | ⬜ |
-| stable ratio IDs | ⬜ |
-| exact mathematical ratio meanings | ⬜ |
-| integer transform arithmetic | ⬜ |
-| exact rounding policy | ⬜ |
-| overflow/clamp policy | ⬜ |
-| supported base-increment domain | ⬜ |
-| sub-unity/fractional ratio decision | ⬜ |
-| low/mid/high deterministic fixtures | ⬜ |
-| high-register boundary fixtures | ⬜ |
-| one-base -> four-operator mapping API | ⬜ |
-| source/realtime ceiling | ⬜ |
-| PI32v2 object ceiling | ⬜ |
-| D051 frozen before production ratio source | ⬜ |
+| inspect D049 Q15 level semantics | ⬜ |
+| inspect D050 mod-depth/topology semantics | ⬜ |
+| choose bounded carrier/modulator control model | ⬜ |
+| decide global vs per-op/per-edge modulation representation | ⬜ |
+| stable internal control domains | ⬜ |
+| zero/nominal/max semantics | ⬜ |
+| integer mapping / rounding / clamp | ⬜ |
+| all four D050 algorithm fixtures | ⬜ |
+| representative D051 ratio fixtures | ⬜ |
+| overflow/gain-bound proof | ⬜ |
+| source/realtime/PI32v2 ceilings | ⬜ |
+| D052 frozen before production source | ⬜ |
 | source-absent reference CI | ⬜ |
-| production ratio implementation | ⬜ blocked until D051 gate |
-| D049/D050 regressions exact | ⬜ |
+| production mapping implementation | ⬜ blocked until D052 gate |
+| inherited D049/D050/D051 regressions | ⬜ |
 | full app exact WP5.0 while isolated | ⬜ |
-| `WP5_3_VERIFICATION.md` | ⬜ |
+| `WP5_4_VERIFICATION.md` | ⬜ |
 
-WP5.3 excludes final level/mod-index UX, feedback, envelopes, voice integration, parameter pages/p-lock IDs and audible mixed FM integration.
+D052 does not exist yet.
 
 ## Remaining Phase 5
 
-WP5.4 levels/mod index, WP5.5 feedback, WP5.6 envelope, WP5.7 FM voice/router integration, WP5.8 FM pages/p-locks, WP5.9 mixed validation, WP5.10 worst-case Phase 5 exit.
+WP5.5 feedback, WP5.6 envelope, WP5.7 FM voice/router integration, WP5.8 FM pages/p-locks, WP5.9 mixed validation, WP5.10 worst-case Phase 5 exit.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
