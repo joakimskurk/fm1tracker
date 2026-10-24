@@ -238,3 +238,41 @@ The tracker-core phase is verified complete at the host/device-build level. The 
 ### Next
 
 **WP3.3 - hold-step + encoder p-lock editing**, issue #22, is READY TO START. Its exact gesture/context/value contract must be frozen before source. No WP3.3 implementation has begun.
+
+### WP3.3 - Hold-step + encoder p-lock editing
+
+- Frozen D029 before source implementation.
+- Added ordinary-SEQ held-white-step target ownership over pattern 0, selected track and global step; the target cannot migrate during the hold.
+- Added continuous KNOB1..4 draining so inactive, begin, release and cancel-poll deltas cannot leak into a new target.
+- Mapped KNOB1..4 to the four current D027 IDs with normalized `0..255` editor values and references `255,128,255,128`.
+- Added first-lock creation, deterministic saturation and in-place replacement without new pool allocation.
+- Added explicit RANGE/STEP FULL/POOL FULL/CORRUPT feedback while keeping edits storage-only.
+- Added a real full-app fixture proving zero SEQ audition MIDI, target/focus suppression and reviewed `VOICE 254` -> `255` feedback.
+- Preserved every Phase 2, WP3.1 and WP3.2 regression plus the exact frozen WAV.
+- Final resources: 61,716 B image, 12,476 B normal RAM, 113,000 B pool. Delta vs WP3.2: **+2,328 B image / +8 B RAM / +0 B pool**.
+- `FmtLockEditor` was exactly 8 B at closeout.
+- Final artifacts: `fm1tracker.bin` `ee3daf66216e1f8ba4a04183bc36aca13236b693acd548a1dd8de90f48800d40`; `fm1tracker-0.1.fwsc` `422e8283025419ec1991f0e13d52321e7dc837fab8218c80e969c69101e97922`.
+- Final verification: Actions run `40054322180`, job `120753812201`.
+- Detailed evidence: `docs/WP3_3_VERIFICATION.md`.
+
+### WP3.4 - P-lock browse / single-lock delete UX
+
+- Frozen D030 before source implementation.
+- Added SELECT-encoder browsing over the existing D028 sorted semantic lock list with clamped first/last behavior.
+- Extended `FmtLockEditor` from 8 B to 10 B with selected semantic parameter and delete-arm state only; D028 layout/capacity remains unchanged.
+- Added deliberate EDIT arm -> later SEL one-lock confirmation. Same-poll EDIT+SEL cannot delete.
+- Added cancellation on EDIT release, context/owner exit, PLAY and unrelated focus/navigation intent; encoder deltas while armed are drained/discarded.
+- Successful delete revalidates the selected parameter, calls D028 remove exactly once, restores exactly one free record and deterministically selects the next/previous remaining lock or NONE.
+- Deliberately exposed no clear-all panel gesture in WP3.4.
+- Added unit coverage for zero/one/four-lock browse, first/middle/last/only deletion, free-list recovery, neighbor isolation, RANGE-value deletion and NOT_FOUND/BAD_ADDRESS/CORRUPT safety.
+- Added a real full-app D030 fixture proving zero unintended MIDI, same-poll rejection, PLAY cancellation, unrelated-key cancellation and one later valid delete.
+- Visually reviewed and froze armed/deleted raw framebuffers: `6ce56a09073b4d70ec5ff7001ae787966f17d6bf610f1db2e239df152e14205d` and `f0185637136d5b609ebae1adbfbba7a62989a9246cb63093e6263242040e6cc6`.
+- Preserved all Phase 2, WP3.1, WP3.2 and WP3.3 regressions plus the byte-identical frozen WAV.
+- Final resources: 64,228 B image, 12,480 B normal RAM, 113,000 B pool. Delta vs WP3.3: **+2,512 B image / +4 B RAM / +0 B pool**.
+- Final artifacts: `fm1tracker.bin` `0f828e989888158b09cdb137f7e429f97c42f4c3e30d8d814abd349d9971ed42`; `fm1tracker-0.1.fwsc` `de23d8ff997d60178b3b7b9e1490c90696b5c22f3660d187edaa40cf08598a57`.
+- Final verification: Actions run `40064122343`, job `120783658593`; evidence artifact ID `12548328977`, ZIP SHA-256 `e2da7f2e514cd107765cf8835f883e46bc32eef6e2eb9bc3cf8de721aac104d2`.
+- Detailed evidence: `docs/WP3_4_VERIFICATION.md`.
+
+### Next
+
+**WP3.5 - basic pitch/volume p-lock playback**, issue #24, is READY TO START. D031 must freeze exact playback/audio semantics before source. No WP3.5 production implementation has begun.
