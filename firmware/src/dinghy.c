@@ -18,6 +18,7 @@
 #include "fmt_lock_editor.c"                   /* WP3.3/3.4: held-step p-lock edit/browse/delete */
 #include "fmt_transport.c"                     /* WP2.3: exact integer 1/16-note transport timing */
 #include "fmt_playback.c"                      /* WP2.4/2.8: exact one-lane row/special dispatch */
+#include "fmt_playback_params.c"               /* WP3.5: D031 fixed row-local p-lock snapshots */
 #include "fmt_pattern_input.c"                 /* WP2.5/2.6: bounded SEQ step/track cursor addressing */
 #include "fmt_step_record.c"                   /* WP2.7/2.8: stopped STEP REC note/special entry */
 #include "fmt_tracker_screen.c"                /* WP2.9: bounded read-only tracker presentation */
@@ -60,6 +61,7 @@ static struct {
     int32_t amp;
     int32_t gate;
 } tracker_voice;
+static FmtPlaybackParamVoice tracker_param_voice;
 
 static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
     815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
@@ -68,6 +70,17 @@ static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower
 static uint32_t note_inc(uint32_t note)
 {
     return INC_C9[note % 12u] >> (10u - note / 12u);
+}
+
+static uint32_t tracker_pitch_inc_q7(uint16_t pitch_q7)
+{
+    uint32_t note = (uint32_t)pitch_q7 >> 7;
+    uint8_t frac = (uint8_t)(pitch_q7 & 127u);
+    uint32_t lo = note_inc(note);
+
+    if (!frac)
+        return lo;
+    return fmt_playback_interp_inc(lo, note_inc(note + 1u), frac);
 }
 
 static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32767..32767 (a refined parabola, ~0.1 %) */
@@ -81,19 +94,28 @@ static int32_t sine(uint32_t ph)                /* a full cycle over 2^32 -> -32
 
 static void tracker_apply_event(const FmtPlaybackEvent *event)
 {
+    uint32_t row_word;
+
     if (!event)
         return;
 
-    if (event->kind == FMT_PLAYBACK_EVENT_NOTE && event->note <= FMT_NOTE_MAX) {
-        tracker_voice.inc = note_inc(event->note);
-        tracker_voice.gate = TRACKER_TARGET_AMP;
-    } else if (event->kind == FMT_PLAYBACK_EVENT_TIE) {
-        /* TIE sustains an already gated note but may not resurrect one that was
-         * explicitly released. Pitch/phase are deliberately untouched. */
-        if (tracker_voice.inc && tracker_voice.gate > 0)
-            tracker_voice.gate = TRACKER_TARGET_AMP;
-    } else if (event->kind == FMT_PLAYBACK_EVENT_OFF) {
+    /* D031 audio ownership: one aligned 32-bit snapshot read at row dispatch.
+     * The ISR never traverses D028's mutable linked list. */
+    row_word = fmt_playback_params_read(event->step);
+    fmt_playback_param_voice_apply(&tracker_param_voice,
+                                   event->kind,
+                                   event->note,
+                                   row_word,
+                                   TRACKER_TARGET_AMP);
+
+    if (event->kind == FMT_PLAYBACK_EVENT_OFF) {
         tracker_voice.gate = 0;
+        return;
+    }
+
+    if (tracker_param_voice.active) {
+        tracker_voice.inc = tracker_pitch_inc_q7(tracker_param_voice.pitch_q7);
+        tracker_voice.gate = tracker_param_voice.level_target;
     }
 }
 
@@ -125,7 +147,7 @@ static void tracker_render_frame(int32_t *out)
     out[1] += s;
     tracker_voice.ph = ph;
     tracker_voice.amp = amp;
-    if (!amp && !gate)
+    if (!tracker_param_voice.active && !amp && !gate)
         tracker_voice.inc = 0u;
 }
 
@@ -364,7 +386,10 @@ static void app_main(void)
 
     fmt_store_reset();
     fmt_lock_store_reset();
+    fmt_playback_params_reset();
+    fmt_playback_param_voice_reset(&tracker_param_voice);
     fmt_playback_seed_proof_pattern();
+    fmt_playback_params_rebuild();
     fmt_transport_reset(&fmt_transport_runtime);
     fmt_playback_reset(&fmt_playback_runtime);
     fmt_pattern_input_reset(&fmt_pattern_input_runtime);
@@ -513,6 +538,8 @@ static void app_main(void)
             if (delete_was_armed && fmt_lock_editor_runtime.delete_armed &&
                 (b & (1u << BTN_SEL))) {
                 if (fmt_lock_editor_confirm_delete(&fmt_lock_editor_runtime)) {
+                    if (fmt_lock_editor_runtime.track == FMT_PLAYBACK_TRACK)
+                        (void)fmt_playback_params_refresh_step(fmt_lock_editor_runtime.step);
                     delete_activity = 1;
                     tracker_footer_dirty();
                 }
@@ -595,8 +622,11 @@ static void app_main(void)
                 if (lock_delta[k] != 0 &&
                     fmt_lock_editor_apply_delta(&fmt_lock_editor_runtime,
                                                 k,
-                                                lock_delta[k]))
+                                                lock_delta[k])) {
+                    if (fmt_lock_editor_runtime.track == FMT_PLAYBACK_TRACK)
+                        (void)fmt_playback_params_refresh_step(fmt_lock_editor_runtime.step);
                     tracker_footer_dirty();
+                }
             }
         }
 
