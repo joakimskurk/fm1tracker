@@ -9,9 +9,14 @@ EXPECTED_REP_WAV=33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f
 
 # Reuse the exact frozen D046 workload/instrumentation. Only remove its historical
 # production-freeze assertion, because D048 intentionally changes production.
+# The generated copy lives below build/, so replace the original script-relative
+# cd with an explicit repository-root cd. No benchmark body is otherwise changed.
 python3 - <<'PY'
 from pathlib import Path
 src = Path('tests/run_wp4_10_representative_host.sh').read_text()
+cd_token = 'cd "$(dirname "$0")/.."\n'
+assert src.count(cd_token) == 1
+src = src.replace(cd_token, 'cd "$(git rev-parse --show-toplevel)"\n', 1)
 start_token = 'PRODUCTION=c93c39ad344760b4da0dfbc76829ca5fef886174\n'
 end_token = "printf '%s\\n' 'WP4_10_PRODUCTION_FREEZE_OK=1 baseline=c93c39ad344760b4da0dfbc76829ca5fef886174'\n"
 assert src.count(start_token) == 1 and src.count(end_token) == 1
