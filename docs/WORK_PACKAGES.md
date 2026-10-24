@@ -5,14 +5,15 @@ This document translates `ROADMAP.md` into bounded implementation units. The roa
 ## Rules
 
 1. Work on one active package at a time unless a dependency genuinely requires otherwise.
-2. A package is complete only when every exit criterion passes or a waiver is explicitly recorded in the decision history / active normative decision contract.
+2. A package is complete only when every exit criterion passes or a waiver is explicitly recorded.
 3. Do not pull later-phase features forward for convenience.
 4. Firmware behavior changes require tests/benchmarks appropriate to that layer.
 5. Update `PROJECT_STATE.md` when a package starts, blocks or completes.
-6. Architectural deviations must be recorded before they spread into code. D047 is frozen in `D047_MIXED_ENGINE_ARCHITECTURE.md` and supersedes D004's project-wide mode restriction for future work.
+6. Architectural deviations must be recorded before they spread into code.
 7. Third-party code/assets require provenance/license review in `THIRD_PARTY.md` before import.
 8. Detailed completed-package evidence belongs in `WP*_VERIFICATION.md`; this file stays focused on execution order and boundaries.
 9. Historical verification contracts are not rewritten to imply later architecture existed earlier. Superseding decisions change future work only unless an explicit migration package says otherwise.
+10. No later work package may silently weaken the eight-logical-track baseline, realtime boundedness, deterministic tracker timing or physical-hardware caveats.
 
 ---
 
@@ -36,249 +37,302 @@ Final Phase 1 baseline: 55,088 B image, 12,368 B normal RAM, 30,720 B pool RAM, 
 
 Status: **COMPLETE - 2026-10-23**
 
-## Completed packages
+- WP2.1 compile-time data model - COMPLETE - issue #9
+- WP2.2 bounds-safe pattern store - COMPLETE - issue #10
+- WP2.3 integer transport clock - COMPLETE - issue #11
+- WP2.4 one-track audible playback - COMPLETE - issue #12
+- WP2.5 16-step page input - COMPLETE - issue #13
+- WP2.6 track selection prototype - COMPLETE - issue #14
+- WP2.7 STEP REC note entry - COMPLETE - issue #15
+- WP2.8 REST / TIE / NOTE-OFF semantics - COMPLETE - issue #16
+- WP2.9 compact tracker screen - COMPLETE - issue #17
+- WP2.10 Phase 2 integration test and closeout - COMPLETE - issue #18
 
-- **WP2.1 - compile-time data model** - COMPLETE - issue #9  
-  Frozen 8 tracks x 64 steps x 16 patterns, 8-byte `FmtStep`, deterministic sentinels/bounds. Evidence: `WP2_1_VERIFICATION.md`.
+Core Phase 2 result:
 
-- **WP2.2 - bounds-safe pattern store** - COMPLETE - issue #10  
-  One 65,896-byte `FmtSong` in `.pool` at `0x01C20000`. Evidence: `WP2_2_VERIFICATION.md`.
+- 8 tracks x 64 steps x 16 patterns
+- `FmtStep` exactly 8 B
+- one 65,896 B pool-backed `FmtSong`
+- exact integer transport
+- deterministic NOTE/REST/TIE/OFF STEP REC
+- provisional white-key step pages / black-key track selection
+- bounded tracker screen
 
-- **WP2.3 - integer transport clock** - COMPLETE - issue #11  
-  D020 exact integer 1/16-note timing and deterministic 63 -> 0 wrap. Evidence: `WP2_3_VERIFICATION.md`.
-
-- **WP2.4 - one-track audible playback** - COMPLETE - issue #12  
-  D021 frame-exact one-lane playback and frozen deterministic host WAV. Evidence: `WP2_4_VERIFICATION.md`.
-
-- **WP2.5 - 16-step page input** - COMPLETE - issue #13  
-  D022 four clamped pages, 16 physical white step keys, no song mutation. Evidence: `WP2_5_VERIFICATION.md`.
-
-- **WP2.6 - track selection prototype** - COMPLETE - issue #14  
-  D023 eight black keys -> logical tracks 0..7, three black keys reserved. Evidence: `WP2_6_VERIFICATION.md`.
-
-- **WP2.7 - STEP REC note entry** - COMPLETE - issue #15  
-  D024 stopped-transport one-note-per-gesture editor with exact cursor advance. Evidence: `WP2_7_VERIFICATION.md`.
-
-- **WP2.8 - REST / TIE / NOTE-OFF semantics** - COMPLETE - issue #16  
-  D025 special-event editor/playback semantics: FX release=REST, SELECT=TIE, hold FX then SELECT=OFF; explicit playback `NONE/NOTE/TIE/OFF`; frozen default WAV preserved. Evidence: `WP2_8_VERIFICATION.md`.
-
-- **WP2.9 - compact tracker screen** - COMPLETE - issue #17  
-  D026 cursor-owned one-track eight-row tracker display, explicit cursor/playhead, REST/TIE/OFF notation, ten bounded dirty regions and max two redraws per main-loop poll. Evidence: `WP2_9_SCREEN_CONTRACT.md`, `WP2_9_VERIFICATION.md`.
-
-- **WP2.10 - Phase 2 integration test and closeout** - COMPLETE - issue #18  
-  Full 64-step/eight-track editor integration, REST/TIE/OFF, exact boundary/wrap behavior, complete-song isolation, full-app panel/display/HOME proof, inherited regressions and unchanged device binary. Final run `40015242947`. Evidence: `WP2_10_TEST_PLAN.md`, `PHASE2_VERIFICATION.md`.
-
-Final verified Phase 2 footprint:
-
-- app image: 59,252 B / 581,564 B
-- normal RAM: 12,464 B / 98,304 B
-- pool RAM: 96,616 B / 344,064 B
-- total delta vs Phase 1: +4,164 B image / +96 B normal RAM / +65,896 B pool
-- song store: 65,896 B at `.pool` `0x01C20000`
-- `FmtStepRecord`: 3 B
-- `FmtPatternInput`: 4 B
-- `FmtTransport`: 8 B
-- `FmtTrackerScreen`: 44 B
-- `FmtPlayback`: 1 B
-- integrated reviewed framebuffer: `a993551ce922d90186080bf554b82477b4336e160a6b301c446f0d275569b6d7`
-- frozen default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
-- package identity: `FM-1_987`
-
-WP2.10 changed no production source and added zero production resource cost versus WP2.9.
-
-Evidence: `PHASE2_VERIFICATION.md`.
+Evidence: `WP2_1_VERIFICATION.md` through `WP2_9_VERIFICATION.md`, `WP2_10_TEST_PLAN.md`, `PHASE2_VERIFICATION.md`.
 
 ---
 
 # Phase 3 - p-locks and tracker effects
 
-Status: **COMPLETE - WP3.1-WP3.10 host/device-build exit satisfied**
+Status: **COMPLETE - 2026-10-24**
 
 Parent issue: #20
 
-## Completed packages
+- WP3.1 stable parameter ID registry - COMPLETE - issue #19 - D027
+- WP3.2 sparse four-lock-per-step storage - COMPLETE - issue #21 - D028
+- WP3.3 hold-step + encoder p-lock editing - COMPLETE - issue #22 - D029
+- WP3.4 p-lock browse / single-lock delete UX - COMPLETE - issue #23 - D030
+- WP3.5 basic pitch/volume p-lock playback - COMPLETE - issue #24 - D031
+- WP3.6 arpeggio / slide / portamento / vibrato effects - COMPLETE - issue #25 - D032
+- WP3.7 retrig / note delay / note cut - COMPLETE - issue #26 - D033
+- WP3.8 bounded event queue and overflow policy - COMPLETE - issue #27 - D034
+- WP3.9 lock/effect visual feedback - COMPLETE - issue #28 - D035
+- WP3.10 Phase 3 worst-case tests and exit gate - COMPLETE - issue #29 - D036
 
-- **WP3.1 - stable parameter ID registry** - COMPLETE - issue #19
-  D027 freezes one-byte semantic parameter identity. Final run `40025790828`. Evidence: `WP3_1_VERIFICATION.md`.
+Final Phase 3 baseline:
 
-- **WP3.2 - sparse four-lock-per-step storage** - COMPLETE - issue #21
-  D028 freezes the owner-checked 2,048-record global sparse pool. Final run `40038453521`. Evidence: `WP3_2_VERIFICATION.md`.
+- image 66,960 B
+- normal RAM 13,296 B
+- pool RAM 113,000 B
+- global sparse lock pool 2,048 x 8 B = 16,384 B
+- exact 32-entry realtime queue
+- exact six-tick tracker-effect clock
+- 4,096-row / 64-wrap worst-case tracker/effect proof
+- run `40084706845`, job `120845144453`
 
-- **WP3.3 - hold-step + encoder p-lock editing** - COMPLETE - issue #22
-  D029 freezes held-step target ownership and KNOB1..4 normalized editing. Final run `40054322180`. Evidence: `WP3_3_VERIFICATION.md`.
-
-- **WP3.4 - p-lock browse / single-lock delete UX** - COMPLETE - issue #23
-  D030 freezes sorted SELECT browse plus deliberate one-lock delete confirmation. Final run `40064122343`. Evidence: `WP3_4_VERIFICATION.md`.
-
-- **WP3.5 - basic pitch/volume p-lock playback** - COMPLETE - issue #24
-  D031 applies VOICE LEVEL, FINE PITCH and TRACK LEVEL through a fixed 256 B proof-lane row cache; TRACK PAN remains storage-only. Final run `40069110111`. Evidence: `WP3_5_VERIFICATION.md`.
-
-- **WP3.6 - arpeggio / slide / portamento / vibrato tracker effects** - COMPLETE - issue #25
-  D032 assigns `NONE/ARP/SLIDE_UP/SLIDE_DOWN/PORTA/VIBRATO` in `FmtStep.effect/effect_value`, freezes an exact six-tick D020-derived row clock, persistent Q7 slide/porta pitch, transient ARP/vibrato, D031 FINE precedence, a 256 B effect-row cache and 12 B bounded runtime state. Final run `40073680548`. Final resources: 65,528 B image / 13,004 B normal RAM / 113,000 B pool. Evidence: `WP3_6_EFFECT_CONTRACT.md`, `WP3_6_VERIFICATION.md`.
-
-- **WP3.7 - retrig / note delay / note cut** - COMPLETE - issue #26
-  D033 extends the same command domain with RETRIG `0x06`, NOTE DELAY `0x07`, NOTE CUT `0x08`, exact D032 six-tick scheduling and a 4 B fixed row-event state. No general queue was pulled forward. Final clean-tree run `40077809743`, job `120824870575`. Final resources: 65,940 B image / 13,008 B normal RAM / 113,000 B pool. Evidence: `WP3_7_EVENT_CONTRACT.md`, `WP3_7_VERIFICATION.md`.
-
-- **WP3.8 - bounded event queue and overflow policy** - COMPLETE - issue #27
-  D034 freezes an 8-byte event envelope and exact 32-entry / 268-byte SPSC main->audio queue, reject-newest overflow, wrap-safe sequence counters and click-safe fail-to-silence audition recovery. Physical-key and USB-MIDI audition no longer mutate manual audio voices from main. Final clean-tree run `40079824265`, job `120830854974`. Final resources: 66,308 B image / 13,280 B normal RAM / 113,000 B pool. Evidence: `WP3_8_QUEUE_CONTRACT.md`, `WP3_8_VERIFICATION.md`.
-
-- **WP3.9 - lock/effect visual feedback** - COMPLETE - issue #28
-  D035 extends the existing ten-region / max-two-redraw tracker surface with `LK` p-lock summaries, stored D032/D033 effect mnemonics/values and `STORE` detail for TRACK PAN while preserving main-only bounded drawing. `FmtTrackerScreen` is exactly 62 B. Final run `40083510351`, job `120841687772`. Final resources: 66,960 B image / 13,296 B normal RAM / 113,000 B pool. Evidence: `WP3_9_VISUAL_CONTRACT.md`, `WP3_9_VERIFICATION.md`.
-
-- **WP3.10 - Phase 3 worst-case tests and exit gate** - COMPLETE - issue #29
-  D036 saturated all 2,048 lock records, stressed all 64 D031/D032 rows, ran 2,048 full queue cycles / 6,144 rejects, combined tracker+queue+editor+UI stress, all D032/D033 byte values, 4,096 rows / 64 wraps, retained the six-hour transport proof and completed a fail-fast realtime audit. No production defect was found; production source/resources/hashes remain exactly WP3.9. Final run `40084706845`, job `120845144453`. Evidence: `WP3_10_TEST_PLAN.md`, `WP3_10_VERIFICATION.md`.
-
-Final verified Phase 3 baseline after WP3.10:
-
-- app image: 66,960 B / 581,564 B
-- normal RAM: 13,296 B / 98,304 B
-- pool RAM: 113,000 B / 344,064 B
-- D031 playback row cache: 256 B ordinary RAM
-- D032 effect row cache: 256 B ordinary RAM
-- D032 effect runtime: 12 B
-- D033 row-event runtime: 4 B
-- D034 runtime queue: 268 B ordinary RAM + 4 B overflow acknowledgement
-- D035 `FmtTrackerScreen`: 62 B ordinary RAM, ten regions / max two redraws
-- default WAV: `453dc6b7a2f06a24b1a236ecd692b9beca59f8a070fdc954c4ea1c79c0e13440`
-- D031 locked WAV: `8d2e478e366c0af18b0631da268ba75cc358157d043c567bee2e734852d0e9a8`
-- final `fm1tracker.bin`: `b2fc3af11c772233134a0473d6046877f00009d3d1b1f7907f7284a60d7bfe27`
-- final `fm1tracker-0.1.fwsc`: `7870d11b046433a46052865a724186219fecf34ebb566c50f8f173b599b5257c`
-- package identity: `FM-1_987`
-- Phase 3 exit run: `40084706845`, job `120845144453`
-
-Phase 3 is complete at host/device-build level. Physical FM-1 verification remains a later explicit gate.
+Evidence: `WP3_1_VERIFICATION.md` through `WP3_10_VERIFICATION.md` plus package contracts/test plans.
 
 ---
 
 # Phase 4 - first engine family: 8-BIT/chip
 
-Status: **IN PROGRESS - WP4.1 / #31 through WP4.9 / #40 COMPLETE; WP4.10 / #41 Phase 4 closeout active**
+Status: **COMPLETE - 2026-10-24**
 
 Parent issue: #30
 
-- **WP4.1 engine interface contract** - COMPLETE - issue #31 - D037 + `WP4_1_VERIFICATION.md`; zero production delta
-- **WP4.2 PULSE** - COMPLETE - issue #32 - D038 + `WP4_2_VERIFICATION.md`; deterministic host/PI32v2 proof and zero linked full-app delta
-- **WP4.3 NOISE** - COMPLETE - issue #33 - D039 + `WP4_3_VERIFICATION.md`; maximal-period deterministic host/PI32v2 proof and zero linked full-app delta
-- **WP4.4 TRIANGLE** - COMPLETE - issue #34 - D040 + `WP4_4_VERIFICATION.md`; exhaustive quantized-surface deterministic host/PI32v2 proof and zero linked full-app delta
-- **WP4.5 WAVETABLE-8** - COMPLETE - issue #35 - D041 + `WP4_5_VERIFICATION.md`; all-256-sample/table-SHA/eight-hash host/PI32v2 proof and zero linked full-app delta
-- **WP4.6 common envelope primitive** - COMPLETE - issue #36 - D042 + `WP4_6_VERIFICATION.md`; deterministic all-rate/sustain/event/stage host/PI32v2 proof and zero linked full-app delta
-- **WP4.7 deterministic voice allocation/stealing** - COMPLETE - issue #37 - D043 + `WP4_7_VERIFICATION.md`; deterministic release-tail allocator host/PI32v2 proof and zero linked full-app delta
-- **WP4.8 four-parameter pages + p-lock mapping** - COMPLETE - issue #39 - D044 + `WP4_8_VERIFICATION.md`; six stable IDs, bounded resolver and zero linked full-app delta
-- **WP4.9 linked 8-BIT engine integration** - COMPLETE - issue #40 - D045 + `WP4_9_VERIFICATION.md`; final run `40116897104`, job `120939922897`; linked target 72,504 B image / 19,604 B normal RAM / 113,000 B pool
-- **WP4.10 representative eight-track benchmark + Phase 4 closeout** - IN PROGRESS - issue #41 - D046 FROZEN in `WP4_10_PHASE4_EXIT_CONTRACT.md`; representative benchmark + realtime audit implemented; aggregate Phase 4 exit run `40120541899` currently red and must be fixed/rerun before closeout
+- WP4.1 engine interface contract - COMPLETE - issue #31 - D037
+- WP4.2 PULSE - COMPLETE - issue #32 - D038
+- WP4.3 NOISE - COMPLETE - issue #33 - D039
+- WP4.4 TRIANGLE - COMPLETE - issue #34 - D040
+- WP4.5 WAVETABLE-8 - COMPLETE - issue #35 - D041
+- WP4.6 common envelope primitive - COMPLETE - issue #36 - D042
+- WP4.7 deterministic voice allocation/stealing - COMPLETE - issue #37 - D043
+- WP4.8 four-parameter pages + p-lock mapping - COMPLETE - issue #39 - D044
+- WP4.9 linked 8-BIT engine integration - COMPLETE - issue #40 - D045
+- WP4.10 representative eight-track benchmark + Phase 4 closeout - COMPLETE - issue #41 - D046
 
-**D047 does not change WP4.10 scope.** Phase 4 production stays frozen at the D045 baseline unless D046 exposes a real defect. The all-8-BIT implementation is the first complete engine-family implementation and remains valid evidence after mixed-engine routing is added later.
+WP4.10 final closeout:
+
+- production remains byte-identical to `c93c39ad344760b4da0dfbc76829ca5fef886174`
+- canonical verification head `2379d3e7e52d1cefe9f845f8287ad0ccda8c019a`
+- run `40124536375`
+- job `120963022289`
+- representative WAV SHA-256 `33e819237fb0be16b67371043ba49b69327f31de4dd1b0c44d4914e6a2ef56f9`
+- complete 2,048-lock / 512-owner workload
+- 4,096-row / 64-wrap repeat-identical linked long run
+- exact D033 action and D043 allocator outcome counts
+- zero active cross-track steals
+- structural realtime audit green
+- inherited regressions green
+- pinned target artifacts/resources exact
+- `hardware_margin_claim=none`
+
+Final linked target footprint: 72,504 B image / 19,604 B normal RAM / 113,000 B pool.
+
+Evidence: `WP4_1_VERIFICATION.md` through `WP4_9_VERIFICATION.md`, `WP4_10_PHASE4_EXIT_CONTRACT.md`, `WP4_10_VERIFICATION.md`.
+
+D047 does not rewrite Phase 4 evidence. The all-8-BIT path is the first complete engine family and remains the regression baseline for mixed-engine work.
 
 ---
 
 # Phase 5 - mixed-engine routing + FM4
 
+Status: **IN PROGRESS - WP5.0 active**
+
 Normative future direction: `D047_MIXED_ENGINE_ARCHITECTURE.md`.
 
-Phase 5 does not begin until WP4.10 is green and Phase 4 is formally closed.
+## WP5.0 - mixed-engine routing contract + migration - ACTIVE
 
-- **WP5.0 - mixed-engine routing contract + migration**
-  - freeze the common per-instrument family/engine routing contract before FM4 is linked;
-  - remove `FmtSongMeta.mode` as a project-wide playback eligibility gate while preserving current layout until an explicit migration says otherwise;
-  - keep `FmtInstrumentHeader` 4 B and use its current `mode` byte as the family discriminator unless the package proves a safe semantic alias/rename;
-  - allow different tracks to run different engine families simultaneously;
-  - allow explicit instrument changes to cross families under deterministic NOTE inheritance/reset rules;
-  - preserve at most one owned primary sequenced voice per logical track across all families;
-  - forbid active cross-track voice stealing;
-  - choose/freeze the bounded cross-family ownership and allocator representation from measured options;
-  - keep static bounded dispatch with no plugin/dynamic-allocation architecture;
-  - preserve the complete 8-BIT path as a regression baseline;
-  - freeze the common publication/parameter-page boundary needed by both 8-BIT and FM4.
-- **WP5.1 - FM operator primitive**
-- **WP5.2 - curated algorithm routing**
-- **WP5.3 - ratio table**
-- **WP5.4 - levels/modulation index**
-- **WP5.5 - bounded feedback**
-- **WP5.6 - FM envelope strategy**
-- **WP5.7 - FM voice allocation/integration**
-- **WP5.8 - FM parameter pages + p-lock mapping**
-- **WP5.9 - mixed 8-BIT + FM4 pitch/modulation/instrument-switch validation**
-- **WP5.10 - worst-case mixed-engine benchmark + Phase 5 closeout**
+This package is mandatory before FM4 production integration.
 
-WP5.10 must include a representative simultaneous mixed-family workload rather than benchmarking FM4 only in isolation.
+Allowed scope:
+
+- freeze per-instrument family + engine as authoritative routing identity;
+- freeze the new non-gating meaning of `FmtSongMeta.mode` while preserving current layout until persistence migration is explicitly designed;
+- allow different tracks to route different engine families simultaneously;
+- allow deterministic same-track instrument changes across families;
+- preserve at most one owned primary sequenced voice per logical track across all families;
+- forbid active cross-track primary stealing;
+- measure and freeze the cross-family ownership/allocator representation;
+- keep dispatch static and bounded, with no plugin/dynamic-allocation architecture;
+- freeze the common publication/parameter adapter boundary;
+- define safe behavior for non-applicable engine-specific p-lock IDs;
+- preserve the complete all-8-BIT D046 path as a regression baseline.
+
+Required execution order:
+
+1. create/freeze the WP5.0 normative contract;
+2. capture focused pre-migration tests for current project-wide family-gate behavior;
+3. freeze expected mixed-family routing/ownership semantics;
+4. only then change production routing;
+5. run all inherited D046 regressions plus new mixed-family tests;
+6. measure target resource delta and close WP5.0 before starting FM4 primitives.
+
+Explicitly out of scope until WP5.0 closes:
+
+- FM4 operator implementation;
+- FM algorithms;
+- new FM parameter IDs/pages;
+- new persistence format;
+- live performance capture implementation;
+- optional modern engine families.
+
+## WP5.1 - FM operator primitive
+
+- four fixed-point operators;
+- deterministic phase/level primitive;
+- no float and no runtime 64-bit division;
+- host vectors + target compile before algorithm routing.
+
+## WP5.2 - curated FM algorithm routing
+
+- freeze a small musically useful algorithm set;
+- bounded static graph/routing only;
+- exact deterministic fixtures per algorithm.
+
+## WP5.3 - ratio table
+
+- precomputed integer ratio choices;
+- deterministic pitch/tuning fixtures across supported range;
+- no unbounded runtime math.
+
+## WP5.4 - levels / modulation index
+
+- bounded integer operator-level and modulation-index mappings;
+- exact saturation/edge behavior.
+
+## WP5.5 - bounded feedback
+
+- feedback only on explicitly frozen operator/subset;
+- deterministic bounded integer behavior;
+- overflow/stability stress.
+
+## WP5.6 - FM envelope strategy
+
+- freeze shared/common versus per-operator envelope strategy from measured cost;
+- deterministic NOTE/TIE/RETRIG/OFF semantics.
+
+## WP5.7 - FM voice allocation/integration
+
+- integrate FM family into the WP5.0 router/ownership model;
+- deterministic bounded voice ownership;
+- no active cross-track primary stealing;
+- measured polyphony, never silently reduce eight logical tracker tracks.
+
+## WP5.8 - FM parameter pages + p-lock mapping
+
+- stable collision-safe D027 semantic parameter IDs;
+- bounded four-control pages;
+- safe non-applicable parameter behavior;
+- deterministic row publication/p-lock fixtures.
+
+## WP5.9 - mixed 8-BIT + FM4 validation
+
+- simultaneous 8-BIT + FM4 tracks;
+- same-track cross-family instrument switching;
+- pitch/modulation/p-lock precedence;
+- exact all-8-BIT regression equivalence retained.
+
+## WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit
+
+- representative mixed-family workload;
+- structural realtime bound audit;
+- inherited Phase 1-4 regressions;
+- exact target image/RAM/pool/artifact evidence;
+- no physical execution-margin claim without physical FM-1.
 
 ---
 
-# Core milestone after Phases 4/5 - live performance capture and performance FX
+# Mandatory core milestone - live performance capture + performance FX
 
-Status: **PLANNED CORE - package IDs deferred until Phase 3-5 measurement exists**
+Status: **PLANNED after engine foundations; package IDs deferred until Phase 5 measurements exist**
 
-This milestone is mandatory product work, not optional Phase 9 expansion. Detailed direction: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
+This is core product work, not optional Phase 9 work.
 
-Future decomposition must cover at least:
+Must include:
 
-- running-transport REC arm/disarm without breaking stopped STEP REC;
-- deterministic live note capture to the selected logical track;
-- fast capture-target track switching while transport continues;
-- selected instrument/engine family follows the track rather than a project-wide sound mode;
-- drum-oriented live capture;
-- transport-derived metronome/count-in policy;
-- quantization/timestamp and overwrite/merge/overdub rules;
-- CHANNEL versus GLOBAL performance/automation scope;
-- keyboard-distributed FX performance gestures where useful;
-- encoder/pot capture into bounded p-lock/automation/effect events;
-- global automation ownership/storage where normal track locks are inappropriate;
-- eight-track reference configuration containing drums, bass, poly synth and lead synth while retaining four flexible tracks;
-- mixed engine families in the reference setup where useful;
-- measured 3-6 voice target for at least one polyphonic instrument/track if hardware budget permits;
-- deterministic voice allocation and host/hardware stress tests.
+- PLAY continues while user performs selected track;
+- REC can arm/disarm capture without stopping transport;
+- deterministic live-note time mapping;
+- seamless track switching without misrouting writes or cutting unrelated tracks;
+- deterministic drum performance/capture representation;
+- transport-locked metronome;
+- bounded CHANNEL and GLOBAL performance/automation ownership;
+- key-distributed performance FX with tracker-editable captured data;
+- bounded sparse parameter/FX capture rather than unbounded ADC streams;
+- measured reference setup supporting drums, bass, poly, lead and flexible tracks;
+- target 3-6 voices for at least one polyphonic instrument/track if real budgets allow, without silently reducing eight logical tracks.
 
-Do not assign concrete capture-storage formats/package IDs until Phase 5 mixed-engine/voice budgets are measured.
+Open decisions are frozen only when this milestone begins: quantization/timestamp policy, overwrite/merge/overdub, thinning/interpolation, drum representation/layout, count-in, GLOBAL automation storage, FX key layout and actual polyphony.
+
+Reference: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
 ---
 
-# Phase 6 - song/order + persistence
+# Phase 6 - song/order/persistence
 
-- WP6.1 order-list data model
+Status: **PLANNED**
+
+- WP6.1 order-list model
 - WP6.2 safe pattern switching
-- WP6.3 repeats/loop ranges
-- WP6.4 project binary format v1, including explicit per-instrument engine-family/engine serialization and no project-wide engine-family restriction
-- WP6.5 flash-region audit
-- WP6.6 save path
-- WP6.7 load + CRC validation
-- WP6.8 corrupted-project recovery
+- WP6.3 repeats / loop ranges
+- WP6.4 binary format v1
+- WP6.5 flash audit
+- WP6.6 save
+- WP6.7 load + CRC
+- WP6.8 corrupted-data recovery
 - WP6.9 migration/version harness
-- WP6.10 power-cycle round-trip test
+- WP6.10 power-cycle round trip
 
-`FmtSongMeta.mode` is retained as current runtime layout through Phase 4, but D047 removes it as target global engine gate. Phase 6 freezes its persistent meaning only after WP5.0 has established the mixed-engine runtime model.
+Persistence must not be designed around obsolete project-wide engine-mode assumptions. It must inherit D047/WP5.0 routing semantics.
 
 ---
 
-# Phase 7 - hardware UX freeze
+# Phase 7 - physical hardware UX freeze
 
-- WP7.1 STEP REC/REST/TIE/OFF hardware test
+Status: **BLOCKED until physical FM-1 is available**
+
+- WP7.1 STEP REC / REST / TIE / OFF hardware test
 - WP7.2 step-page ergonomics
 - WP7.3 track-selection ergonomics
 - WP7.4 p-lock ergonomics
-- WP7.5 chord-entry behavior
+- WP7.5 chord behavior
 - WP7.6 tracker-screen readability
-- WP7.7 final V1 control-map freeze
+- WP7.7 V1 control-map freeze
 
-The final hardware UX freeze must also validate mixed-family instrument/engine selection plus the live-performance milestone: seamless PLAY/REC, track switching during playback/capture, drum/poly workflow, metronome and CHANNEL/GLOBAL FX/automation gestures.
+Also validate live PLAY/REC, track switching during capture, drums/poly behavior, metronome, CHANNEL/GLOBAL FX/automation, physical install/boot/audio and measured execution margin.
+
+Provisional white-key step pages and black-key track selection remain provisional until this phase.
 
 ---
 
 # Phase 8 - interoperability
 
-- WP8.1 internal project interchange spec with explicit engine-family/instrument identity
-- WP8.2 MIDI pattern/project transfer investigation
-- WP8.3 Furnace documented export audit
-- WP8.4 one-way supported-subset converter prototype
-- WP8.5 round-trip feasibility decision
+Status: **PLANNED**
+
+- internal interchange specification;
+- MIDI transfer investigation;
+- Furnace export/import audit;
+- converter prototype if justified;
+- explicit round-trip/non-round-trip decision.
+
+D003 remains authoritative: Furnace is a workflow/interoperability reference, not a full engine port.
 
 ---
 
-# Phase 9 - optional engine/features expansion
+# Phase 9 - optional extensions
 
-Mixed-engine routing is no longer optional Phase 9 work; D047 promotes it to core Phase 5 infrastructure.
+Status: **OPTIONAL / DEFERRED**
 
-Optional features get dedicated packages only after profiling proves room exists. Candidates include modern virtual-analog, supersaw/unison, broader modern wavetable/digital synthesis, dedicated drum synthesis, WAVETABLE-16, PCM/sample playback beyond specifically approved core performance needs, swing, additional microtiming, polymeter, additional DSP FX algorithms and specifically licensed chip cores.
+Candidates only after core product milestones and explicit budget/license review:
 
-Every new engine remains a bounded explicit work package with parameter-ID, CPU/RAM, realtime and licensing gates. Architectural support does not make every engine a hidden V1 prerequisite.
+- WAVETABLE-16;
+- PCM/sample engines beyond approved core drum needs;
+- swing;
+- microtiming;
+- polymeter;
+- additional VA/supersaw/wavetable families;
+- extra DSP effects;
+- licensed chip cores.
 
-**Live performance capture is not optional Phase 9 work.**
+Mixed engine families are no longer a Phase 9 concept: D047 promotes the routing architecture itself into WP5.0. Individual additional engine families still require their own bounded work packages.
