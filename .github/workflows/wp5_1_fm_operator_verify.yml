@@ -65,6 +65,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install target build UI dependency
+        run: python3 -m pip install pillow
+
       - name: Fetch pinned JieLi toolchain
         shell: bash
         run: |
