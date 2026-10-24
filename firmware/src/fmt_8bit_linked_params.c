@@ -6,6 +6,9 @@
 #include "fmt_store.h"
 
 Fmt8BitParamSet fmt_8bit_instrument_base[FMT_INSTRUMENTS];
+/* D048: this remains the single physical 8 x 64 x 32-bit engine-page
+ * publication cache. Future families must reuse/generalize this storage rather
+ * than allocate a parallel per-family 2,048-byte row cache. */
 volatile Fmt8BitRowParamCache fmt_8bit_row_param_cache
     __attribute__((aligned(4)));
 
@@ -29,8 +32,9 @@ static uint8_t fmt_8bit_linked_row_context(const FmtSong *song,
         *instrument_out = FMT_INSTRUMENT_INHERIT;
     if (engine_out)
         *engine_out = FMT_8BIT_ENGINE_SAFE;
-    if (!song || track >= FMT_TRACKS || target_row >= FMT_STEPS_PER_PATTERN ||
-        song->meta.mode != FMT_MODE_8BIT)
+    /* D048: song->meta.mode is legacy/default-family metadata only. Row/editor
+     * eligibility follows the resolved instrument header family. */
+    if (!song || track >= FMT_TRACKS || target_row >= FMT_STEPS_PER_PATTERN)
         return 0u;
 
     current = song->tracks[track].instrument;
