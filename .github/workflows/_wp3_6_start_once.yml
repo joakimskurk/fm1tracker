@@ -1,0 +1,211 @@
+name: WP3.6 start and D032 freeze once
+
+on:
+  push:
+    branches:
+      - phase3/plocks-effects
+    paths:
+      - .github/workflows/_wp3_6_start_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Append D032 and mark WP3.6 active
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('docs/DECISIONS.md')
+          before = p.read_text()
+          assert '## D032 —' not in before
+          d032 = r'''
+
+## D032 — WP3.6 uses five tracker-effect commands with an exact six-tick row clock and bounded proof-lane pitch state
+
+Date: 2026-10-24  
+Status: accepted for WP3.6 before source
+
+**Decision:** WP3.6 uses the existing `FmtStep.effect` and `FmtStep.effect_value` bytes as a tracker-effect command domain that remains separate from D027 parameter-lock IDs.
+
+The first command registry is:
+
+```text
+0x00  NONE
+0x01  ARPEGGIO
+0x02  SLIDE_UP
+0x03  SLIDE_DOWN
+0x04  PORTAMENTO
+0x05  VIBRATO
+0x06..0xFF reserved/unknown in WP3.6
+```
+
+Unknown/reserved commands resolve to safe NONE behavior. They never become parameter IDs and never reinterpret `effect_value`.
+
+### Exact effect-tick timing
+
+WP3.6 defines exactly **6 effect ticks per 1/16-note row**. D020 already freezes one row at `FMT_TRANSPORT_PHASE_PER_STEP = 661500`, which divides exactly:
+
+```text
+661500 / 6 = 110250 phase units per effect tick
+```
+
+Tick 0 begins at D021 row dispatch. Effect-tick boundaries inside a row are therefore at transport phase `110250`, `220500`, `330750`, `441000` and `551250`. The row boundary at `661500` starts tick 0 of the next row.
+
+Each rendered frame uses the current effect state first. D020 transport advances at frame end. If no row boundary occurred and the transport phase crossed the next effect-tick threshold, the effect advances once and the changed pitch applies beginning with the next rendered frame. If a row boundary occurred, the new D021 row dispatch wins and initializes tick 0 instead of creating a synthetic tick 6.
+
+The actual D020 transport phase, including its bounded row-boundary residual, is authoritative. WP3.6 does not run a second free-running clock. Because maximum BPM `65535` is smaller than `110250`, at most one effect-tick threshold can be crossed by one audio frame. Stopping transport freezes effect-tick progress.
+
+### Command arguments
+
+**ARPEGGIO `0x01`, value `XY`:** high nibble `X` and low nibble `Y` are unsigned semitone offsets `0..15`. Tick sequence is exactly:
+
+```text
+tick 0: +0
+tick 1: +X
+tick 2: +Y
+tick 3: +0
+tick 4: +X
+tick 5: +Y
+```
+
+ARP is transient modulation only; it never changes persistent pitch state.
+
+**SLIDE_UP `0x02` / SLIDE_DOWN `0x03`, value `v`:** `v` is an unsigned Q7 semitone delta per nonzero effect tick. One tick moves persistent pitch by `v / 128` semitone. Movement happens on ticks 1..5 only, saturates to pitch domain `0..16383`, and `v=0` means no movement. The resulting pitch persists into later rows until changed by a new ordinary NOTE, another slide or portamento. A slide command clears any remembered portamento target.
+
+**PORTAMENTO `0x04`, value `v`:** `v` is the maximum unsigned Q7 semitone movement toward the remembered target on each tick 1..5. `v=0` latches/retains a target but does not move.
+
+- NOTE + PORTAMENTO while a note is already logically active updates the target to `note * 128` but preserves current persistent pitch at row start.
+- NOTE + PORTAMENTO with no active note starts directly at the target because there is no source pitch to glide from.
+- TIE/EMPTY + PORTAMENTO continues toward an already remembered target if one exists.
+- Movement happens only on rows carrying PORTAMENTO; the target itself may remain remembered across intervening non-portamento TIE/EMPTY rows so a later PORTAMENTO row can resume.
+- Reaching the target clears the pending target.
+- A new NOTE without PORTAMENTO, SLIDE_UP/DOWN or OFF clears the remembered portamento target.
+
+No portamento speed/value memory exists: every PORTAMENTO row uses that row's `effect_value`.
+
+**VIBRATO `0x05`, value `XY`:** high nibble `X` is speed `0..15` phase units per nonzero effect tick on a 64-phase triangle. Low nibble `Y` is depth `0..15`, where one depth unit equals `1/32` semitone at the waveform peak and maximum depth is `15/32` semitone.
+
+The signed 64-phase triangle is zero at phases 0 and 32, +32 at phase 16 and -32 at phase 48. The transient Q7 pitch modulation is mathematically `triangle * depth / 8`, truncated deterministically toward zero. Phase advances by `X` modulo 64 on ticks 1..5. Vibrato phase continues across consecutive VIBRATO rows with TIE/EMPTY, but resets to phase 0 when entering VIBRATO from another command, on a new NOTE, and on OFF. Speed/depth are always taken from the current row; they are not remembered implicitly.
+
+VIBRATO is transient modulation only; it never changes persistent pitch state.
+
+### Persistent pitch and D031 precedence
+
+WP3.6 adds one persistent proof-lane pitch in Q7 semitone units. Final oscillator pitch is always:
+
+```text
+final_q7 = clamp(persistent_pitch_q7
+                 + (D031_FINE - 128)
+                 + transient_effect_mod_q7,
+                 0, 16383)
+```
+
+The D031 FINE value remains row-local and never mutates persistent slide/portamento pitch or a portamento target. ARPEGGIO/VIBRATO modulation is applied after FINE and also never mutates persistent pitch. VOICE LEVEL and TRACK LEVEL behavior is unchanged.
+
+With NONE, no prior slide/porta state and FINE=128, the result must be exactly the historical D031 integer note pitch. The no-effect/no-lock default WAV therefore remains a required byte-identical regression.
+
+### NOTE / TIE / EMPTY / OFF interaction
+
+- **NOTE without PORTAMENTO:** logical note becomes active, persistent pitch resets to `note * 128`, any portamento target is cleared, then the row command may apply ARP/SLIDE/VIBRATO semantics.
+- **NOTE with PORTAMENTO:** target semantics above apply; proof oscillator phase is not reset by WP3.6.
+- **TIE / EMPTY:** do not reset persistent pitch. If a logical note is active, row effects may modulate/move it. If no note is active, effects cannot resurrect sound.
+- **OFF:** clears logical note-active state, pending portamento target, transient modulation and vibrato continuation; gate release remains D025/D031 behavior.
+
+An ordinary NOTE after a slide therefore returns persistent pitch to the new note. ARP/VIB never alter that stored persistent pitch.
+
+### Bounded main-to-audio effect snapshot
+
+Audio must not rely on two independently changing row bytes for future live editing. WP3.6 therefore mirrors D031 with one fixed naturally aligned 32-bit effect word for each of the 64 proof-lane rows:
+
+```text
+bits 0..7   resolved command
+bits 8..15  effect_value
+bits 16..23 resolver flags/diagnostics
+bits 24..31 reserved zero
+```
+
+The cache is exactly `64 * 4 = 256` bytes ordinary RAM. Main/startup resolution reads only pattern 0 / track 0 `FmtStep.effect/effect_value`, converts unknown commands to NONE with an invalid-command flag, and publishes one complete 32-bit word. Audio reads one effect word at row dispatch. This cache is a narrow proof-lane handoff, not the WP3.8 general event queue.
+
+WP3.6 exposes no user-facing effect editor, so normal runtime rows are unchanged by panel input in this package. Tests may seed effect fields before rebuilding the cache. A future effect editor must refresh the affected row after mutation.
+
+### Hard real-time bounds
+
+`FmtPlaybackEvent` remains exactly 4 bytes. WP3.6 does not enlarge it and does not change D020/D021 row ordering.
+
+The proof-lane effect runtime state must be a fixed struct of **no more than 16 bytes**. Per rendered frame work is bounded to transport's existing work plus at most one effect-threshold comparison; an actual effect-tick boundary performs fixed integer state/pitch arithmetic only. There is no allocator, linked-list traversal, variable-count event loop, retry, screen draw, flash operation, float or runtime 64-bit division in the audio path.
+
+At row dispatch audio performs one fixed 32-bit effect-cache read plus fixed state setup. Unknown commands are already resolved to NONE.
+
+### Regression and evidence rule
+
+WP3.6 must preserve:
+
+- the historical no-lock/no-effect WAV byte-for-byte;
+- the frozen D031 locked-audio fixture byte-for-byte when all tracker effects are NONE;
+- all Phase 2 and WP3.1–WP3.5 regressions.
+
+New deterministic fixtures must independently prove ARPEGGIO tick sequence, slide up/down accumulation and saturation, portamento target/continue/stop behavior, vibrato phase/depth behavior, NOTE/TIE/EMPTY/OFF interaction, D031 FINE precedence and invalid-command fallback.
+
+**Reason:** Six exact effect ticks fit D020's integer row phase with no rounding and preserve tracker-style timing without introducing WP3.8's queue. Keeping commands in the existing two step bytes preserves the 8-byte `FmtStep` and D027's separation between tracker effects and p-lock parameters. A small fixed effect cache provides the same bounded publication property as D031, while explicit persistent pitch/porta state gives slide/portamento useful musical continuity without allowing row-local FINE or transient ARP/VIB to leak into the persistent pitch.
+
+**Consequence:** WP3.6 may add a compact effect registry/resolver/cache and a <=16-byte proof-lane effect state, then integrate it beside D031 at row dispatch and effect-tick boundaries. It must not add retrig, note delay, note cut, a general event queue, effect editing UI, new synth engines or persistence behavior.
+'''
+          after = before + d032
+          assert after.startswith(before)
+          p.write_text(after)
+
+          # Project state: mark WP3.6 active without rewriting completed evidence.
+          p = Path('docs/PROJECT_STATE.md')
+          s = p.read_text()
+          s = s.replace('State: **IN PROGRESS — WP3.5 complete; WP3.6 ready to start — 2026-10-24**',
+                        'State: **IN PROGRESS — WP3.5 complete; WP3.6 active — 2026-10-24**', 1)
+          s = s.replace('State: **READY TO START — no WP3.6 implementation has begun**',
+                        'State: **IN PROGRESS — D032 frozen before source; no WP3.6 production implementation yet**\n\nWP3.6 start head: `44f4a6573c8729735a82283294fcf4837cf70b24`', 1)
+          s = s.replace('Start WP3.6 / issue #25 as its own package. Verify actual branch HEAD, mark WP3.6 IN PROGRESS, freeze its effect/timing contract before source, and do not begin WP3.7.',
+                        'Implement the smallest D032 effect registry/cache/state module with isolated unit tests before modifying the proof audio path. Do not begin WP3.7.', 1)
+          s = s.replace('2026-10-24 — WP3.5 verified complete. WP3.6 / #25 is READY TO START; no WP3.6 source exists.',
+                        '2026-10-24 — WP3.6 / #25 IN PROGRESS at start head `44f4a657...`; D032 frozen before source. No WP3.6 production implementation existed at the freeze checkpoint.', 1)
+          p.write_text(s)
+
+          # Work packages / roadmap: active, not merely next.
+          for name in ('docs/WORK_PACKAGES.md', 'docs/ROADMAP.md'):
+              p = Path(name)
+              s = p.read_text()
+              s = s.replace('WP3.1–WP3.5 complete; WP3.6 next', 'WP3.1–WP3.5 complete; WP3.6 active', 1)
+              s = s.replace('WP3.6 — arpeggio / slide / portamento / vibrato tracker effects** — READY TO START',
+                            'WP3.6 — arpeggio / slide / portamento / vibrato tracker effects** — IN PROGRESS', 1)
+              p.write_text(s)
+
+          # Data model: freeze command domain beside the existing step representation.
+          p = Path('docs/DATA_MODEL_V0.1.md')
+          s = p.read_text()
+          marker = '### Why inheritance values exist\n'
+          assert marker in s
+          block = '''### D032 tracker-effect command domain\n\n`effect` and `effect_value` are tracker-command bytes, not D027 parameter IDs. WP3.6 assigns:\n\n```text\n0x00 NONE\n0x01 ARPEGGIO\n0x02 SLIDE_UP\n0x03 SLIDE_DOWN\n0x04 PORTAMENTO\n0x05 VIBRATO\n0x06..0xFF reserved/unknown\n```\n\nARP and VIBRATO use nibble-packed arguments defined by D032. SLIDE_UP/DOWN and PORTAMENTO use the full byte as an unsigned Q7 semitone-per-effect-tick movement. Unknown commands resolve safely to NONE. `FmtStep` remains exactly 8 bytes.\n\nD032 defines exactly six effect ticks per row from the existing D020 phase: `661500 / 6 = 110250` phase units. Full pitch/memory/NOTE/TIE/OFF/EMPTY semantics live in `DECISIONS.md`; WP3.6 adds no new persistent field.\n\n'''
+          if '### D032 tracker-effect command domain' not in s:
+              s = s.replace(marker, block + marker, 1)
+          p.write_text(s)
+
+          print('WP3_6_D032_DOCS_FROZEN=1')
+          PY
+          git diff --check
+          bad=$(git diff --name-only | grep -E '^(firmware/|tests/|tools/|build\.sh$)' || true)
+          test -z "$bad"
+      - name: Commit D032 freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/DECISIONS.md docs/PROJECT_STATE.md docs/WORK_PACKAGES.md docs/ROADMAP.md docs/DATA_MODEL_V0.1.md
+          git commit -m 'WP3.6: freeze D032 tracker effect semantics'
+          git push origin HEAD:phase3/plocks-effects
