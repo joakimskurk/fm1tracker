@@ -34,7 +34,7 @@ static void test_cache_layout_registry_and_fallback(void)
     assert(FMT_TRACKER_EFFECT_TICKS_PER_ROW == 6u);
 
     for (step = 0u; step <= 255u; step++) {
-        uint8_t expected = step <= FMT_TRACKER_EFFECT_VIBRATO;
+        uint8_t expected = step <= FMT_TRACKER_EFFECT_NOTE_CUT;
         assert(fmt_tracker_effect_command_valid((uint8_t)step) == expected);
     }
 

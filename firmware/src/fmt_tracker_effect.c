@@ -18,7 +18,7 @@ static int32_t clamp_pitch_q7(int32_t pitch)
 
 uint8_t fmt_tracker_effect_command_valid(uint8_t command)
 {
-    return command <= FMT_TRACKER_EFFECT_VIBRATO;
+    return command <= FMT_TRACKER_EFFECT_NOTE_CUT;
 }
 
 uint32_t fmt_tracker_effect_pack(uint8_t command,
@@ -116,6 +116,30 @@ void fmt_tracker_effect_state_reset(FmtTrackerEffectState *state)
     state->vibrato_phase = 0u;
     state->porta_valid = 0u;
     state->pitch_valid = 0u;
+}
+
+void fmt_tracker_effect_apply_delayed_note(FmtTrackerEffectState *state,
+                                           uint8_t note)
+{
+    if (!state || note > FMT_NOTE_MAX)
+        return;
+
+    state->pitch_q7 = (uint16_t)((uint16_t)note << 7);
+    state->pitch_valid = 1u;
+    state->porta_valid = 0u;
+    state->transient_q7 = 0;
+    state->vibrato_phase = 0u;
+}
+
+void fmt_tracker_effect_apply_cut(FmtTrackerEffectState *state)
+{
+    if (!state)
+        return;
+
+    state->pitch_valid = 0u;
+    state->porta_valid = 0u;
+    state->transient_q7 = 0;
+    state->vibrato_phase = 0u;
 }
 
 int16_t fmt_tracker_effect_vibrato_triangle(uint8_t phase)
