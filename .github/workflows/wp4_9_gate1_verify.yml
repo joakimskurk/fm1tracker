@@ -35,6 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_wp4_9_gate1.sh | tee build/wp4_9_gate1_ci.log
           grep -F 'WP4_9_GATE1_SOURCE_BOUNDARY_OK=1' build/wp4_9_gate1_ci.log
           grep -F 'WP4_9_GATE1_TESTS_OK=1' build/wp4_9_gate1_ci.log
