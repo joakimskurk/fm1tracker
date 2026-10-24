@@ -1,5 +1,6 @@
 name: WP4.9 D045 Gate 5 linked host verification
-# Discovery rerun after host probe declaration/hash-output fixes.
+# Canonical linked-audio matrix. All fixture WAV hashes, D033 sample timing and
+# D031/D032/D044 state-precedence values are frozen in the permanent runner.
 
 on:
   push:
@@ -28,20 +29,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run D045 linked host matrix
+      - name: Run canonical D045 linked host matrix
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build
           git diff --check
           sh tests/run_wp4_9_linked_audio_host.sh | tee build/wp4_9_gate5_host_matrix.log
-          grep -F 'WP4_9_GATE5_DISCOVERY_OK=1' build/wp4_9_gate5_host_matrix.log
-          grep -F 'WP4_9_GATE5_HOST_MATRIX_DISCOVERY_OK=1' build/wp4_9_gate5_host_matrix.log
-      - name: Upload Gate 5 discovery evidence
+          grep -F 'WP4_9_GATE5_CANONICAL_OK=1' build/wp4_9_gate5_host_matrix.log
+          grep -F 'WP4_9_GATE5_HOST_MATRIX_CANONICAL_OK=1' build/wp4_9_gate5_host_matrix.log
+          grep -F 'delay3_first_nonzero_frame=2757' build/wp4_9_gate5_host_matrix.log
+          grep -F 'retrig2_first_diff_frame=1838' build/wp4_9_gate5_host_matrix.log
+          grep -F 'cut3_first_diff_frame=2757' build/wp4_9_gate5_host_matrix.log
+      - name: Upload canonical Gate 5 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wp4-9-d045-gate5-linked-host-discovery
+          name: wp4-9-d045-gate5-linked-host-canonical
           if-no-files-found: warn
           path: |
             build/wp4_9_gate5_host_matrix.log
