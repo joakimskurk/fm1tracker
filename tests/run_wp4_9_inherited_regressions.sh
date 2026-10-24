@@ -94,10 +94,28 @@ for token in ('fmt_lock_set(', 'fmt_lock_remove(', 'fmt_lock_count(',
               'fmt_tracker_screen_', 'draw_', 'lcd_', 'cv_',
               'settings_save', 'settings_load', 'fmt_store_step('):
     assert token not in audio, token
-for required in ('audition_consume_queue();', 'fmt_8bit_engine_render(&fmt_8bit_engine_runtime)',
-                 'fmt_tracker_effect_tick_due', 'fmt_tracker_row_event_action'):
+for required in ('audition_consume_queue();',
+                 'fmt_8bit_engine_render(&fmt_8bit_engine_runtime)',
+                 'fmt_tracker_effect_tick_due',
+                 'tracker_apply_tick(track);',
+                 'tracker_apply_event(track, &event[track]);'):
     assert required in audio, required
-print('WP4_9_GATE6_AUDIO_OWNERSHIP_OK=1 editor_store_traversal=0 screen_calls=0 linked_engine=1')
+assert audio.count('for (track = 0u; track < FMT_TRACKS; track++)') >= 2
+
+# D033 row-event scheduling is intentionally factored out of app_audio into
+# bounded per-track helpers. Prove both helper bodies contain the fixed-state
+# row-event action and never traverse editor/store data.
+e0 = dinghy.index('static void tracker_apply_event(')
+e1 = dinghy.index('static void tracker_apply_tick(', e0)
+apply_event = dinghy[e0:e1]
+t0 = e1
+t1 = dinghy.index('static void audition_release_all(', t0)
+apply_tick = dinghy[t0:t1]
+for helper_name, helper in (('event', apply_event), ('tick', apply_tick)):
+    assert 'fmt_tracker_row_event_action' in helper, helper_name
+    for token in ('fmt_lock_', 'fmt_store_step(', 'fmt_tracker_screen_', 'draw_', 'lcd_', 'cv_'):
+        assert token not in helper, (helper_name, token)
+print('WP4_9_GATE6_AUDIO_OWNERSHIP_OK=1 editor_store_traversal=0 screen_calls=0 linked_engine=1 row_event_helpers_bounded=1')
 
 q0 = dinghy.index('static void audition_consume_queue(')
 q1 = dinghy.index('static void app_audio(', q0)
