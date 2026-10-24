@@ -1,4 +1,4 @@
-name: WP3.8 closeout paths once
+name: WP3.8 closeout dispatch once
 
 on:
   push:
@@ -8,37 +8,20 @@ on:
       - .github/workflows/_wp3_8_closeout_paths_once.yml
 
 permissions:
-  contents: write
+  actions: write
+  contents: read
 
 jobs:
-  patch-closeout-paths:
+  dispatch-closeout:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Add permanent source triggers to WP3.8 closeout
+      - name: Dispatch permanent WP3.8 closeout on current branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('.github/workflows/wp3_8_closeout_verify.yml')
-          s = p.read_text()
-          old = '''    paths:\n      - .github/workflows/wp3_8_closeout_verify.yml\n'''
-          new = '''    paths:\n      - firmware/src/fmt_rt_queue.h\n      - firmware/src/fmt_rt_queue.c\n      - firmware/hal/fm1_barrier.h\n      - firmware/src/dinghy.c\n      - tests/test_fmt_rt_queue.c\n      - tests/run_rt_queue_tests.sh\n      - tests/run_wp3_8_queue_audio_host.sh\n      - .github/workflows/wp3_8_closeout_verify.yml\n'''
-          assert s.count(old) == 1, s.count(old)
-          p.write_text(s.replace(old, new, 1))
-          PY
-          git diff --check
-
-      - name: Commit permanent trigger correction
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/workflows/wp3_8_closeout_verify.yml
-          git commit -m 'ci: run WP3.8 closeout on queue source changes'
-          git push origin HEAD:phase3/plocks-effects
+          gh workflow run wp3_8_closeout_verify.yml \
+            --repo joakimskurk/fm1tracker \
+            --ref phase3/plocks-effects
+          echo 'WP3_8_CLOSEOUT_DISPATCHED=1'
