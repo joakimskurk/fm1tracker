@@ -50,6 +50,14 @@ for p in paths:
     print(f'{png.name}_sha256={hashlib.sha256(png.read_bytes()).hexdigest()}')
 PY
 
+active_sha="$(sha256sum build/host/fm1tracker_wp3_9_visual-1000.ppm | awk '{print $1}')"
+released_sha="$(sha256sum build/host/fm1tracker_wp3_9_visual-3000.ppm | awk '{print $1}')"
+test "$active_sha" = "d290415387ac8e55006863819c2188d64f0d0453e204bb194cb8d004121484f3"
+test "$released_sha" = "ec15c6db429fe26d453ada14cc28a1eab8c2aa93e83c6f0bbfff67112f1a86c6"
+echo "WP3_9_ACTIVE_SCREEN_SHA256=$active_sha"
+echo "WP3_9_RELEASED_SCREEN_SHA256=$released_sha"
+echo "WP3_9_REVIEWED_SCREEN_HASHES_OK=1"
+
 test -s build/host/fm1tracker_wp3_9_visual-1000.png
 test -s build/host/fm1tracker_wp3_9_visual-3000.png
 
