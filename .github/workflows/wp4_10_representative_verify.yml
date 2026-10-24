@@ -1,0 +1,43 @@
+name: WP4.10 D046 representative linked benchmark
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - tests/host.c
+      - tests/run_wp4_10_representative_host.sh
+      - .github/workflows/wp4_10_representative_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  representative-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run frozen D046 representative and long-run gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          sh tests/run_wp4_10_representative_host.sh | tee build/wp4_10_representative_gate.log
+          grep -F 'WP4_10_PRODUCTION_FREEZE_OK=1' build/wp4_10_representative_gate.log
+          grep -F 'WP4_10_FULL_POOL_LINKED_OK=1 tracks=8 rows=64 owners=512 locks=2048 engines=4' build/wp4_10_representative_gate.log
+          grep -F 'WP4_10_QUEUE_PRESSURE_OK=1 short_overflow=16 long_overflow=40 recovery=1 tracker_continues=1' build/wp4_10_representative_gate.log
+          grep -F 'WP4_10_LONG_RUN_OK=1 rows=4096 wraps=64 ticks=163840' build/wp4_10_representative_gate.log
+      - name: Upload D046 discovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-10-d046-representative-discovery
+          if-no-files-found: warn
+          path: |
+            build/wp4_10_representative_gate.log
+            build/wp4_10/*.log
+            build/wp4_10/representative.txt
+            build/host/wp4_10_representative.wav
