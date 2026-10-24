@@ -26,6 +26,10 @@ sha_3000="$(sha256sum build/host/fm1tracker_wp3_4_lock_delete-3000.ppm | awk '{p
 
 echo "WP3_4_LOCK_DELETE_1000_SHA256=$sha_1000"
 echo "WP3_4_LOCK_DELETE_3000_SHA256=$sha_3000"
+
+test "$sha_1000" = "6ce56a09073b4d70ec5ff7001ae787966f17d6bf610f1db2e239df152e14205d"
+test "$sha_3000" = "f0185637136d5b609ebae1adbfbba7a62989a9246cb63093e6263242040e6cc6"
+echo "WP3_4_REVIEWED_LOCK_DELETE_SCREENS_OK=1"
 echo "WP3_4_LOCK_DELETE_CONTEXT_HOST_OK=1 midi_events=0 same_poll_confirm=fixture play_cancel=fixture unrelated_key_cancel=fixture valid_delete=fixture"
 
 # CI installs Pillow for reviewable images. Local execution remains useful when
@@ -41,3 +45,13 @@ for stem in ('1000', '3000'):
     dst = src.with_suffix('.png')
     Image.open(src).save(dst)
 PY
+
+if test -s build/host/fm1tracker_wp3_4_lock_delete-1000.png && \
+   test -s build/host/fm1tracker_wp3_4_lock_delete-3000.png; then
+    png_1000="$(sha256sum build/host/fm1tracker_wp3_4_lock_delete-1000.png | awk '{print $1}')"
+    png_3000="$(sha256sum build/host/fm1tracker_wp3_4_lock_delete-3000.png | awk '{print $1}')"
+    echo "WP3_4_LOCK_DELETE_1000_PNG_SHA256=$png_1000"
+    echo "WP3_4_LOCK_DELETE_3000_PNG_SHA256=$png_3000"
+    test "$png_1000" = "9ef8b51b7666e362f32f6d9f5abd57392c778198f09bc06e99ba8ca9067d091e"
+    test "$png_3000" = "85de320da9fdbd2069c6b59d18a0173da9674877f7c00f3e90d2daf3388b6032"
+fi
