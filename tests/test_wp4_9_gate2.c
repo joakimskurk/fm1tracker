@@ -29,8 +29,6 @@ static uint32_t page_for(uint8_t engine,
                          uint8_t sustain,
                          uint8_t release)
 {
-    uint32_t word = 0u;
-
     if (engine == FMT_8BIT_ENGINE_PULSE ||
         engine == FMT_8BIT_ENGINE_WAVETABLE8)
         return fmt_8bit_page_pack(slot0, decay, sustain, release);
