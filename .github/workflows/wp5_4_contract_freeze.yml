@@ -1,0 +1,45 @@
+name: WP5.4 D052 level-index contract freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-levels
+    paths:
+      - docs/WP5_4_FM_LEVEL_INDEX_CONTRACT.md
+      - tests/run_wp5_4_contract_freeze.sh
+      - .github/workflows/wp5_4_contract_freeze.yml
+      - docs/PROJECT_STATE.md
+      - docs/CURRENT_DECISIONS.md
+      - START_HERE.md
+
+permissions:
+  contents: read
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Verify D052 source-absent level-index contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_4_contract_freeze.sh
+
+      - name: Upload D052 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-4-d052-contract-freeze
+          path: |
+            docs/WP5_4_FM_LEVEL_INDEX_CONTRACT.md
+            build/wp5_4_contract/
+          if-no-files-found: warn
