@@ -1,0 +1,70 @@
+name: WP4.9 D045 final closeout verification
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - firmware/src/**
+      - firmware/hal/**
+      - firmware/loader/**
+      - firmware/app.ld
+      - build.sh
+      - tools/**
+      - tests/host.c
+      - tests/run_wp4_9_linked_audio_host.sh
+      - tests/run_wp4_9_inherited_regressions.sh
+      - tests/run_wp4_9_ui_regressions_host.sh
+      - tests/run_wp4_9_closeout_ci.sh
+      - .github/workflows/wp4_9_closeout_verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp4-9-closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host screenshot dependency
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Run canonical WP4.9 closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          git diff --check
+          sh tests/run_wp4_9_closeout_ci.sh | tee build/wp4_9_closeout.log
+          grep -F 'WP4_9_CLOSEOUT_PRODUCTION_FREEZE_OK=1' build/wp4_9_closeout.log
+          grep -F 'WP4_9_GATE5_CANONICAL_OK=1' build/wp4_9_closeout.log
+          grep -F 'WP4_9_GATE6_REALTIME_AUDIT_OK=1' build/wp4_9_closeout.log
+          grep -F 'WP4_9_DEFAULT_LINKED_AUDIO_OK=1 sha256=17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076 frames=286464' build/wp4_9_closeout.log
+          grep -F 'WP4_9_CLOSEOUT_OK=1 gates=5,6 host=linked_8bit target=pinned d037_ceiling=pass hardware_margin_claim=none' build/wp4_9_closeout.log
+
+      - name: Upload WP4.9 closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp4-9-d045-final-closeout
+          if-no-files-found: warn
+          path: |
+            build/wp4_9_closeout*.log
+            build/wp4_9_closeout*.txt
+            build/wp4_9_gate5*.txt
+            build/wp4_9_gate5*.log
+            build/wp4_9_gate6*.log
+            build/wp4_9_ui_*.log
+            build/wp4_9_fixtures/*.txt
+            build/host/wp4_9_*.wav
+            build/host/wp4_9_*.ppm
+            build/host/fm1tracker.wav
+            build/host/fm1tracker-*.png
+            build/fm1tracker.bin
+            build/fm1tracker-0.1.fwsc
+            build/fm1tracker.elf
