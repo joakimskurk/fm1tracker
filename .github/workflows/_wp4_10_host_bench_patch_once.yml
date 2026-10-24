@@ -1,0 +1,33 @@
+name: WP4.10 D046 host benchmark instrumentation once
+
+on:
+  push:
+    branches:
+      - phase4/8bit-engine
+    paths:
+      - .github/tmp/wp4_10_host_bench_patch.py
+      - .github/workflows/_wp4_10_host_bench_patch_once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add D046 host-only benchmark instrumentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tmp/wp4_10_host_bench_patch.py | tee /tmp/wp4_10_host_patch.log
+          grep -F 'WP4_10_HOST_BENCH_PATCH_OK=1' /tmp/wp4_10_host_patch.log
+          git diff --check
+          git diff --exit-code c93c39ad344760b4da0dfbc76829ca5fef886174 -- firmware/src firmware/hal firmware/loader firmware/app.ld build.sh tools
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/host.c
+          git commit -m 'test: add D046 host benchmark instrumentation'
+          git push origin HEAD:phase4/8bit-engine
