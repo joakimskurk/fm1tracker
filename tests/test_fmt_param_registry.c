@@ -31,6 +31,12 @@ static int expected_assigned(uint32_t value)
 {
     return value == FMT_PARAM_VOICE_LEVEL ||
            value == FMT_PARAM_PITCH_FINE ||
+           value == FMT_PARAM_BIT8_ATTACK ||
+           value == FMT_PARAM_BIT8_DECAY ||
+           value == FMT_PARAM_BIT8_SUSTAIN ||
+           value == FMT_PARAM_BIT8_RELEASE ||
+           value == FMT_PARAM_BIT8_PULSE_WIDTH ||
+           value == FMT_PARAM_BIT8_WAVETABLE ||
            value == FMT_PARAM_TRACK_LEVEL ||
            value == FMT_PARAM_TRACK_PAN;
 }
@@ -54,6 +60,13 @@ static void test_scalar_and_exact_ranges(void)
     assert(FMT_PARAM_RESERVED_FIRST == 0xF0u);
     assert(FMT_PARAM_RESERVED_LAST == 0xFEu);
     assert(FMT_PARAM_INVALID == 0xFFu);
+
+    assert(FMT_PARAM_BIT8_ATTACK == 0x20u);
+    assert(FMT_PARAM_BIT8_DECAY == 0x21u);
+    assert(FMT_PARAM_BIT8_SUSTAIN == 0x22u);
+    assert(FMT_PARAM_BIT8_RELEASE == 0x23u);
+    assert(FMT_PARAM_BIT8_PULSE_WIDTH == 0x24u);
+    assert(FMT_PARAM_BIT8_WAVETABLE == 0x25u);
 }
 
 static void test_exact_assigned_registry(void)
@@ -61,17 +74,30 @@ static void test_exact_assigned_registry(void)
     static const FmtParamId expected_ids[FMT_PARAM_ASSIGNED_COUNT] = {
         FMT_PARAM_VOICE_LEVEL,
         FMT_PARAM_PITCH_FINE,
+        FMT_PARAM_BIT8_ATTACK,
+        FMT_PARAM_BIT8_DECAY,
+        FMT_PARAM_BIT8_SUSTAIN,
+        FMT_PARAM_BIT8_RELEASE,
+        FMT_PARAM_BIT8_PULSE_WIDTH,
+        FMT_PARAM_BIT8_WAVETABLE,
         FMT_PARAM_TRACK_LEVEL,
         FMT_PARAM_TRACK_PAN
     };
     static const char *expected_labels[FMT_PARAM_ASSIGNED_COUNT] = {
         "VOICE LEVEL",
         "FINE",
+        "ATTACK",
+        "DECAY",
+        "SUSTAIN",
+        "RELEASE",
+        "WIDTH",
+        "TABLE",
         "TRACK LEVEL",
         "PAN"
     };
     uint32_t i, j;
 
+    assert(FMT_PARAM_ASSIGNED_COUNT == 10u);
     assert(fmt_param_registry_count() == FMT_PARAM_ASSIGNED_COUNT);
 
     for (i = 0u; i < FMT_PARAM_ASSIGNED_COUNT; i++) {
@@ -132,7 +158,13 @@ static void test_unassigned_namespace_safety(void)
     assert(fmt_param_namespace(0x03u) == FMT_PARAM_NAMESPACE_COMMON);
     assert(!fmt_param_is_assigned(0x03u));
     assert(fmt_param_namespace(0x20u) == FMT_PARAM_NAMESPACE_8BIT);
-    assert(!fmt_param_is_assigned(0x20u));
+    assert(fmt_param_is_assigned(0x20u));
+    assert(fmt_param_namespace(0x25u) == FMT_PARAM_NAMESPACE_8BIT);
+    assert(fmt_param_is_assigned(0x25u));
+    assert(fmt_param_namespace(0x26u) == FMT_PARAM_NAMESPACE_8BIT);
+    assert(!fmt_param_is_assigned(0x26u));
+    assert(fmt_param_namespace(0x5Fu) == FMT_PARAM_NAMESPACE_8BIT);
+    assert(!fmt_param_is_assigned(0x5Fu));
     assert(fmt_param_namespace(0x60u) == FMT_PARAM_NAMESPACE_16BIT);
     assert(!fmt_param_is_assigned(0x60u));
     assert(fmt_param_namespace(0xC0u) == FMT_PARAM_NAMESPACE_CHANNEL_FX);
@@ -158,7 +190,7 @@ int main(void)
     test_unassigned_namespace_safety();
 
     printf("FMT_PARAM_REGISTRY_TESTS_OK=1\n");
-    printf("id_bytes=%u assigned=%u exhaustive_values=256 none=0x%02X invalid=0x%02X global_reserved=0xE0_0xEF\n",
+    printf("id_bytes=%u assigned=%u exhaustive_values=256 d044=0x20_0x25 next_unassigned=0x26 none=0x%02X invalid=0x%02X\n",
            (unsigned)sizeof(FmtParamId),
            (unsigned)FMT_PARAM_ASSIGNED_COUNT,
            (unsigned)FMT_PARAM_NONE,
