@@ -5,6 +5,7 @@ on:
     branches:
       - phase5/mixed-validation
     paths:
+      - 'firmware/src/dinghy.c'
       - 'tests/run_wp5_9_mixed_validation_tests.sh'
       - '.github/workflows/wp5_9_mixed_validation.yml'
   workflow_dispatch:
