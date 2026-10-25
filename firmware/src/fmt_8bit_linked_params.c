@@ -6,10 +6,9 @@
 #include "fmt_store.h"
 
 Fmt8BitParamSet fmt_8bit_instrument_base[FMT_INSTRUMENTS];
-/* D048: this remains the single physical 8 x 64 x 32-bit engine-page
- * publication cache. Future families must reuse/generalize this storage rather
- * than allocate a parallel per-family 2,048-byte row cache. */
-volatile Fmt8BitRowParamCache fmt_8bit_row_param_cache
+/* D056: one generalized 8,704-byte physical allocation. The macro
+ * fmt_8bit_row_param_cache aliases its first exact 2,048-byte legacy view. */
+volatile FmtEngineRowParamCache fmt_engine_row_param_cache
     __attribute__((aligned(4)));
 
 static volatile uint32_t *fmt_8bit_linked_slot(uint32_t track, uint32_t row)
@@ -32,8 +31,6 @@ static uint8_t fmt_8bit_linked_row_context(const FmtSong *song,
         *instrument_out = FMT_INSTRUMENT_INHERIT;
     if (engine_out)
         *engine_out = FMT_8BIT_ENGINE_SAFE;
-    /* D048: song->meta.mode is legacy/default-family metadata only. Row/editor
-     * eligibility follows the resolved instrument header family. */
     if (!song || track >= FMT_TRACKS || target_row >= FMT_STEPS_PER_PATTERN)
         return 0u;
 
@@ -121,9 +118,15 @@ void fmt_8bit_linked_params_reset(void)
 
     for (instrument = 0u; instrument < FMT_INSTRUMENTS; instrument++)
         fmt_8bit_param_set_defaults(&fmt_8bit_instrument_base[instrument]);
-    for (track = 0u; track < FMT_TRACKS; track++)
-        for (row = 0u; row < FMT_STEPS_PER_PATTERN; row++)
-            fmt_8bit_row_param_cache.word[track][row] = 0u;
+    for (track = 0u; track < FMT_TRACKS; track++) {
+        for (row = 0u; row < FMT_STEPS_PER_PATTERN; row++) {
+            fmt_engine_row_param_cache.legacy.word[track][row] = 0u;
+            fmt_engine_row_param_cache.bank0_high[track][row] = 0u;
+            fmt_engine_row_param_cache.bank1_low[track][row] = 0u;
+            fmt_engine_row_param_cache.bank1_high[track][row] = 0u;
+            fmt_engine_row_param_cache.active_bank[track][row] = 0u;
+        }
+    }
 }
 
 int fmt_8bit_linked_params_rebuild_track(uint32_t track)
