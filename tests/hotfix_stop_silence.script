@@ -1,0 +1,8 @@
+# Post-Phase-5 emulator hotfix regression.
+# Boot is stopped. Start the seeded proof pattern, prove track 0 owns a voice,
+# stop transport, then prove the sequenced route is hard-silenced.
+50 btn 12
+200 probe
+300 btn 12
+400 probe
+500 end
