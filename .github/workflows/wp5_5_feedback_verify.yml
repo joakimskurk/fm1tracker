@@ -1,0 +1,177 @@
+name: WP5.5 D053 bounded feedback verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-feedback
+    paths:
+      - firmware/src/fmt_fm_feedback.h
+      - firmware/src/fmt_fm_feedback.c
+      - tests/test_wp5_5_fm_feedback.c
+      - tests/wp5_5_reference.py
+      - tests/run_wp5_5_fm_feedback_tests.sh
+      - docs/WP5_5_FM_FEEDBACK_CONTRACT.md
+      - docs/WP5_5_PREIMPLEMENTATION_EVIDENCE.md
+      - .github/workflows/wp5_5_feedback_verify.yml
+      - docs/PROJECT_STATE.md
+      - START_HERE.md
+
+permissions:
+  contents: read
+
+jobs:
+  feedback-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Prove isolated WP5.5 source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=d3501eca952f3e903d4dcc4faab2851d439f7ad0
+          actual="$(git diff --name-only "$BASE" -- firmware/src firmware/gen tools | sort)"
+          expected="$(printf '%s\n' \
+            firmware/src/fmt_fm_feedback.c \
+            firmware/src/fmt_fm_feedback.h | sort)"
+          test "$actual" = "$expected"
+          git diff --exit-code "$BASE" -- \
+            firmware/src/dinghy.c \
+            firmware/src/fmt_engine_pitch.c \
+            firmware/src/fmt_engine_pitch.h \
+            firmware/src/fmt_fm_operator.c \
+            firmware/src/fmt_fm_operator.h \
+            firmware/src/fmt_fm_algorithm.c \
+            firmware/src/fmt_fm_algorithm.h \
+            firmware/src/fmt_fm_ratio.c \
+            firmware/src/fmt_fm_ratio.h \
+            firmware/src/fmt_fm_controls.c \
+            firmware/src/fmt_fm_controls.h \
+            firmware/gen/fmt_fm_sine_q15.inc
+          ! grep -F 'fmt_fm_feedback' firmware/src/dinghy.c
+          ! grep -F 'fmt_fm_feedback' firmware/src/fmt_fm_algorithm.c
+          echo 'WP5_5_ISOLATED_SOURCE_BOUNDARY_OK=1 new_feedback_files=2 d049_delta=0 d050_delta=0 d051_delta=0 d052_delta=0 dinghy_delta=0'
+
+      - name: Run D053 focused and inherited host gates
+        run: sh tests/run_wp5_5_fm_feedback_tests.sh
+
+      - name: Upload WP5.5 host evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-5-fm-feedback-host
+          path: build/wp5_5_feedback/
+          if-no-files-found: warn
+
+  feedback-target:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install target build UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Compile isolated D053 feedback primitive for PI32v2 and measure sections
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=build/wp5_5_target
+          mkdir -p "$OUT"
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          OBJDUMP="$RUNNER_TEMP/jieli/toolchain/common/bin/objdump"
+          "$CC" -target pi32v2 -Os -ffunction-sections -fdata-sections -fno-builtin -Wall -Werror \
+            -Ifirmware/src -c firmware/src/fmt_fm_feedback.c \
+            -o "$OUT/fmt_fm_feedback.o"
+          test -s "$OUT/fmt_fm_feedback.o"
+          "$OBJDUMP" -h "$OUT/fmt_fm_feedback.o" | tee "$OUT/sections.txt"
+          sha256sum "$OUT/fmt_fm_feedback.o" | tee "$OUT/object_sha256.txt"
+          python3 - <<'PY' | tee "$OUT/object_metrics.txt"
+          from pathlib import Path
+          text_ro = 0
+          sections = []
+          for line in Path('build/wp5_5_target/sections.txt').read_text().splitlines():
+              parts = line.split()
+              if len(parts) < 3 or not parts[0].isdigit():
+                  continue
+              name = parts[1]
+              if name.startswith('.text') or name.startswith('.rodata'):
+                  size = int(parts[2], 16)
+                  text_ro += size
+                  sections.append((name, size))
+          assert text_ro > 0, sections
+          assert text_ro <= 1024, (text_ro, sections)
+          print('WP5_5_PI32V2_OBJECT_OK=1')
+          print(f'text_rodata_bytes={text_ro}')
+          print('persistent_state_bytes_per_future_fm_voice=2')
+          for name, size in sections:
+              print(f'section {name}={size}')
+          PY
+
+      - name: Build unchanged full application with pinned SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=build/wp5_5_target
+          export JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain"
+          SDK="$RUNNER_TEMP/ac79-sdk"
+          rm -rf "$SDK"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$SDK"
+          ACTUAL_SDK="$(git -C "$SDK" rev-parse HEAD)"
+          test "$ACTUAL_SDK" = d179b4484759423312073f5fbb232501aa491047
+          export AC79_SDK="$SDK"
+          printf 'AC79_SDK_COMMIT=%s\n' "$ACTUAL_SDK" | tee "$OUT/sdk.txt"
+          ./build.sh --release 0.1 | tee "$OUT/device.log"
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+          python3 - <<'PY' | tee "$OUT/full_app_metrics.txt"
+          import hashlib
+          import re
+          from pathlib import Path
+          log = Path('build/wp5_5_target/device.log').read_text()
+          m = re.search(r'image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064', log)
+          assert m, log[-4000:]
+          image, image_limit, ram, pool = map(int, m.groups())
+          assert (image, ram, pool) == (72792, 19676, 113000), (image, ram, pool)
+          def sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          bin_sha = sha('build/fm1tracker.bin')
+          fwsc_sha = sha('build/fm1tracker-0.1.fwsc')
+          assert bin_sha == 'a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125', bin_sha
+          assert fwsc_sha == 'cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073', fwsc_sha
+          print('WP5_5_FULL_APP_TARGET_IDENTITY_OK=1')
+          print(f'image_bytes={image}')
+          print(f'normal_ram_bytes={ram}')
+          print(f'pool_ram_bytes={pool}')
+          print(f'fm1tracker_bin_sha256={bin_sha}')
+          print(f'fm1tracker_fwsc_sha256={fwsc_sha}')
+          PY
+          grep -F 'FM1Tracker package' "$OUT/device.log"
+          grep -F 'identity FM-1_987' "$OUT/device.log"
+          echo 'WP5_5_TARGET_GATE_OK=1 feedback=pi32v2 full_app=wp5_0_identical hardware_margin_claim=none' | tee "$OUT/summary.txt"
+
+      - name: Upload WP5.5 target evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-5-fm-feedback-target
+          path: build/wp5_5_target/
+          if-no-files-found: warn
