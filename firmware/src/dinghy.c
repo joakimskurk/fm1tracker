@@ -35,6 +35,8 @@
 #include "fmt_8bit_params.c"                   /* WP4.8: D044 engine pages/resolver */
 #include "fmt_8bit_engine.c"                   /* WP4.9 Gate 2: fixed linked engine */
 #include "fmt_8bit_linked_params.c"            /* WP4.9 Gate 3: linked base/cache/editor */
+#include "fmt_fm_params.c"                     /* WP5.8 D056: normalized FM parameter pages */
+#include "fmt_fm_linked_params.c"              /* WP5.8 D056: base + row override publication */
 #include "fmt_fm_operator.c"                   /* WP5.1 D049: fixed-point FM operator */
 #include "fmt_fm_algorithm.c"                  /* WP5.2/D055: FM topology + external OP4 seam */
 #include "fmt_fm_ratio.c"                      /* WP5.3 D051: bounded ratio mapping */
@@ -85,13 +87,15 @@ static struct {
 } voice[NV];
 static uint32_t audition_ages;
 
-/* D045 Gate 4 fixed tracker snapshots. Audio owns these together with the
- * linked engine/effect/event state. Main owns only the aligned publication
- * caches and instrument base bank. 32+32+8+8 = 80 B ordinary RAM. */
+/* D045 Gate 4 fixed tracker snapshots. D056 adds exactly one current FM patch
+ * snapshot per active track, never one patch per row. The 224 B patch bank plus
+ * eight validity bytes stay inside D056's frozen remaining runtime margin. */
 static uint32_t tracker_common_row_word[FMT_TRACKS];
 static uint32_t tracker_page_row_word[FMT_TRACKS];
 static uint8_t tracker_current_instrument[FMT_TRACKS];
 static uint8_t tracker_note_instrument[FMT_TRACKS];
+static FmtFmPatch tracker_fm_row_patch[FMT_TRACKS];
+static uint8_t tracker_fm_row_patch_valid[FMT_TRACKS];
 
 static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
     815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
@@ -180,6 +184,33 @@ static int tracker_8bit_instrument_info(uint8_t instrument,
     if (base)
         *base = params;
     return 1;
+}
+
+static int tracker_fm_snapshot_row(uint32_t track,
+                                   uint32_t row,
+                                   uint8_t instrument)
+{
+    uint8_t family = FMT_ENGINE_FAMILY_NONE;
+    uint8_t engine = 0xFFu;
+    FmtFmRowOverrides overrides;
+
+    if (track >= FMT_TRACKS || row >= FMT_STEPS_PER_PATTERN ||
+        instrument >= FMT_INSTRUMENTS)
+        return 0;
+    if (!fmt_instrument_identity_read(&fmt_instrument_identity_publication,
+                                      instrument,
+                                      &family,
+                                      &engine,
+                                      (uint8_t *)0,
+                                      (uint8_t *)0) ||
+        family != FMT_ENGINE_FAMILY_FM ||
+        !fmt_fm_engine_supported(engine))
+        return 0;
+    if (!fmt_fm_linked_params_read(track, row, &overrides))
+        return 0;
+    return fmt_fm_linked_params_compose(instrument,
+                                        &overrides,
+                                        &tracker_fm_row_patch[track]);
 }
 
 static uint8_t tracker_capture_row_instrument(uint32_t track,
@@ -294,13 +325,17 @@ static void tracker_apply_effect_pitch(uint32_t track)
                                                         (uint8_t)track);
         if (voice_index == FMT_VOICE_NONE)
             return;
+        if (!tracker_fm_row_patch_valid[track]) {
+            tracker_hard_silence_route(track);
+            return;
+        }
         (void)fmt_fm_engine_update_row(
             &fmt_fm_engine_runtime,
             (uint8_t)track,
             fmt_fm_engine_runtime.voice[voice_index].instrument,
             tracker_row_pitch_q7(track),
             tracker_row_gain_q15(track),
-            fmt_fm_engine_default_patch());
+            &tracker_fm_row_patch[track]);
     }
 }
 
@@ -313,7 +348,6 @@ static uint8_t tracker_note_route(uint32_t track,
     uint8_t current_family;
     uint8_t voice_index;
     const Fmt8BitParamSet *base;
-    const FmtFmPatch *fm_patch;
 
     if (track >= FMT_TRACKS || instrument >= FMT_INSTRUMENTS) {
         tracker_hard_silence_route(track);
@@ -373,18 +407,18 @@ static uint8_t tracker_note_route(uint32_t track,
         return 1u;
 
     case FMT_ENGINE_FAMILY_FM:
-        if (!fmt_fm_engine_supported(engine_id)) {
+        if (!fmt_fm_engine_supported(engine_id) ||
+            !tracker_fm_row_patch_valid[track]) {
             tracker_hard_silence_route(track);
             return 0u;
         }
-        fm_patch = fmt_fm_engine_default_patch();
         voice_index = fmt_fm_engine_note(&fmt_fm_engine_runtime,
                                          (uint8_t)track,
                                          engine_id,
                                          instrument,
                                          tracker_row_pitch_q7(track),
                                          tracker_row_gain_q15(track),
-                                         fm_patch);
+                                         &tracker_fm_row_patch[track]);
         if (voice_index == FMT_VOICE_NONE) {
             fmt_engine_router_clear(&fmt_engine_router_runtime, (uint8_t)track);
             return 0u;
@@ -420,10 +454,14 @@ static void tracker_release_route(uint32_t track, uint32_t page_word)
                                       page_word);
         break;
     case FMT_ENGINE_FAMILY_FM:
+        if (!tracker_fm_row_patch_valid[track]) {
+            tracker_hard_silence_family(track, FMT_ENGINE_FAMILY_FM);
+            break;
+        }
         (void)fmt_fm_engine_release(&fmt_fm_engine_runtime,
                                     (uint8_t)track,
                                     tracker_row_gain_q15(track),
-                                    fmt_fm_engine_default_patch());
+                                    &tracker_fm_row_patch[track]);
         break;
     default:
         break;
@@ -489,12 +527,16 @@ static void tracker_apply_row_action(uint32_t track, uint8_t action, uint8_t not
                                                     (uint8_t)track);
             if (voice_index != FMT_VOICE_NONE) {
                 instrument = fmt_fm_engine_runtime.voice[voice_index].instrument;
+                if (!tracker_fm_row_patch_valid[track]) {
+                    tracker_hard_silence_route(track);
+                    break;
+                }
                 (void)fmt_fm_engine_retrigger(&fmt_fm_engine_runtime,
                                                (uint8_t)track,
                                                instrument,
                                                tracker_row_pitch_q7(track),
                                                tracker_row_gain_q15(track),
-                                               fmt_fm_engine_default_patch());
+                                               &tracker_fm_row_patch[track]);
             }
         }
         break;
@@ -539,9 +581,18 @@ static void tracker_apply_event(uint32_t track,
                                  immediate_note,
                                  effect_word);
 
-    /* D048 preserves D045 ordering. The currently owned family receives the
-     * live row update before immediate NOTE/TIE/OFF semantics. */
-    tracker_apply_effect_pitch(track);
+    /* D056 keeps D048's pre-NOTE update on the previously owned patch, then
+     * snapshots the new row exactly once from the published FM override cache.
+     * TIE/EMPTY/OFF snapshot first so the live voice receives the new controls
+     * without phase/envelope reset. No lock/store traversal occurs here. */
+    if (event->kind == FMT_PLAYBACK_EVENT_NOTE)
+        tracker_apply_effect_pitch(track);
+
+    tracker_fm_row_patch_valid[track] =
+        (uint8_t)tracker_fm_snapshot_row(track, event->step, instrument);
+
+    if (event->kind != FMT_PLAYBACK_EVENT_NOTE)
+        tracker_apply_effect_pitch(track);
 
     if (immediate_kind == FMT_PLAYBACK_EVENT_NOTE) {
         (void)tracker_note_route(track, instrument, page_word);
@@ -927,11 +978,13 @@ static void app_main(void)
     }
     fmt_playback_seed_proof_pattern();
     fmt_8bit_linked_params_reset();
+    fmt_fm_linked_params_reset();
     fmt_playback_params_reset();
     fmt_playback_params_rebuild();
     fmt_tracker_effect_cache_reset();
     fmt_tracker_effect_cache_rebuild();
     fmt_8bit_linked_params_rebuild();
+    fmt_fm_linked_params_rebuild();
     fmt_instrument_identity_publication_reset(
         &fmt_instrument_identity_publication);
     fmt_instrument_identity_publish_song(
@@ -954,6 +1007,8 @@ static void app_main(void)
             tracker_current_instrument[track] =
                 song ? song->tracks[track].instrument : 0u;
             tracker_note_instrument[track] = tracker_current_instrument[track];
+            tracker_fm_row_patch[track] = *fmt_fm_engine_default_patch();
+            tracker_fm_row_patch_valid[track] = 0u;
         }
     }
     fmt_rt_queue_reset(&fmt_rt_queue_runtime);
@@ -1128,8 +1183,10 @@ static void app_main(void)
                                               &fmt_transport_runtime,
                                               (b & (1u << BTN_FX)) != 0u,
                                               (rel & (1u << BTN_FX)) != 0u,
-                                              (b & (1u << BTN_SEL)) != 0u))
+                                              (b & (1u << BTN_SEL)) != 0u)) {
                 (void)fmt_8bit_linked_params_rebuild_track(write_track);
+                (void)fmt_fm_linked_params_rebuild_track(write_track);
+            }
         }
 
         if (pattern_mode && !step_rec_mode) {
@@ -1203,8 +1260,10 @@ static void app_main(void)
             if (fmt_step_record_write_note(&fmt_step_record_runtime,
                                            &fmt_pattern_input_runtime,
                                            &fmt_transport_runtime,
-                                           base + write_key))
+                                           base + write_key)) {
                 (void)fmt_8bit_linked_params_rebuild_track(write_track);
+                (void)fmt_fm_linked_params_rebuild_track(write_track);
+            }
         }
         if (step_rec_mode && keys == 0u)
             fmt_step_record_release_gesture(&fmt_step_record_runtime);
