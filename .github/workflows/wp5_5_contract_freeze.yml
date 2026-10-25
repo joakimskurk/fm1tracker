@@ -8,6 +8,7 @@ on:
     paths:
       - docs/WP5_5_PRECONTRACT_AUDIT.md
       - docs/WP5_5_FM_FEEDBACK_CONTRACT.md
+      - tests/wp5_5_reference.py
       - tests/run_wp5_5_contract_freeze.sh
       - .github/workflows/wp5_5_contract_freeze.yml
       - docs/PROJECT_STATE.md
@@ -29,29 +30,6 @@ jobs:
       - name: Install host UI dependency
         run: python3 -m pip install pillow
 
-      - name: Diagnose frozen reference assertions
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build/wp5_5_contract
-          python3 - <<'PY'
-          from pathlib import Path
-          source = Path('tests/run_wp5_5_contract_freeze.sh').read_text()
-          marker = "python3 - <<'PY' | tee \"$OUT/reference.log\"\n"
-          block = source.split(marker, 1)[1].split("\nPY\n", 1)[0]
-          needle = "    assert hashlib.sha256(payload).hexdigest() == expected_d050[algorithm]"
-          replacement = (
-              "    actual_d050 = hashlib.sha256(payload).hexdigest()\n"
-              "    print('D053_DIAG_D050', algorithm, actual_d050, expected_d050[algorithm], flush=True)\n"
-              "    assert actual_d050 == expected_d050[algorithm]"
-          )
-          assert needle in block
-          Path('/tmp/wp5_5_reference_diag.py').write_text(block.replace(needle, replacement, 1))
-          PY
-          if ! python3 /tmp/wp5_5_reference_diag.py 2>&1 | tee build/wp5_5_contract/reference_diag.log; then
-            true
-          fi
-
       - name: Verify D053 source-absent bounded-feedback contract
         shell: bash
         run: |
@@ -67,5 +45,6 @@ jobs:
           path: |
             docs/WP5_5_PRECONTRACT_AUDIT.md
             docs/WP5_5_FM_FEEDBACK_CONTRACT.md
+            tests/wp5_5_reference.py
             build/wp5_5_contract/
           if-no-files-found: warn
