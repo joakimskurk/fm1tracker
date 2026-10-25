@@ -188,7 +188,8 @@ static void test_set_get_sort_replace_and_isolation(void)
 static void test_invalid_parameters_and_addresses(void)
 {
     static const FmtParamId invalid_ids[] = {
-        FMT_PARAM_NONE, FMT_PARAM_INVALID, 0x03u, 0x26u, 0x60u, 0xC0u, 0xE0u, 0xF0u
+        FMT_PARAM_NONE, FMT_PARAM_INVALID, 0x03u, 0x26u, 0x63u, 0x7Cu,
+        0xC0u, 0xE0u, 0xF0u
     };
     uint32_t i;
     uint8_t replaced = 7u;
