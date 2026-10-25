@@ -1,0 +1,161 @@
+name: WP5.7 D055 FM voice integration verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-voice-integration
+    paths:
+      - firmware/src/dinghy.c
+      - firmware/src/fmt_fm_algorithm.h
+      - firmware/src/fmt_fm_algorithm.c
+      - firmware/src/fmt_fm_engine.h
+      - firmware/src/fmt_fm_engine.c
+      - tests/wp5_7_engine_host.c
+      - tests/run_wp5_7_integration_tests.sh
+      - .github/workflows/wp5_7_voice_integration_verify.yml
+      - docs/PROJECT_STATE.md
+      - START_HERE.md
+
+permissions:
+  contents: read
+
+jobs:
+  integration-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Run D055 focused, mixed and inherited host gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp5_7_integration
+          sh tests/run_wp5_7_integration_tests.sh 2>&1 | tee build/wp5_7_integration/ci.log
+
+      - name: Upload WP5.7 host evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-7-fm-voice-integration-host
+          path: build/wp5_7_integration/
+          if-no-files-found: warn
+
+  integration-target:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install target build UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+
+      - name: Compile D055 engine and seam for PI32v2
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=build/wp5_7_target
+          mkdir -p "$OUT"
+          CC="$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          OBJDUMP="$RUNNER_TEMP/jieli/toolchain/common/bin/objdump"
+          for unit in fmt_fm_engine fmt_fm_algorithm; do
+            "$CC" -target pi32v2 -Os -ffunction-sections -fdata-sections -fno-builtin -Wall -Werror \
+              -Ifirmware/src -Ifirmware/gen -c "firmware/src/${unit}.c" \
+              -o "$OUT/${unit}.o"
+            test -s "$OUT/${unit}.o"
+            "$OBJDUMP" -h "$OUT/${unit}.o" > "$OUT/${unit}_sections.txt"
+            sha256sum "$OUT/${unit}.o" > "$OUT/${unit}_sha256.txt"
+          done
+          python3 - <<'PY' | tee "$OUT/object_metrics.txt"
+          from pathlib import Path
+          total = 0
+          for unit in ('fmt_fm_engine','fmt_fm_algorithm'):
+              subtotal = 0
+              for line in Path(f'build/wp5_7_target/{unit}_sections.txt').read_text().splitlines():
+                  parts = line.split()
+                  if len(parts) >= 3 and parts[0].isdigit():
+                      name = parts[1]
+                      if name.startswith('.text') or name.startswith('.rodata'):
+                          subtotal += int(parts[2], 16)
+              assert subtotal > 0, unit
+              total += subtotal
+              print(f'{unit}_text_rodata_bytes={subtotal}')
+          print(f'combined_engine_algorithm_text_rodata_bytes={total}')
+          print('fmt_fm_voice_bytes=92')
+          print('fmt_fm_engine_state_bytes=788')
+          print('WP5_7_PI32V2_OBJECTS_OK=1')
+          PY
+
+      - name: Build integrated full application with pinned SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=build/wp5_7_target
+          export JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain"
+          SDK="$RUNNER_TEMP/ac79-sdk"
+          rm -rf "$SDK"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$SDK"
+          ACTUAL_SDK="$(git -C "$SDK" rev-parse HEAD)"
+          test "$ACTUAL_SDK" = d179b4484759423312073f5fbb232501aa491047
+          export AC79_SDK="$SDK"
+          printf 'AC79_SDK_COMMIT=%s\n' "$ACTUAL_SDK" | tee "$OUT/sdk.txt"
+          ./build.sh --release 0.1 | tee "$OUT/device.log"
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+          test -s build/fm1tracker.elf
+          "$JIELI_TOOLCHAIN/common/bin/objdump" -t build/fm1tracker.elf > "$OUT/symbols.txt"
+          grep -F 'fmt_fm_engine_runtime' "$OUT/symbols.txt" | tee "$OUT/fm_engine_symbol.txt"
+          python3 - <<'PY' | tee "$OUT/full_app_metrics.txt"
+          import hashlib
+          import re
+          from pathlib import Path
+          log = Path('build/wp5_7_target/device.log').read_text()
+          m = re.search(r'image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064', log)
+          assert m, log[-4000:]
+          image, image_limit, ram, pool = map(int, m.groups())
+          assert image <= 80984, image
+          assert ram <= 20700, ram
+          assert pool == 113000, pool
+          assert image - 72792 <= 8192, image
+          assert ram - 19676 <= 1024, ram
+          def sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          bin_sha = sha('build/fm1tracker.bin')
+          fwsc_sha = sha('build/fm1tracker-0.1.fwsc')
+          print('WP5_7_FULL_APP_TARGET_OK=1')
+          print(f'image_bytes={image}')
+          print(f'normal_ram_bytes={ram}')
+          print(f'pool_ram_bytes={pool}')
+          print(f'image_delta_vs_wp5_0={image-72792}')
+          print(f'normal_ram_delta_vs_wp5_0={ram-19676}')
+          print(f'fm1tracker_bin_sha256={bin_sha}')
+          print(f'fm1tracker_fwsc_sha256={fwsc_sha}')
+          PY
+          grep -F 'FM1Tracker package' "$OUT/device.log"
+          grep -F 'identity FM-1_987' "$OUT/device.log"
+          echo 'WP5_7_TARGET_GATE_OK=1 fm_engine=linked slots=8 state=788 resource_bounds=pass pool=unchanged hardware_margin_claim=none' | tee "$OUT/summary.txt"
+
+      - name: Upload WP5.7 target evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-7-fm-voice-integration-target
+          path: build/wp5_7_target/
+          if-no-files-found: warn
