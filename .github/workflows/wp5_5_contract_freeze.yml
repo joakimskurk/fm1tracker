@@ -1,0 +1,47 @@
+name: WP5.5 D053 bounded feedback contract freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-feedback
+    paths:
+      - docs/WP5_5_PRECONTRACT_AUDIT.md
+      - docs/WP5_5_FM_FEEDBACK_CONTRACT.md
+      - tests/run_wp5_5_contract_freeze.sh
+      - .github/workflows/wp5_5_contract_freeze.yml
+      - docs/PROJECT_STATE.md
+      - docs/CURRENT_DECISIONS.md
+      - START_HERE.md
+
+permissions:
+  contents: read
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Verify D053 source-absent bounded-feedback contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_5_contract_freeze.sh
+
+      - name: Upload D053 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-5-d053-contract-freeze
+          path: |
+            docs/WP5_5_PRECONTRACT_AUDIT.md
+            docs/WP5_5_FM_FEEDBACK_CONTRACT.md
+            build/wp5_5_contract/
+          if-no-files-found: warn

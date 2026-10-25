@@ -2,14 +2,12 @@
 
 Date: 2026-10-25
 
-`DECISIONS.md` remains the append-only historical decision log through D046. D047-D052 are accepted Phase 5 decisions.
+`DECISIONS.md` remains the append-only historical decision log through D046. D047-D052 are accepted and verified Phase 5 decisions. D053 is frozen preimplementation and awaits its source-absent acceptance gate.
 
 ## D047 - mixed-engine instrument architecture
 
 Status: **ACCEPTED**  
 Normative: `D047_MIXED_ENGINE_ARCHITECTURE.md`
-
-One engine-agnostic tracker. Instruments own family + engine identity.
 
 ## D048 - mixed-engine routing
 
@@ -29,15 +27,11 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_2_FM_ALGORITHM_CONTRACT.md`  
 Evidence: `WP5_2_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_2_VERIFICATION.md`
 
-Stable algorithms remain STACK4, FAN3, DUAL2 and PARALLEL4 with fixed OP4 -> OP3 -> OP2 -> OP1 evaluation.
-
 ## D051 - curated FM4 ratio/pitch mapping
 
 Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_3_FM_RATIO_CONTRACT.md`  
 Evidence: `WP5_3_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_3_VERIFICATION.md`
-
-Stable 16-ID Q8 ratio mapping, deterministic clamp/rounding and output ceiling remain frozen.
 
 ## D052 - FM4 operator LEVEL / global INDEX mapping
 
@@ -45,30 +39,30 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_4_FM_LEVEL_INDEX_CONTRACT.md`  
 Evidence: `WP5_4_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_4_VERIFICATION.md`
 
-Frozen compatibility:
+D052 keeps four independent LEVEL bytes plus one global INDEX byte, exact Q15/Q14 mappings, 10 B transient state and zero persistent state. WP5.4 closeout head is `d3501eca952f3e903d4dcc4faab2851d439f7ad0`.
 
-- exactly four LEVEL bytes plus one global INDEX byte, all 0..255;
-- scalar malformed input saturates to 255;
-- `level_q15 = (v << 7) | (v >> 1)`;
-- `mod_depth_q14 = (v << 6) | (v >> 2)`;
-- LEVEL and INDEX remain separate controls;
-- null LEVEL input maps all four operators to zero level;
-- transient mapped state exactly 10 B, persistent state 0 B;
-- all 65,536 legal LEVEL x INDEX single-edge combinations are signed-32 safe under D049/D050;
-- PI32v2 controls object 108 B, SHA `05867ebe120829d1e3b8bf6f0504f29d63e9643e4fa5eede4c6d858d31d25059`;
-- full running application remains exact WP5.0 while D052 is isolated.
+## D053 - bounded one-sample OP4 feedback
 
-Canonical D052 source-absent gate: run `40140119411`, job `121009903030`.
+Status: **FROZEN BEFORE PRODUCTION SOURCE - SOURCE-ABSENT GATE PENDING**  
+Normative: `WP5_5_FM_FEEDBACK_CONTRACT.md`  
+Audit: `WP5_5_PRECONTRACT_AUDIT.md`
 
-Canonical D052 implementation verification: run `40143482844`, host `121019875458`, target `121019875309`.
+Frozen compatibility candidate:
 
-## D053
+- one OP4 -> OP4 feedback edge only;
+- exactly one sample of delay;
+- `FmtFmFeedbackState` exactly 2 B signed-16 prior OP4 output;
+- FEEDBACK is a distinct byte `0..255`;
+- byte-to-Q14 mapping `(v << 6) | (v >> 2)`, numerically identical to D052 INDEX mapping;
+- feedback phase offset `previous_op4_q15 * depth_q14 * 4`;
+- history updates every OP4 render even at FEEDBACK=0;
+- reset/retrigger clears history;
+- algorithm changes retain history;
+- no D049-D052 or `dinghy.c` modification in WP5.5;
+- production feedback surface, only after gate, limited to `fmt_fm_feedback.h/.c`;
+- exhaustive full signed-16 history x 256 controls is signed-32 safe.
 
-Status: **NOT YET DEFINED**
-
-WP5.5 / issue #48 must freeze D053 contract-first before any production feedback source is added.
-
-D053 must preserve D047-D052 and decide only a bounded deterministic FM4 feedback topology/control/history model. Envelopes, voice integration and tracker-facing parameter IDs remain later packages.
+D053 is not accepted for implementation until its source-absent CI gate passes.
 
 ## Current precedence
 
@@ -78,6 +72,6 @@ D053 must preserve D047-D052 and decide only a bounded deterministic FM4 feedbac
 - D050 governs four-operator connection/evaluation.
 - D051 governs base-pitch to operator-ratio mapping.
 - D052 governs operator LEVEL and global INDEX mapping.
-- D053 does not exist yet.
+- D053, once source-absent accepted, governs bounded OP4 feedback state/control semantics.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.
