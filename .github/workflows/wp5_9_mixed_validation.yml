@@ -1,0 +1,36 @@
+name: WP5.9 real mixed-engine validation
+
+on:
+  push:
+    branches:
+      - phase5/mixed-validation
+    paths:
+      - 'tests/run_wp5_9_mixed_validation_tests.sh'
+      - '.github/workflows/wp5_9_mixed_validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mixed-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Run real 8-BIT + FM4 validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_9_mixed_validation_tests.sh
+      - name: Upload WP5.9 mixed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-9-mixed-host-evidence
+          path: build/wp5_9_mixed/
+          if-no-files-found: error
