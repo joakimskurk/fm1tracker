@@ -1,0 +1,76 @@
+name: WP5.10 firmware export
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/worst-case-benchmark
+    paths:
+      - '.github/workflows/wp5_10_firmware_export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export-firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify frozen production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=81d3464059270130747e26fcc950b7a2e1bb03e1
+          git diff --exit-code "$BASE" -- \
+            firmware/src firmware/gen firmware/hal firmware/loader \
+            firmware/app.ld build.sh tools
+
+      - name: Install build dependency
+        run: python3 -m pip install pillow
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+
+      - name: Build exact Phase 5 production firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain"
+          SDK="$RUNNER_TEMP/ac79-sdk"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$SDK"
+          test "$(git -C "$SDK" rev-parse HEAD)" = d179b4484759423312073f5fbb232501aa491047
+          export AC79_SDK="$SDK"
+
+          ./build.sh --release 0.1
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+
+          BIN_SHA="$(sha256sum build/fm1tracker.bin | awk '{print $1}')"
+          FWSC_SHA="$(sha256sum build/fm1tracker-0.1.fwsc | awk '{print $1}')"
+          test "$BIN_SHA" = 17d8a9ad757a9d34908a17c03a0491c9e9be8aae0d1c1573edbf73766cb9d2e5
+          test "$FWSC_SHA" = 741036f46510f166a07bad2ba9a8dab5ed3e99917ce72fdbc697c736aec2a58d
+
+          printf 'production_checkpoint=81d3464059270130747e26fcc950b7a2e1bb03e1\n' > build/FIRMWARE_EXPORT.txt
+          printf 'fm1tracker_bin_sha256=%s\n' "$BIN_SHA" >> build/FIRMWARE_EXPORT.txt
+          printf 'fm1tracker_fwsc_sha256=%s\n' "$FWSC_SHA" >> build/FIRMWARE_EXPORT.txt
+          printf 'hardware_margin_claim=none\n' >> build/FIRMWARE_EXPORT.txt
+          cat build/FIRMWARE_EXPORT.txt
+
+      - name: Upload installable firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: fm1tracker-phase5-firmware
+          path: |
+            build/fm1tracker-0.1.fwsc
+            build/fm1tracker.bin
+            build/FIRMWARE_EXPORT.txt
+          if-no-files-found: error
