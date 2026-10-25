@@ -35,6 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build/wp5_8_closeout_host
           sh tests/run_wp5_8_closeout_host.sh 2>&1 | tee build/wp5_8_closeout_host/ci.log
       - name: Upload WP5.8 host evidence
         if: always()
