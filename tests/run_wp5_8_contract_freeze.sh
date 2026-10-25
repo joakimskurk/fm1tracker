@@ -22,11 +22,12 @@ grep -F 'WP5_8_REFERENCE_OK=1 ids=27 pages=7 base_bytes=27 bank_bytes=432 legacy
 sh tests/run_param_registry_tests.sh > build/wp5_8_contract/param_registry.log
 grep -F 'FMT_PARAM_REGISTRY_TESTS_OK=1' build/wp5_8_contract/param_registry.log
 
-# D055 focused implementation remains green before any WP5.8 production source
-# is authorized. This also guards the FM4 bridge/allocator/router invariants.
-sh tests/run_wp5_7_engine_gate.sh > build/wp5_8_contract/d055.log
+# Re-run the accepted *final integrated* D055 host gate. Do not call the older
+# pre-integration run_wp5_7_engine_gate.sh here: that gate intentionally requires
+# dinghy.c to be unchanged and is therefore invalid after D055 integration.
+sh tests/run_wp5_7_integration_tests.sh > build/wp5_8_contract/d055.log
 cat build/wp5_8_contract/d055.log
-grep -F 'WP5_7_ENGINE_GATE_OK=1' build/wp5_8_contract/d055.log
+grep -F 'WP5_7_HOST_GATE_OK=1 d055=integrated engine=788 slots=8 d043=exact d048=integrated d054=exact all8bit=wp5_0_identical mixed=deterministic hardware_margin_claim=none' build/wp5_8_contract/d055.log
 
 # Normative docs must explicitly contain the frozen IDs/resource/source rules.
 grep -F '`0x60` | `FM_ALGORITHM`' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev/null

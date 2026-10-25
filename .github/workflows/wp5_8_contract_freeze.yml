@@ -22,6 +22,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
       - name: Verify D056 source-absent contract
         run: sh tests/run_wp5_8_contract_freeze.sh
       - name: Upload contract evidence
