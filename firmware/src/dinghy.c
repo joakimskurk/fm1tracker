@@ -35,7 +35,14 @@
 #include "fmt_8bit_params.c"                   /* WP4.8: D044 engine pages/resolver */
 #include "fmt_8bit_engine.c"                   /* WP4.9 Gate 2: fixed linked engine */
 #include "fmt_8bit_linked_params.c"            /* WP4.9 Gate 3: linked base/cache/editor */
-#include "fmt_engine_router.c"                 /* WP5.0 D048: per-instrument family router */
+#include "fmt_fm_operator.c"                   /* WP5.1 D049: fixed-point FM operator */
+#include "fmt_fm_algorithm.c"                  /* WP5.2/D055: FM topology + external OP4 seam */
+#include "fmt_fm_ratio.c"                      /* WP5.3 D051: bounded ratio mapping */
+#include "fmt_fm_controls.c"                   /* WP5.4 D052: LEVEL/INDEX mapping */
+#include "fmt_fm_feedback.c"                   /* WP5.5 D053: bounded OP4 feedback */
+#include "fmt_fm_envelope.c"                   /* WP5.6 D054: four operator ADSRs */
+#include "fmt_fm_engine.c"                     /* WP5.7 D055: fixed eight-slot FM family */
+#include "fmt_engine_router.c"                 /* WP5.0/D055: per-instrument family router */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
@@ -50,6 +57,7 @@ FmtTrackerEffectState fmt_tracker_effect_runtime_extra[FMT_TRACKS - 1u];
 FmtTrackerRowEventState fmt_tracker_row_event_runtime;
 FmtTrackerRowEventState fmt_tracker_row_event_runtime_extra[FMT_TRACKS - 1u];
 Fmt8BitEngine fmt_8bit_engine_runtime;
+FmtFmEngine fmt_fm_engine_runtime;
 FmtEngineRouter fmt_engine_router_runtime;
 FmtInstrumentIdentityPublication fmt_instrument_identity_publication
     __attribute__((aligned(4)));
@@ -204,7 +212,8 @@ static void tracker_hard_silence_family(uint32_t track, uint8_t family)
                                             (uint8_t)track);
         break;
     case FMT_ENGINE_FAMILY_FM:
-        /* D048 reserves the FM family identity, but WP5.0 contains no FM DSP. */
+        (void)fmt_fm_engine_silence_track(&fmt_fm_engine_runtime,
+                                          (uint8_t)track);
         break;
     default:
         break;
@@ -234,7 +243,8 @@ static uint8_t tracker_route_active(uint32_t track)
         return fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime,
                                            (uint8_t)track) != FMT_VOICE_NONE;
     case FMT_ENGINE_FAMILY_FM:
-        return 0u;
+        return fmt_fm_engine_track_voice(&fmt_fm_engine_runtime,
+                                         (uint8_t)track) != FMT_VOICE_NONE;
     default:
         return 0u;
     }
@@ -265,19 +275,33 @@ static void tracker_apply_effect_pitch(uint32_t track)
 
     if (track >= FMT_TRACKS)
         return;
-    family = fmt_engine_router_family(&fmt_engine_router_runtime, (uint8_t)track);
-    if (family != FMT_ENGINE_FAMILY_8BIT ||
-        fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime, (uint8_t)track) ==
-            FMT_VOICE_NONE)
-        return;
     state = tracker_effect_state(track);
     if (!state || !state->pitch_valid)
         return;
-    (void)fmt_8bit_engine_update_row(&fmt_8bit_engine_runtime,
-                                     (uint8_t)track,
-                                     tracker_row_pitch_q7(track),
-                                     tracker_row_gain_q15(track),
-                                     tracker_live_page_word(track));
+
+    family = fmt_engine_router_family(&fmt_engine_router_runtime, (uint8_t)track);
+    if (family == FMT_ENGINE_FAMILY_8BIT) {
+        if (fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime,
+                                        (uint8_t)track) == FMT_VOICE_NONE)
+            return;
+        (void)fmt_8bit_engine_update_row(&fmt_8bit_engine_runtime,
+                                         (uint8_t)track,
+                                         tracker_row_pitch_q7(track),
+                                         tracker_row_gain_q15(track),
+                                         tracker_live_page_word(track));
+    } else if (family == FMT_ENGINE_FAMILY_FM) {
+        uint8_t voice_index = fmt_fm_engine_track_voice(&fmt_fm_engine_runtime,
+                                                        (uint8_t)track);
+        if (voice_index == FMT_VOICE_NONE)
+            return;
+        (void)fmt_fm_engine_update_row(
+            &fmt_fm_engine_runtime,
+            (uint8_t)track,
+            fmt_fm_engine_runtime.voice[voice_index].instrument,
+            tracker_row_pitch_q7(track),
+            tracker_row_gain_q15(track),
+            fmt_fm_engine_default_patch());
+    }
 }
 
 static uint8_t tracker_note_route(uint32_t track,
@@ -289,6 +313,7 @@ static uint8_t tracker_note_route(uint32_t track,
     uint8_t current_family;
     uint8_t voice_index;
     const Fmt8BitParamSet *base;
+    const FmtFmPatch *fm_patch;
 
     if (track >= FMT_TRACKS || instrument >= FMT_INSTRUMENTS) {
         tracker_hard_silence_route(track);
@@ -348,12 +373,31 @@ static uint8_t tracker_note_route(uint32_t track,
         return 1u;
 
     case FMT_ENGINE_FAMILY_FM:
-        /* Identity is valid but the family adapter is intentionally absent in
-         * WP5.0. Unsupported production dispatch always fails toward silence. */
-        if (current_family == FMT_ENGINE_FAMILY_FM)
-            tracker_hard_silence_family(track, current_family);
-        fmt_engine_router_clear(&fmt_engine_router_runtime, (uint8_t)track);
-        return 0u;
+        if (!fmt_fm_engine_supported(engine_id)) {
+            tracker_hard_silence_route(track);
+            return 0u;
+        }
+        fm_patch = fmt_fm_engine_default_patch();
+        voice_index = fmt_fm_engine_note(&fmt_fm_engine_runtime,
+                                         (uint8_t)track,
+                                         engine_id,
+                                         instrument,
+                                         tracker_row_pitch_q7(track),
+                                         tracker_row_gain_q15(track),
+                                         fm_patch);
+        if (voice_index == FMT_VOICE_NONE) {
+            fmt_engine_router_clear(&fmt_engine_router_runtime, (uint8_t)track);
+            return 0u;
+        }
+        if (!fmt_engine_router_commit(&fmt_engine_router_runtime,
+                                      (uint8_t)track,
+                                      FMT_ENGINE_FAMILY_FM)) {
+            (void)fmt_fm_engine_silence_track(&fmt_fm_engine_runtime,
+                                              (uint8_t)track);
+            fmt_engine_router_clear(&fmt_engine_router_runtime, (uint8_t)track);
+            return 0u;
+        }
+        return 1u;
 
     default:
         tracker_hard_silence_route(track);
@@ -376,6 +420,10 @@ static void tracker_release_route(uint32_t track, uint32_t page_word)
                                       page_word);
         break;
     case FMT_ENGINE_FAMILY_FM:
+        (void)fmt_fm_engine_release(&fmt_fm_engine_runtime,
+                                    (uint8_t)track,
+                                    tracker_row_gain_q15(track),
+                                    fmt_fm_engine_default_patch());
         break;
     default:
         break;
@@ -396,7 +444,7 @@ static void tracker_apply_synthetic_off(uint32_t track)
 static void tracker_apply_row_action(uint32_t track, uint8_t action, uint8_t note)
 {
     FmtTrackerEffectState *effect;
-    uint8_t instrument, voice_index;
+    uint8_t family, instrument, voice_index;
     const Fmt8BitParamSet *base;
 
     if (track >= FMT_TRACKS)
@@ -419,23 +467,35 @@ static void tracker_apply_row_action(uint32_t track, uint8_t action, uint8_t not
         break;
 
     case FMT_TRACKER_ROW_ACTION_RETRIG:
-        if (fmt_engine_router_family(&fmt_engine_router_runtime,
-                                     (uint8_t)track) !=
-            FMT_ENGINE_FAMILY_8BIT)
-            break;
-        voice_index = fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime,
-                                                  (uint8_t)track);
-        if (voice_index != FMT_VOICE_NONE) {
-            instrument = fmt_8bit_engine_runtime.voice[voice_index].instrument;
-            if (tracker_8bit_instrument_info(instrument,
-                                             (uint8_t *)0,
-                                             &base))
-                (void)fmt_8bit_engine_retrigger(&fmt_8bit_engine_runtime,
-                                                 (uint8_t)track,
-                                                 tracker_row_pitch_q7(track),
-                                                 tracker_row_gain_q15(track),
-                                                 tracker_page_row_word[track],
-                                                 base);
+        family = fmt_engine_router_family(&fmt_engine_router_runtime,
+                                          (uint8_t)track);
+        if (family == FMT_ENGINE_FAMILY_8BIT) {
+            voice_index = fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime,
+                                                      (uint8_t)track);
+            if (voice_index != FMT_VOICE_NONE) {
+                instrument = fmt_8bit_engine_runtime.voice[voice_index].instrument;
+                if (tracker_8bit_instrument_info(instrument,
+                                                 (uint8_t *)0,
+                                                 &base))
+                    (void)fmt_8bit_engine_retrigger(&fmt_8bit_engine_runtime,
+                                                     (uint8_t)track,
+                                                     tracker_row_pitch_q7(track),
+                                                     tracker_row_gain_q15(track),
+                                                     tracker_page_row_word[track],
+                                                     base);
+            }
+        } else if (family == FMT_ENGINE_FAMILY_FM) {
+            voice_index = fmt_fm_engine_track_voice(&fmt_fm_engine_runtime,
+                                                    (uint8_t)track);
+            if (voice_index != FMT_VOICE_NONE) {
+                instrument = fmt_fm_engine_runtime.voice[voice_index].instrument;
+                (void)fmt_fm_engine_retrigger(&fmt_fm_engine_runtime,
+                                               (uint8_t)track,
+                                               instrument,
+                                               tracker_row_pitch_q7(track),
+                                               tracker_row_gain_q15(track),
+                                               fmt_fm_engine_default_patch());
+            }
         }
         break;
 
@@ -618,6 +678,11 @@ static void app_audio(int32_t *out, uint32_t n)
     if (fmt_playback_runtime.started) {
         for (i = 0u; i < n; i++) {
             int32_t sample = fmt_8bit_engine_render(&fmt_8bit_engine_runtime);
+            sample += fmt_fm_engine_render(&fmt_fm_engine_runtime);
+            if (sample > 32767)
+                sample = 32767;
+            else if (sample < -32767)
+                sample = -32767;
             out[2u * i] += sample;
             out[2u * i + 1u] += sample;
 
@@ -694,7 +759,8 @@ static int quiet(void)
 
     /* D045: settings_save() also waits for all eight sequenced envelopes,
      * including detached D043 release tails, to reach IDLE. */
-    if (!fmt_8bit_engine_quiet(&fmt_8bit_engine_runtime))
+    if (!fmt_8bit_engine_quiet(&fmt_8bit_engine_runtime) ||
+        !fmt_fm_engine_quiet(&fmt_fm_engine_runtime))
         return 0;
 
     for (v = 0; v < NV; v++)
@@ -871,6 +937,7 @@ static void app_main(void)
     fmt_instrument_identity_publish_song(
         &fmt_instrument_identity_publication, fmt_store_song_const());
     fmt_8bit_engine_reset(&fmt_8bit_engine_runtime);
+    fmt_fm_engine_reset(&fmt_fm_engine_runtime);
     fmt_engine_router_reset(&fmt_engine_router_runtime);
     {
         const FmtSong *song = fmt_store_song_const();
