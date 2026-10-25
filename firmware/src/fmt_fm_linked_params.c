@@ -1,0 +1,160 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+#include "fmt_fm_linked_params.h"
+
+#include <stddef.h>
+
+FmtFmParamSet fmt_fm_instrument_base[FMT_INSTRUMENTS];
+
+static int fmt_fm_linked_param_id(FmtParamId id)
+{
+    return (id >= FMT_PARAM_FM_ALGORITHM && id <= FMT_PARAM_FM_FEEDBACK) ||
+           (id >= FMT_PARAM_FM_OP1_RATIO && id <= FMT_PARAM_FM_OP4_RELEASE);
+}
+
+static uint32_t fmt_fm_linked_pack_pair(const FmtFmOverride *a,
+                                        const FmtFmOverride *b)
+{
+    return (uint32_t)a->id |
+           ((uint32_t)a->value << 8) |
+           ((uint32_t)b->id << 16) |
+           ((uint32_t)b->value << 24);
+}
+
+static void fmt_fm_linked_unpack_pair(uint32_t word,
+                                      FmtFmOverride *a,
+                                      FmtFmOverride *b)
+{
+    a->id = (FmtParamId)(word & 0xFFu);
+    a->value = (uint8_t)((word >> 8) & 0xFFu);
+    b->id = (FmtParamId)((word >> 16) & 0xFFu);
+    b->value = (uint8_t)((word >> 24) & 0xFFu);
+}
+
+void fmt_fm_linked_params_reset(void)
+{
+    uint32_t instrument;
+
+    for (instrument = 0u; instrument < FMT_INSTRUMENTS; instrument++)
+        fmt_fm_param_set_defaults(&fmt_fm_instrument_base[instrument]);
+}
+
+int fmt_fm_linked_params_set_base(uint32_t instrument,
+                                  const FmtFmParamSet *base)
+{
+    if (!base || instrument >= FMT_INSTRUMENTS)
+        return 0;
+    fmt_fm_instrument_base[instrument] = *base;
+    return 1;
+}
+
+const FmtFmParamSet *fmt_fm_linked_params_base(uint32_t instrument)
+{
+    if (instrument >= FMT_INSTRUMENTS)
+        return (const FmtFmParamSet *)0;
+    return &fmt_fm_instrument_base[instrument];
+}
+
+int fmt_fm_linked_params_publish(uint32_t track,
+                                 uint32_t row,
+                                 const FmtFmOverride *overrides,
+                                 uint8_t count)
+{
+    FmtFmOverride sorted[FMT_FM_MAX_ROW_OVERRIDES];
+    uint32_t low, high;
+    uint8_t i, j;
+    uint8_t active, inactive;
+
+    if (track >= FMT_TRACKS || row >= FMT_STEPS_PER_PATTERN ||
+        count > FMT_FM_MAX_ROW_OVERRIDES ||
+        (count != 0u && !overrides))
+        return 0;
+
+    for (i = 0u; i < FMT_FM_MAX_ROW_OVERRIDES; i++) {
+        sorted[i].id = (FmtParamId)FMT_PARAM_NONE;
+        sorted[i].value = 0u;
+    }
+
+    for (i = 0u; i < count; i++) {
+        if (!fmt_fm_linked_param_id(overrides[i].id))
+            return 0;
+        sorted[i] = overrides[i];
+    }
+
+    for (i = 1u; i < count; i++) {
+        FmtFmOverride key = sorted[i];
+        j = i;
+        while (j > 0u && sorted[j - 1u].id > key.id) {
+            sorted[j] = sorted[j - 1u];
+            j--;
+        }
+        sorted[j] = key;
+    }
+
+    for (i = 1u; i < count; i++) {
+        if (sorted[i - 1u].id == sorted[i].id)
+            return 0;
+    }
+
+    low = fmt_fm_linked_pack_pair(&sorted[0], &sorted[1]);
+    high = fmt_fm_linked_pack_pair(&sorted[2], &sorted[3]);
+    active = (uint8_t)(fmt_engine_row_param_cache.active_bank[track][row] & 1u);
+    inactive = (uint8_t)(active ^ 1u);
+
+    if (inactive == 0u) {
+        fmt_engine_row_param_cache.legacy.word[track][row] = low;
+        fmt_engine_row_param_cache.bank0_high[track][row] = high;
+    } else {
+        fmt_engine_row_param_cache.bank1_low[track][row] = low;
+        fmt_engine_row_param_cache.bank1_high[track][row] = high;
+    }
+    fmt_engine_row_param_cache.active_bank[track][row] = inactive;
+    return 1;
+}
+
+int fmt_fm_linked_params_read(uint32_t track,
+                              uint32_t row,
+                              FmtFmRowOverrides *out)
+{
+    uint32_t low, high;
+    uint8_t active;
+
+    if (!out || track >= FMT_TRACKS || row >= FMT_STEPS_PER_PATTERN)
+        return 0;
+
+    active = (uint8_t)(fmt_engine_row_param_cache.active_bank[track][row] & 1u);
+    if (active == 0u) {
+        low = fmt_engine_row_param_cache.legacy.word[track][row];
+        high = fmt_engine_row_param_cache.bank0_high[track][row];
+    } else {
+        low = fmt_engine_row_param_cache.bank1_low[track][row];
+        high = fmt_engine_row_param_cache.bank1_high[track][row];
+    }
+
+    fmt_fm_linked_unpack_pair(low, &out->slot[0], &out->slot[1]);
+    fmt_fm_linked_unpack_pair(high, &out->slot[2], &out->slot[3]);
+    return 1;
+}
+
+int fmt_fm_linked_params_compose(uint32_t instrument,
+                                 const FmtFmRowOverrides *overrides,
+                                 FmtFmPatch *patch_out)
+{
+    FmtFmParamSet resolved;
+    uint32_t i;
+
+    if (!overrides || !patch_out || instrument >= FMT_INSTRUMENTS)
+        return 0;
+
+    resolved = fmt_fm_instrument_base[instrument];
+    for (i = 0u; i < FMT_FM_MAX_ROW_OVERRIDES; i++) {
+        FmtParamId id = overrides->slot[i].id;
+        if (id == FMT_PARAM_NONE)
+            continue;
+        if (!fmt_fm_linked_param_id(id) ||
+            !fmt_fm_param_set_value(&resolved, id, overrides->slot[i].value))
+            return 0;
+    }
+
+    fmt_fm_params_to_patch(&resolved, patch_out);
+    return 1;
+}
