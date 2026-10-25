@@ -1,0 +1,36 @@
+name: WP5.8 D056 parameter model
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'firmware/src/fmt_param_registry.h'
+      - 'firmware/src/fmt_param_registry.c'
+      - 'firmware/src/fmt_fm_params.h'
+      - 'firmware/src/fmt_fm_params.c'
+      - 'tests/test_fmt_param_registry.c'
+      - 'tests/test_fmt_fm_params.c'
+      - 'tests/run_param_registry_tests.sh'
+      - 'tests/run_wp5_8_param_model_tests.sh'
+      - '.github/workflows/wp5_8_param_model.yml'
+  workflow_dispatch:
+
+jobs:
+  parameter-model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Verify D056 parameter model slice
+        run: sh tests/run_wp5_8_param_model_tests.sh
+      - name: Upload parameter-model evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-8-param-model-evidence
+          path: build/wp5_8_params
+          if-no-files-found: error
