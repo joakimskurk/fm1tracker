@@ -119,6 +119,26 @@ FM p-lock mixed audio     deterministic; changes output
 all-8BIT WAV             WP5.0-identical
 ```
 
+### Page-aware held-step FM editor slice
+
+```text
+production integration   20400b498263b8d341251a6ad3521f32e0fa8171
+verification head        e4e11f0319a4fd4034c7d1d07e6b6f2e22c7c841
+run                      40184162192 SUCCESS
+job                      121141304254 SUCCESS
+artifact                 wp5-8-fm-editor-evidence / 12595551255
+artifact SHA-256         be21e073bee5be57451e6937ca052bd4508254fc471e778d03b8e3958bbcf537
+FM pages                   7 exact
+FM page slots              4 exact; CORE K4 NONE
+reference value          resolved instrument base, existing lock wins
+mutation/delete refresh  common + generalized engine row, one row only
+provisional page gesture OCT-/OCT+ only during valid FM held-step edit
+page state               main/UI only, zero audio reads
+legacy generic editor    exact regression
+all-8BIT editor/audio    unchanged; WP5.0-identical WAV
+one-shot apply tooling   retired after verified production commit
+```
+
 Frozen absolute package ceilings remain:
 
 ```text
@@ -131,8 +151,8 @@ D049-D055 synthesis/voice behavior remains frozen except for the bounded D056 ad
 
 ## Current exact action
 
-Implement page-aware held-step FM editing through the existing generic lock editor. FM knob identity must come from the frozen seven-page D056 mapping, reference values must come from the resolved instrument's normalized base when a lock does not already exist, successful FM lock mutation/delete must refresh the common row snapshot plus the generalized engine-row publication for that one row, and 8BIT editor behavior must remain unchanged.
+Verify the bounded mutable per-instrument FM base API. A base mutation must affect later row-boundary composition for that instrument, existing p-lock overrides must still win, unrelated instruments must remain unchanged, and invalid instrument/input must fail without mutation. Because the generalized FM row publication contains overrides only rather than full base patches, changing a base must not require a row-cache rebuild.
 
-Then add bounded mutable per-instrument FM base editing/API verification, target footprint and inherited D049-D055/8BIT regressions. Do not start WP5.9.
+Then run the final WP5.8 target footprint and inherited D049-D055/8BIT regressions against the frozen absolute ceilings. If green, close WP5.8 and prepare WP5.9 according to `docs/WORK_PACKAGES.md`. Do not start WP5.9 before WP5.8 closeout evidence is recorded.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
