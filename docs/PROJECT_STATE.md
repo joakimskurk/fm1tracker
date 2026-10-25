@@ -8,7 +8,7 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.7 complete; WP5.8/D056 contract frozen, source-absent gate active - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.7 complete; WP5.8/D056 frozen and preimplementation evidence accepted - 2026-10-25**
 
 Current active package: **WP5.8 - FM4 parameter pages and p-lock mapping**  
 Active issue: **#51**  
@@ -28,19 +28,31 @@ Active branch: `phase5/fm4-parameters`
 ## WP5.8 / D056 current state
 
 Audit: `docs/WP5_8_PRECONTRACT_AUDIT.md`.  
-Normative: `docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md`.
+Normative: `docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md`.  
+Accepted preimplementation evidence: `docs/WP5_8_PREIMPLEMENTATION_EVIDENCE.md`.
 
-D056 is frozen before production code:
+D056 source-absent freeze is accepted:
+
+```text
+contract head            9436e385a96fa89b74c4c016c03f7857c2373552
+run                      40178938471 SUCCESS
+job                      121125607384 SUCCESS
+artifact                 wp5-8-contract-evidence / 12592494488
+artifact SHA-256         9c8ca18fe027b7286c3fe4e0b2086e133780b89df8721a01f4a91eafc672d51c
+production authorization yes - bounded by D056
+```
+
+Frozen implementation contract:
 
 ```text
 FM semantic IDs          27
 namespace                0x60..0x7B, except 0x63
-logical pages            7
-FmtFmParamSet            27 B target
-FM base bank            432 B target
-max p-locks per step      4 unchanged
-generalized row cache  8704 B target
-legacy 8BIT view       2048 B exact
+logical pages             7
+FmtFmParamSet             27 B target
+FM base bank             432 B target
+max p-locks per step       4 unchanged
+generalized row cache   8704 B target
+legacy 8BIT view        2048 B exact
 known normal-RAM growth 7088 B
 ```
 
@@ -58,12 +70,12 @@ normal RAM  <= 28656 B
 pool         = 113000 B
 ```
 
-D049-D055 synthesis/voice source and generated tables remain frozen.
+D049-D055 synthesis/voice behavior remains frozen except for the bounded D056 adapter/integration seam. The legacy `fmt_8bit_row_param_cache` ABI/layout and exact 2048-byte footprint remain frozen.
 
 ## Current exact action
 
-Run the D056 source-absent contract workflow. It must prove zero firmware/gen diff from the WP5.7 closeout and green D055 focused regressions. If green, write durable preimplementation evidence and only then begin the bounded production source activation defined in D056.
+Begin the bounded D056 production activation. First extend the existing semantic parameter architecture with the frozen FM IDs, domains and seven-page metadata, then add the compact FM row override publication path while preserving the legacy 8BIT cache view. Stored 16-bit p-lock values must be domain-validated before publication; the audio inner loop must never traverse the lock store.
 
-Do not start WP5.9.
+After each coherent slice, run the focused D056 tests plus inherited parameter-registry and D055 regressions. Do not start WP5.9.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
