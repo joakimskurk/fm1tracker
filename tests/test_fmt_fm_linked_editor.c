@@ -16,7 +16,7 @@ uint8_t fmt_fm_engine_supported(uint8_t engine_id)
     return engine_id == FMT_FM_ENGINE_FM4;
 }
 
-uint8_t fmt_8bit_engine_supported(uint8_t engine_id)
+int fmt_8bit_engine_supported(uint8_t engine_id)
 {
     return engine_id == FMT_8BIT_ENGINE_PULSE;
 }
