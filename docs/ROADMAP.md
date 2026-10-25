@@ -22,7 +22,8 @@ The instrument should feel playable before it feels editable. Tracker data remai
   - WP5.2 curated four-operator routing: COMPLETE
   - WP5.3 integer ratio/pitch mapping: COMPLETE
   - WP5.4 level/modulation-index mapping: COMPLETE
-  - WP5.5 bounded feedback: NEXT
+  - WP5.5 bounded feedback: TECHNICALLY COMPLETE / CLOSEOUT
+  - WP5.6 envelope strategy: NEXT after closeout
 - live performance capture milestone: PLANNED after engine foundations
 - Phase 6 song/order/persistence: PLANNED
 - Phase 7 physical hardware UX freeze: BLOCKED until physical FM-1
@@ -53,43 +54,34 @@ D051 froze 16 stable Q8 ratios, deterministic high-register clamp behavior and a
 
 ### WP5.4 - levels / modulation index - COMPLETE
 
-D052 froze the compact five-byte internal control model:
+D052 froze four LEVEL bytes plus one global INDEX byte, exact Q15/Q14 mapping and zero persistent state. PI32v2 controls object: 108 B.
+
+### WP5.5 - bounded feedback - TECHNICALLY COMPLETE / CLOSEOUT
+
+D053 establishes one deterministic OP4 self-feedback edge with exactly one-sample history.
+
+Frozen core:
 
 ```text
-OP1_LEVEL OP2_LEVEL OP3_LEVEL OP4_LEVEL INDEX
+history state  signed int16, 2 B
+FEEDBACK       0..255
+Q14 depth      (v << 6) | (v >> 2)
+phase offset   previous_op4 * depth * 4
 ```
 
-LEVEL maps exactly to Q15 with `(v << 7) | (v >> 1)`. INDEX maps exactly to Q14 with `(v << 6) | (v >> 2)`. The transient mapped struct is 10 B, persistent state is zero, and all 65,536 legal LEVEL x INDEX edge combinations are signed-32 safe under D049/D050.
+Reset/retrigger clear history. Algorithm switches retain it. FEEDBACK=0 leaves the phase unmodulated while continuing to track OP4 history.
 
-Canonical verification:
+Measured PI32v2 feedback object: 130 B text+rodata. Future D050 + D053 synthesis state before envelopes: 18 B. Full application remains exact WP5.0.
 
-- source-absent run `40140119411`, job `121009903030`;
-- implementation run `40143482844`, host `121019875458`, target `121019875309`;
-- PI32v2 controls object 108 B;
-- full application remains exact WP5.0.
+Canonical implementation run `40164953532`, host `121083999893`, target `121083999790`. Evidence: `WP5_5_VERIFICATION.md`.
 
-Evidence: `WP5_4_VERIFICATION.md`.
+### WP5.6 - envelope strategy - NEXT AFTER CLOSEOUT
 
-### WP5.5 - bounded feedback - NEXT
+Issue #49. D054 must be frozen contract-first before production envelope code.
 
-Issue #48. D053 must be frozen contract-first before production feedback code.
+The package must compare a common amplitude envelope against per-operator envelopes using both measured resource cost and the ability to create time-varying FM spectra. It must then freeze the smallest useful V1 stage architecture, integer rate/level model, reset/retrigger behavior, update cadence and exact deterministic vectors.
 
-The package must decide:
-
-- the smallest deterministic feedback insertion point compatible with D049/D050;
-- one bounded V1 feedback topology rather than arbitrary graph feedback;
-- exact stable integer control domain and malformed-input behavior;
-- fixed history/state ownership and one-sample semantics;
-- reset and algorithm-switch history behavior;
-- arithmetic safety across D051 ratio extremes and D052 maximum LEVEL/INDEX;
-- deterministic vector, reset/switch and long-run stress fixtures;
-- persistent-state and PI32v2 object ceilings.
-
-Preserve D049-D052 DSP contracts. Do not add envelopes, voice allocation or tracker UI/p-lock semantics here.
-
-### WP5.6 - envelope strategy
-
-Freeze common versus per-operator strategy from measured cost.
+Preserve D049-D053 contracts. Do not add FM voice allocation, D048 integration or tracker-facing parameter semantics here.
 
 ### WP5.7 - FM voice allocation/integration
 

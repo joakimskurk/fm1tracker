@@ -42,62 +42,60 @@ Evidence `WP5_3_VERIFICATION.md`.
 
 ### WP5.4 - levels / modulation index - COMPLETE - issue #47 - D052
 
-D052 froze:
+Evidence `WP5_4_VERIFICATION.md`.
 
-- four independent LEVEL bytes and one global INDEX byte, all 0..255;
-- exact Q15/Q14 integer mappings;
-- saturating malformed scalar input;
-- null-level fail-to-silence semantics;
-- 10 B transient mapped state and zero persistent state;
-- signed-32-safe D049/D050 single-edge bounds across all 65,536 legal LEVEL x INDEX pairs.
+### WP5.5 - bounded feedback - TECHNICALLY COMPLETE / CLOSEOUT - issue #48 - D053
+
+D053 froze and verified:
+
+- one OP4 self-feedback edge;
+- exactly one-sample history;
+- exactly 2 B feedback state per future FM voice;
+- one distinct FEEDBACK byte 0..255;
+- exact Q14 mapping `(v << 6) | (v >> 2)`;
+- signed phase offset `previous * depth * 4`;
+- reset/retrigger clear history;
+- D050 algorithm switches retain history;
+- full signed-int16 x 256 control arithmetic proof;
+- isolated production source only `fmt_fm_feedback.h/.c`.
 
 Verified:
 
-- source-absent run `40140119411` / job `121009903030`;
-- canonical implementation run `40143482844`, host `121019875458`, target `121019875309`;
-- only `fmt_fm_controls.h/.c` added under production firmware;
-- PI32v2 object 108 B, SHA `05867ebe120829d1e3b8bf6f0504f29d63e9643e4fa5eede4c6d858d31d25059`;
-- full application remains exact WP5.0.
+- source-absent run `40164610821`, job `121082987705`;
+- implementation run `40164953532`, host `121083999893`, target `121083999790`;
+- PI32v2 object 130 B, SHA `147c623c49fa8756f36937589d96f2da5139b6e3d1a09790e95d91c5f770256d`;
+- full application remains exact WP5.0;
+- D049-D052 and `dinghy.c` unchanged.
 
-Evidence: `WP5_4_VERIFICATION.md`.
+Evidence: `WP5_5_VERIFICATION.md`.
 
-### WP5.5 - bounded feedback - NEXT - issue #48
+Final closeout-head rerun is required before #48 closes.
 
-Goal: define, implement and verify the smallest deterministic bounded feedback primitive/topology that composes with D049-D052 without pulling envelopes or voice/router integration forward.
+### WP5.6 - FM envelope strategy - PLANNED / NEXT - issue #49
+
+Goal: choose the smallest bounded deterministic envelope architecture that still enables useful FM timbral evolution, using measured state and realtime cost before WP5.7 integration.
 
 Required order:
 
-1. inspect D049 phase-modulation arithmetic and D050 fixed topology/evaluation order;
-2. choose one bounded V1 feedback insertion/topology;
-3. freeze internal feedback control domain, zero/nominal/max, clamp/rounding and malformed-input policy;
-4. freeze one-sample history/state ownership plus reset and algorithm-switch behavior;
-5. prove arithmetic safety against D051 ratio extremes and D052 maximum LEVEL/INDEX;
-6. define deterministic vectors, reset/switch fixtures and long stress;
-7. freeze persistent-state/realtime/PI32v2 ceilings;
-8. write/freeze D053 before production feedback source;
-9. pass source-absent reference CI;
+1. audit actual D049-D053 envelope needs;
+2. compare common amplitude envelope versus per-operator envelopes;
+3. choose bounded V1 architecture from musical capability and measured cost;
+4. freeze stage, time, level, reset/retrigger and zero-time semantics;
+5. freeze sample/tick update cadence and realtime bounds;
+6. define deterministic vectors and long stress;
+7. freeze state and PI32v2 ceilings;
+8. freeze D054 before production source;
+9. pass source-absent gate;
 10. only then implement and verify;
-11. write `WP5_5_VERIFICATION.md` before WP5.6 begins.
-
-Allowed:
-
-- one explicitly frozen bounded feedback topology;
-- compact fixed-size feedback history;
-- deterministic integer transforms;
-- deterministic host vectors/hashes and long stress;
-- pinned PI32v2 state/object measurement;
-- inherited D049-D052/WP5.0 regressions.
+11. write `WP5_6_VERIFICATION.md` before WP5.7.
 
 Out of scope:
 
-- envelopes, WP5.6;
 - FM voice/D048 integration, WP5.7;
 - FM tracker pages/p-lock IDs, WP5.8;
 - audible mixed 8-BIT + FM4, WP5.9.
 
-D053 does not exist yet.
-
-### WP5.6 - FM envelope strategy - PLANNED
+D054 does not exist yet.
 
 ### WP5.7 - FM voice allocation/integration - PLANNED
 

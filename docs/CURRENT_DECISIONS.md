@@ -2,7 +2,7 @@
 
 Date: 2026-10-25
 
-`DECISIONS.md` remains the append-only historical decision log through D046. D047-D052 are accepted and verified Phase 5 decisions. D053 is accepted source-absent and authorized for its bounded isolated implementation.
+`DECISIONS.md` remains the append-only historical decision log through D046. D047-D053 are accepted Phase 5 decisions.
 
 ## D047 - mixed-engine instrument architecture
 
@@ -41,10 +41,10 @@ Evidence: `WP5_4_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_4_VERIFICATION.md`
 
 ## D053 - bounded one-sample OP4 feedback
 
-Status: **ACCEPTED SOURCE-ABSENT - IMPLEMENTATION AUTHORIZED**  
+Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_5_FM_FEEDBACK_CONTRACT.md`  
 Audit: `WP5_5_PRECONTRACT_AUDIT.md`  
-Evidence: `WP5_5_PREIMPLEMENTATION_EVIDENCE.md`
+Evidence: `WP5_5_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_5_VERIFICATION.md`
 
 Frozen compatibility:
 
@@ -58,16 +58,20 @@ Frozen compatibility:
 - reset/retrigger clears history;
 - D050 algorithm changes retain history;
 - no D049-D052 or `dinghy.c` modification in WP5.5;
-- isolated production surface limited to `fmt_fm_feedback.h/.c`;
-- exhaustive full signed-16 history x 256 controls is signed-32 safe.
+- isolated production surface exactly `fmt_fm_feedback.h/.c`;
+- full signed-int16 history x 256 controls is signed-32 safe;
+- PI32v2 object 130 B and persistent state 2 B per future FM voice;
+- full running application remains exact WP5.0 while D053 is isolated.
 
-Accepted source-absent checkpoint:
+Canonical source-absent gate: run `40164610821`, job `121082987705`.
 
-- head `10bf0e3bf8ef49253666bee999b2de95de10046d`;
-- run `40164610821`;
-- job `121082987705`;
-- artifact `12587966076`;
-- artifact SHA `0eb34eb28a92f69eeeb653ddae2661ca62d72e8eaf887a881e227fbe26c7e4b9`.
+Canonical implementation verification: run `40164953532`, host `121083999893`, target `121083999790`.
+
+## D054
+
+Status: **NOT YET DEFINED**
+
+WP5.6 / issue #49 must freeze D054 contract-first after WP5.5 formal closeout. D054 must choose a bounded deterministic FM4 envelope strategy without pulling WP5.7 voice/router integration forward.
 
 ## Current precedence
 
@@ -77,6 +81,7 @@ Accepted source-absent checkpoint:
 - D050 governs four-operator connection/evaluation.
 - D051 governs base-pitch to operator-ratio mapping.
 - D052 governs operator LEVEL and global INDEX mapping.
-- D053 governs bounded one-sample OP4 feedback state/control semantics.
+- D053 governs bounded one-sample OP4 feedback.
+- D054 does not exist yet.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.

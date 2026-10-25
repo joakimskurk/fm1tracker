@@ -8,7 +8,7 @@ License: GPL-3.0-only unless otherwise noted. See `THIRD_PARTY.md`.
 
 ## Current status
 
-**Phase 5 is in progress. WP5.0 mixed-engine routing, WP5.1 fixed-point FM operator, WP5.2 curated FM4 routing, WP5.3 integer ratio/pitch mapping and WP5.4 level/modulation-index mapping are complete. WP5.5 bounded feedback is next and must begin contract-first.**
+**Phase 5 is in progress. WP5.0 through WP5.5 are technically complete; WP5.5 is at final documentation closeout and WP5.6 envelope strategy is next after the closeout head is green.**
 
 Completed engine foundation:
 
@@ -17,7 +17,8 @@ Completed engine foundation:
 - D049 deterministic fixed-point FM operator;
 - D050 deterministic four-operator routing;
 - D051 deterministic 16-ID integer FM ratio mapping;
-- D052 deterministic four-LEVEL plus global-INDEX mapping.
+- D052 deterministic four-LEVEL plus global-INDEX mapping;
+- D053 deterministic one-sample OP4 feedback.
 
 ## FM primitive baseline
 
@@ -27,26 +28,28 @@ D050 routing: four static algorithms, fixed OP4 -> OP3 -> OP2 -> OP1 evaluation,
 
 D051 ratio mapping: 16 stable Q8 ratios, deterministic clamp/rounding, PI32v2 object 264 B.
 
-D052 control mapping:
+D052 control mapping: four LEVEL bytes and one global INDEX byte, 10 B transient mapped state, PI32v2 object 108 B.
 
-- OP1_LEVEL..OP4_LEVEL and INDEX are stable 0..255 DSP bytes;
-- LEVEL -> Q15 by `(v << 7) | (v >> 1)`;
-- INDEX -> Q14 by `(v << 6) | (v >> 2)`;
-- transient mapped state 10 B, persistent state 0 B;
-- PI32v2 object 108 B;
+D053 feedback:
+
+- OP4 self-feedback only;
+- one-sample delay;
+- FEEDBACK 0..255 mapped to Q14;
+- 2 B prior-OP4 history state per future FM voice;
+- PI32v2 feedback object 130 B;
 - source remains isolated from `dinghy.c`.
 
-Canonical WP5.4 final run: `40143482844`, host `121019875458`, target `121019875309`, evidence `docs/WP5_4_VERIFICATION.md`.
+Canonical WP5.5 implementation run: `40164953532`, host `121083999893`, target `121083999790`, evidence `docs/WP5_5_VERIFICATION.md`.
 
 Full running application remains exact WP5.0: 72,792 B image / 19,676 B normal RAM / 113,000 B pool, identity `FM-1_987`.
 
 ## Next work package
 
-**WP5.5 - bounded deterministic FM4 feedback**, issue #48, expected branch `phase5/fm4-feedback`.
+**WP5.6 - bounded FM4 envelope strategy**, issue #49, expected branch `phase5/fm4-envelope`, blocked until WP5.5 formal closeout completes.
 
-WP5.5 starts contract-first. D053 must choose one bounded deterministic feedback topology/history model, freeze exact integer control/reset/switch semantics and prove arithmetic/state/object bounds before production feedback source exists.
+WP5.6 starts contract-first. D054 must compare common versus per-operator envelope strategies using measured cost and musical capability, then freeze exact integer stage/rate/retrigger/update semantics before production envelope source exists.
 
-WP5.5 does not include envelopes, voice integration, tracker-facing p-lock pages/IDs or audible mixed FM playback.
+WP5.6 does not include voice allocation, D048 integration, tracker-facing p-lock pages/IDs or audible mixed FM playback.
 
 ## FM4 sequence
 
@@ -54,8 +57,8 @@ WP5.5 does not include envelopes, voice integration, tracker-facing p-lock pages
 2. WP5.2 curated algorithms - COMPLETE
 3. WP5.3 integer ratios/pitch mapping - COMPLETE
 4. WP5.4 levels / modulation index - COMPLETE
-5. WP5.5 bounded feedback - NEXT
-6. WP5.6 envelope strategy
+5. WP5.5 bounded feedback - TECHNICALLY COMPLETE / CLOSEOUT
+6. WP5.6 envelope strategy - NEXT
 7. WP5.7 voice allocation/integration
 8. WP5.8 parameter pages + p-lock mapping
 9. WP5.9 mixed 8-BIT + FM4 validation
