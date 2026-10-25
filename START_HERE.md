@@ -5,72 +5,73 @@ Repository state is authoritative. Do not reconstruct the plan from old chat con
 Read in this order:
 
 1. `docs/PROJECT_STATE.md`
-2. `docs/WP5_3_VERIFICATION.md`
-3. `docs/WP5_3_FM_RATIO_CONTRACT.md`
-4. `docs/WP5_2_VERIFICATION.md`
-5. `docs/WP5_1_VERIFICATION.md`
-6. `docs/WP5_0_VERIFICATION.md`
-7. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-8. `docs/CURRENT_DECISIONS.md`
-9. `docs/WORK_PACKAGES.md`
-10. `docs/EXECUTION_PROTOCOL.md`
-11. `docs/CURRENT_TEST_STATE.md`
-12. `docs/TEST_MATRIX.md`
-13. `docs/ROADMAP.md`
-14. `THIRD_PARTY.md`
+2. `docs/WP5_4_VERIFICATION.md`
+3. `docs/WP5_4_FM_LEVEL_INDEX_CONTRACT.md`
+4. `docs/WP5_4_PREIMPLEMENTATION_EVIDENCE.md`
+5. `docs/WP5_3_VERIFICATION.md`
+6. `docs/WP5_2_VERIFICATION.md`
+7. `docs/WP5_1_VERIFICATION.md`
+8. `docs/WP5_0_VERIFICATION.md`
+9. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
+10. `docs/CURRENT_DECISIONS.md`
+11. `docs/WORK_PACKAGES.md`
+12. `docs/EXECUTION_PROTOCOL.md`
+13. `docs/CURRENT_TEST_STATE.md`
+14. `docs/TEST_MATRIX.md`
+15. `docs/ROADMAP.md`
+16. `THIRD_PARTY.md`
 
 ## Current handoff
 
-WP5.0/D048, WP5.1/D049, WP5.2/D050 and WP5.3/D051 are complete.
+WP5.0/D048 through WP5.4/D052 are complete.
 
-WP5.3 canonical final verification:
+WP5.4 canonical verification:
 
-- clean verification head `9c2b0a611b4e1d0c15c42aa8eb9259d368987340`
-- run `40139154497`
-- host job `121006986068`
-- target job `121006985928`
-- host artifact ID `12577038930`, SHA `2b632171295a72854b08b6451b122b670dac81304323e4c86af0ed460d3cccb1`
-- target artifact ID `12578054556`, SHA `97a1a2f166c578a616d8f488e779b9905d630f20a2e5f1971542b8a2af0e29b3`
-- PI32v2 `fmt_fm_ratio.o` 264 B, SHA `aa5bd8b9e1afa72054af2effeefbf468cfbb8b2b8d978e028540a30dc162956d`
+- implementation head `8a283c9216e7f72bab0770f5b1a8a0255f9bd54d`
+- run `40143482844`
+- host job `121019875458`
+- target job `121019875309`
+- host artifact ID `12579074081`, SHA `8f98edfc38e09a1972f5ca168ad3b8690508782ca14b31179496ec4edb27de2c`
+- target artifact ID `12579672157`, SHA `7b4d5e9d76555998ba3d099090f1e5ef592f775e25338f19b4c09de30b6bc01f`
+- PI32v2 `fmt_fm_controls.o` 108 B, SHA `05867ebe120829d1e3b8bf6f0504f29d63e9643e4fa5eede4c6d858d31d25059`
 - full target remains exact WP5.0
-- evidence `docs/WP5_3_VERIFICATION.md`
+- evidence `docs/WP5_4_VERIFICATION.md`
 
-D051 source-absent proof remains canonical at run `40138575267`, job `121005262360`.
+D052 source-absent proof remains canonical at run `40140119411`, job `121009903030`.
 
-## Frozen D051 core
+## Frozen D052 core
 
-Stable ratio IDs represent:
-
-`0.5, 1.0, 1.25, 1.4140625, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 12.0, 16.0`
-
-- unsigned Q8;
-- base max `1293741834`;
-- output ceiling `0x7fffffff`;
-- invalid ID -> UNITY;
-- deterministic 32-bit split-Q8 scaling;
-- exhaustive reference SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
-- no runtime division/modulo/int64/float;
-- D051 ceiling is not an anti-aliasing claim.
+- four LEVEL bytes plus one global INDEX byte, all 0..255;
+- LEVEL -> Q15 by `(v << 7) | (v >> 1)`;
+- INDEX -> Q14 by `(v << 6) | (v >> 2)`;
+- scalar malformed values saturate at 255;
+- null LEVEL input maps to silence;
+- mapped transient struct is exactly 10 B;
+- no persistent D052 state;
+- all 65,536 legal LEVEL x INDEX edge combinations are signed-32 safe;
+- D052 remains isolated from `dinghy.c` and audible FM production.
 
 ## Next package
 
-**WP5.4 - FM4 operator level and modulation-index mapping**, issue #47.
+**WP5.5 - bounded deterministic FM4 feedback**, issue #48.
 
-Expected branch: `phase5/fm4-levels`.
+Expected branch: `phase5/fm4-feedback`.
 
-D052 does **not** exist yet. Begin contract-first.
+D053 does **not** exist yet. Begin contract-first.
 
 Exact first actions:
 
-1. branch from the WP5.3 closeout checkpoint;
-2. make #47 ACTIVE;
-3. inspect D049 Q15 operator level semantics and D050 `level_q15[4]` / `mod_depth_q14` behavior across all four topologies;
-4. decide the smallest musically useful carrier/modulator control model, including whether the current single global modulation depth is sufficient;
-5. freeze stable internal control domains, zero/nominal/max, rounding, clamp and overflow/gain semantics;
-6. define deterministic fixtures using all four D050 algorithms and representative D051 ratios;
-7. freeze D052 plus source/realtime/target ceilings before production source;
-8. pass a source-absent gate before implementation.
+1. branch from the WP5.4 closeout checkpoint;
+2. make #48 ACTIVE only after #47 is closed;
+3. inspect D049 phase modulation and D050 fixed evaluation order for the smallest feedback insertion point;
+4. choose one bounded V1 feedback topology and fixed history ownership;
+5. freeze feedback control domain, zero/nominal/max, clamp/rounding and malformed-input behavior;
+6. freeze reset and algorithm-switch history semantics;
+7. prove arithmetic safety against D051 ratio extremes and D052 max LEVEL/INDEX;
+8. define deterministic vectors, switch/reset fixtures and long stress;
+9. freeze state/object ceilings and D053 before production feedback source;
+10. pass a source-absent gate before implementation.
 
-Do not pull feedback, envelopes, voice allocation/router integration, tracker-facing p-lock IDs/pages or audible mixed FM playback into WP5.4.
+Do not pull envelopes, voice allocation/router integration, tracker-facing p-lock IDs/pages or audible mixed FM playback into WP5.5.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

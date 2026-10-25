@@ -21,7 +21,8 @@ The instrument should feel playable before it feels editable. Tracker data remai
   - WP5.1 fixed-point FM operator: COMPLETE
   - WP5.2 curated four-operator routing: COMPLETE
   - WP5.3 integer ratio/pitch mapping: COMPLETE
-  - WP5.4 level/modulation-index mapping: NEXT
+  - WP5.4 level/modulation-index mapping: COMPLETE
+  - WP5.5 bounded feedback: NEXT
 - live performance capture milestone: PLANNED after engine foundations
 - Phase 6 song/order/persistence: PLANNED
 - Phase 7 physical hardware UX freeze: BLOCKED until physical FM-1
@@ -31,12 +32,6 @@ The instrument should feel playable before it feels editable. Tracker data remai
 ## Architecture after D047/D048
 
 FM1Tracker is one engine-agnostic tracker/sequencer. Instruments own family + engine identity. D048 common routing is static/bounded and the D046 all-8-BIT configuration remains the regression baseline.
-
-## Phase 4 - first engine family - COMPLETE
-
-PULSE, NOISE, TRIANGLE, WAVETABLE-8, common ADSR, deterministic allocation, parameter pages and linked eight-track playback.
-
-Canonical D046 run `40124536375`, job `120963022289`.
 
 ## Phase 5 - mixed-engine routing + FM4
 
@@ -50,50 +45,47 @@ D049 established the 4 B phase-state operator, signed phase modulation, generate
 
 ### WP5.2 - curated FM algorithm routing - COMPLETE
 
-D050 established four static topologies:
-
-```text
-STACK4    OP4 -> OP3 -> OP2 -> OP1
-FAN3      OP2 + OP3 + OP4 -> OP1
-DUAL2     OP4 -> OP3 plus OP2 -> OP1
-PARALLEL4 OP1 + OP2 + OP3 + OP4
-```
-
-All four operators advance once/sample in fixed OP4 -> OP3 -> OP2 -> OP1 evaluation order. PI32v2 router object: 362 B.
+D050 established four static topologies and fixed OP4 -> OP3 -> OP2 -> OP1 evaluation. PI32v2 router object: 362 B.
 
 ### WP5.3 - integer ratio table + pitch mapping - COMPLETE
 
-D051 froze 16 stable Q8 ratios, deterministic high-register clamp behavior and a stateless four-output mapping.
+D051 froze 16 stable Q8 ratios, deterministic high-register clamp behavior and a stateless four-output mapping. PI32v2 ratio object: 264 B.
+
+### WP5.4 - levels / modulation index - COMPLETE
+
+D052 froze the compact five-byte internal control model:
+
+```text
+OP1_LEVEL OP2_LEVEL OP3_LEVEL OP4_LEVEL INDEX
+```
+
+LEVEL maps exactly to Q15 with `(v << 7) | (v >> 1)`. INDEX maps exactly to Q14 with `(v << 6) | (v >> 2)`. The transient mapped struct is 10 B, persistent state is zero, and all 65,536 legal LEVEL x INDEX edge combinations are signed-32 safe under D049/D050.
 
 Canonical verification:
 
-- source-absent run `40138575267`, job `121005262360`;
-- final run `40139154497`, host `121006986068`, target `121006985928`;
-- exhaustive 262,144-output SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
-- PI32v2 ratio object 264 B;
+- source-absent run `40140119411`, job `121009903030`;
+- implementation run `40143482844`, host `121019875458`, target `121019875309`;
+- PI32v2 controls object 108 B;
 - full application remains exact WP5.0.
 
-Evidence: `WP5_3_VERIFICATION.md`.
+Evidence: `WP5_4_VERIFICATION.md`.
 
-### WP5.4 - levels / modulation index - NEXT
+### WP5.5 - bounded feedback - NEXT
 
-Issue #47. D052 must be frozen contract-first before production mapping code.
+Issue #48. D053 must be frozen contract-first before production feedback code.
 
 The package must decide:
 
-- the smallest musically useful carrier/modulator control model;
-- exact stable integer control domains;
-- mapping to D050 `level_q15[4]` and modulation-depth semantics;
-- zero/nominal/max behavior, rounding and clamp policy;
-- whether V1 keeps one global modulation depth or moves to a bounded per-operator/per-edge model;
-- gain/overflow behavior across all D050 algorithms and representative D051 ratios;
-- realtime/source/target object ceilings.
+- the smallest deterministic feedback insertion point compatible with D049/D050;
+- one bounded V1 feedback topology rather than arbitrary graph feedback;
+- exact stable integer control domain and malformed-input behavior;
+- fixed history/state ownership and one-sample semantics;
+- reset and algorithm-switch history behavior;
+- arithmetic safety across D051 ratio extremes and D052 maximum LEVEL/INDEX;
+- deterministic vector, reset/switch and long-run stress fixtures;
+- persistent-state and PI32v2 object ceilings.
 
-Do not copy a classic FM synth UI by default. Preserve D049-D051 DSP contracts and choose the control model from musical coverage, deterministic cost and FM-1 resource constraints.
-
-### WP5.5 - bounded feedback
-
-Explicit deterministic feedback topology and stability/overflow stress.
+Preserve D049-D052 DSP contracts. Do not add envelopes, voice allocation or tracker UI/p-lock semantics here.
 
 ### WP5.6 - envelope strategy
 

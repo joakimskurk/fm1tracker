@@ -26,73 +26,76 @@ Parent issue: #42.
 
 ### WP5.0 - mixed-engine routing - COMPLETE - issue #43 - D048
 
-Per-instrument family/engine routing implemented and verified. Canonical run `40129822006`, job `120978955451`. Evidence `WP5_0_VERIFICATION.md`.
+Evidence `WP5_0_VERIFICATION.md`.
 
 ### WP5.1 - fixed-point FM operator - COMPLETE - issue #44 - D049
 
-4 B phase-state operator, generated Q15 sine table, deterministic phase modulation and exact PI32v2 evidence. Canonical run `40134823600`, host `120994003059`, target `120994002842`. Evidence `WP5_1_VERIFICATION.md`.
+Evidence `WP5_1_VERIFICATION.md`.
 
 ### WP5.2 - curated FM4 algorithm routing - COMPLETE - issue #45 - D050
 
-Four static algorithms, fixed OP4 -> OP3 -> OP2 -> OP1 evaluation, deterministic carrier normalization and 16 B routing state. PI32v2 router object 362 B. Canonical run `40136425976`, host `120998804031`, target `120998804175`. Evidence `WP5_2_VERIFICATION.md`.
+Evidence `WP5_2_VERIFICATION.md`.
 
 ### WP5.3 - integer ratio table + pitch mapping - COMPLETE - issue #46 - D051
 
-Stable V1 ratios:
+Evidence `WP5_3_VERIFICATION.md`.
 
-`0.5, 1.0, 1.25, 1.4140625, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0, 8.0, 12.0, 16.0`
+### WP5.4 - levels / modulation index - COMPLETE - issue #47 - D052
+
+D052 froze:
+
+- four independent LEVEL bytes and one global INDEX byte, all 0..255;
+- exact Q15/Q14 integer mappings;
+- saturating malformed scalar input;
+- null-level fail-to-silence semantics;
+- 10 B transient mapped state and zero persistent state;
+- signed-32-safe D049/D050 single-edge bounds across all 65,536 legal LEVEL x INDEX pairs.
 
 Verified:
 
-- D051 frozen before source;
-- source-absent reference run `40138575267` / job `121005262360`;
-- unsigned Q8 split scaling with deterministic clamp/rounding;
-- 262,144 exhaustive legal pitch/ratio outputs, SHA `5b7b862bde26a13d6e18f1133509d57a36e6eb1e998ff287f59916d4c179881c`;
-- only `fmt_fm_ratio.h/.c` added under production firmware;
-- PI32v2 ratio object 264 B, SHA `aa5bd8b9e1afa72054af2effeefbf468cfbb8b2b8d978e028540a30dc162956d`;
-- canonical final run `40139154497`, host `121006986068`, target `121006985928`;
+- source-absent run `40140119411` / job `121009903030`;
+- canonical implementation run `40143482844`, host `121019875458`, target `121019875309`;
+- only `fmt_fm_controls.h/.c` added under production firmware;
+- PI32v2 object 108 B, SHA `05867ebe120829d1e3b8bf6f0504f29d63e9643e4fa5eede4c6d858d31d25059`;
 - full application remains exact WP5.0.
 
-Evidence: `WP5_3_VERIFICATION.md`.
+Evidence: `WP5_4_VERIFICATION.md`.
 
-### WP5.4 - levels / modulation index - NEXT - issue #47
+### WP5.5 - bounded feedback - NEXT - issue #48
 
-Goal: define, implement and verify the smallest bounded integer control layer that maps FM4 instrument controls to D050 `level_q15[4]` and modulation-depth semantics.
+Goal: define, implement and verify the smallest deterministic bounded feedback primitive/topology that composes with D049-D052 without pulling envelopes or voice/router integration forward.
 
 Required order:
 
-1. inspect D049 Q15 level and D050 modulation/carrier behavior;
-2. decide a musically useful carrier/modulator control model;
-3. explicitly decide global versus bounded per-operator/per-edge modulation representation;
-4. freeze stable internal control domains;
-5. freeze exact integer mappings, zero/nominal/max semantics, rounding and clamp policy;
-6. prove all four D050 algorithms and representative D051 ratio combinations;
-7. freeze source/realtime/PI32v2 ceilings;
-8. write/freeze D052 before production mapping source;
+1. inspect D049 phase-modulation arithmetic and D050 fixed topology/evaluation order;
+2. choose one bounded V1 feedback insertion/topology;
+3. freeze internal feedback control domain, zero/nominal/max, clamp/rounding and malformed-input policy;
+4. freeze one-sample history/state ownership plus reset and algorithm-switch behavior;
+5. prove arithmetic safety against D051 ratio extremes and D052 maximum LEVEL/INDEX;
+6. define deterministic vectors, reset/switch fixtures and long stress;
+7. freeze persistent-state/realtime/PI32v2 ceilings;
+8. write/freeze D053 before production feedback source;
 9. pass source-absent reference CI;
 10. only then implement and verify;
-11. write `WP5_4_VERIFICATION.md` before WP5.5 begins.
+11. write `WP5_5_VERIFICATION.md` before WP5.6 begins.
 
 Allowed:
 
-- immutable level/mod-index mapping tables;
-- bounded integer transforms;
-- stable internal DSP control domains;
-- deterministic host vectors/hashes;
-- pinned PI32v2 object measurement;
-- inherited D049/D050/D051/WP5.0 regressions.
+- one explicitly frozen bounded feedback topology;
+- compact fixed-size feedback history;
+- deterministic integer transforms;
+- deterministic host vectors/hashes and long stress;
+- pinned PI32v2 state/object measurement;
+- inherited D049-D052/WP5.0 regressions.
 
 Out of scope:
 
-- feedback, WP5.5;
-- envelope strategy, WP5.6;
+- envelopes, WP5.6;
 - FM voice/D048 integration, WP5.7;
 - FM tracker pages/p-lock IDs, WP5.8;
 - audible mixed 8-BIT + FM4, WP5.9.
 
-D052 does not exist yet.
-
-### WP5.5 - bounded feedback - PLANNED
+D053 does not exist yet.
 
 ### WP5.6 - FM envelope strategy - PLANNED
 
