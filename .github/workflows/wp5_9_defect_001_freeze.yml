@@ -1,0 +1,36 @@
+name: WP5.9 delayed cross-family defect freeze
+
+on:
+  push:
+    branches:
+      - phase5/mixed-validation
+    paths:
+      - 'docs/WP5_9_DEFECT_001_DELAYED_CROSS_FAMILY.md'
+      - 'docs/WP5_9_DEFECT_001_FIX_CONTRACT.md'
+      - 'tests/run_wp5_9_defect_001_freeze.sh'
+      - '.github/workflows/wp5_9_defect_001_freeze.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  defect-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify pre-fix defect seam and amendment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_9_defect_001_freeze.sh
+      - name: Upload defect freeze evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-9-defect-001-freeze
+          path: build/wp5_9_defect_001_freeze/
+          if-no-files-found: error
