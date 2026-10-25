@@ -1,0 +1,48 @@
+name: WP5.6 D054 FM envelope contract freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-envelope
+    paths:
+      - docs/WP5_6_PRECONTRACT_AUDIT.md
+      - docs/WP5_6_FM_ENVELOPE_CONTRACT.md
+      - tests/wp5_6_reference.py
+      - tests/run_wp5_6_contract_freeze.sh
+      - .github/workflows/wp5_6_contract_freeze.yml
+      - docs/PROJECT_STATE.md
+      - START_HERE.md
+
+permissions:
+  contents: read
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Verify D054 source-absent FM envelope contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_6_contract_freeze.sh
+
+      - name: Upload D054 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-6-d054-contract-freeze
+          path: |
+            docs/WP5_6_PRECONTRACT_AUDIT.md
+            docs/WP5_6_FM_ENVELOPE_CONTRACT.md
+            tests/wp5_6_reference.py
+            build/wp5_6_contract/
+          if-no-files-found: warn
