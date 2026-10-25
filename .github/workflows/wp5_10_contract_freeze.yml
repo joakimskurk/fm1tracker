@@ -1,0 +1,42 @@
+name: WP5.10 worst-case mixed benchmark contract freeze
+
+on:
+  push:
+    branches:
+      - phase5/worst-case-benchmark
+    paths:
+      - 'docs/WP5_10_PRECONTRACT_AUDIT.md'
+      - 'docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md'
+      - 'tests/run_wp5_10_contract_freeze.sh'
+      - '.github/workflows/wp5_10_contract_freeze.yml'
+      - 'START_HERE.md'
+      - 'docs/PROJECT_STATE.md'
+      - 'docs/CURRENT_TEST_STATE.md'
+      - 'docs/WORK_PACKAGES.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Verify WP5.10 benchmark contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_contract_freeze.sh
+      - name: Upload WP5.10 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-10-contract-evidence
+          path: build/wp5_10_contract/
+          if-no-files-found: error

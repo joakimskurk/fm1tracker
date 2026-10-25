@@ -7,24 +7,19 @@ Read in this order:
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/PROJECT_STATE.md`
 3. `docs/WP5_10_PRECONTRACT_AUDIT.md`
-4. active `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md` once frozen
+4. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
 5. `docs/WP5_9_CLOSEOUT_EVIDENCE.md`
-6. `docs/WP5_9_DEFECT_001_DELAYED_CROSS_FAMILY.md`
-7. `docs/WP5_9_DEFECT_001_FIX_CONTRACT.md`
-8. `docs/WP5_8_CLOSEOUT_EVIDENCE.md`
-9. `docs/CURRENT_DECISIONS.md`
-10. `docs/WORK_PACKAGES.md`
-11. `docs/EXECUTION_PROTOCOL.md`
-12. `docs/CURRENT_TEST_STATE.md`
-13. `docs/TEST_MATRIX.md`
-14. `docs/ROADMAP.md`
-15. `THIRD_PARTY.md`
+6. `docs/CURRENT_DECISIONS.md`
+7. `docs/WORK_PACKAGES.md`
+8. `docs/EXECUTION_PROTOCOL.md`
+9. `docs/CURRENT_TEST_STATE.md`
+10. `docs/TEST_MATRIX.md`
+11. `docs/ROADMAP.md`
+12. `THIRD_PARTY.md`
 
 ## Product context first
 
-FM1Tracker is one engine-agnostic hardware tracker/sequencer, not an FM-only project. The intended product includes 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same tracker environment. Exact DSP/resource contracts for not-yet-implemented engine families are future work and must be audited before implementation.
-
-`docs/PROJECT_CONTEXT.md` is the persistent product-memory layer. Substantive user decisions and product clarifications must be synchronized back into Git according to `docs/EXECUTION_PROTOCOL.md`.
+FM1Tracker is one engine-agnostic hardware tracker/sequencer. The product direction includes 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same tracker environment. Future engine families require their own audits/contracts.
 
 ## Current execution
 
@@ -34,56 +29,40 @@ FM1Tracker is one engine-agnostic hardware tracker/sequencer, not an FM-only pro
 issue                         #53
 branch                        phase5/worst-case-benchmark
 precontract audit             COMPLETE
-benchmark contract            NEXT
-parent docs handoff           c06550f72918964bd49467228688a7232d2c4cf9
-last target-validated code    81d3464059270130747e26fcc950b7a2e1bb03e1
+benchmark contract            FROZEN
+production baseline           81d3464059270130747e26fcc950b7a2e1bb03e1
 WP5.9 closeout run            40210173573 SUCCESS
-WP5.9 target                  121219510315 SUCCESS
-WP5.9 host                    121219510342 SUCCESS
 image                         79836 B
 normal RAM                    27792 B
 pool                         113000 B
 hardware_margin_claim         none
 ```
 
-Audit: `docs/WP5_10_PRECONTRACT_AUDIT.md`.
+No production source change is authorized. Benchmark implementation is legal only after the contract-freeze gate is green.
 
-No benchmark implementation or production optimization is legal until the WP5.10 benchmark contract and fail-closed freeze gate are committed.
+## Frozen WP5.10 workload
 
-## WP5.10 audit facts that must survive handoff
-
-- The production `app_audio()` renders both 8-BIT and FM4 once per tracker frame.
-- The tracker remains eight logical tracks, but 8-BIT and FM4 each own eight family-local voice slots.
-- Detached release tails can make total non-idle DSP occupancy exceed eight, so the benchmark must prove actual occupancy at its measurement window.
-- The contract must attempt a reachable 8 FM4 + 8 8-BIT non-idle saturation state and record the measured reachable maximum if full 8+8 cannot be reached through ordinary tracker semantics.
-- The same callback can also process up to 32 audition-queue events and four manual/audition voices. Mixed-engine saturation and full-callback pressure must therefore be separate evidence cases.
-- Existing WP4.10 test-only wrappers/digests and WP5.9 mixed source-injected fixtures are the preferred non-invasive benchmark mechanisms.
-- Target HAL exposes 24 MHz TIMER4 through `fm1_ticks()`, but current automated target CI does not execute on physical hardware.
-- Host timing is informational only. Emulator timing, if obtained, is emulator timing only.
-- No physical FM-1 timing, audio-stability or free-RAM claim is permitted.
-
-## Parent resource baselines
+S1 must reach and retain exact mixed saturation:
 
 ```text
-D056 image                  79804 B
-WP5.9 image                 79836 B
-normal RAM                  27792 B
-pool                       113000 B
-WP5.9 delta vs D056         +32 B image / +0 B RAM / +0 B pool
-hardware_margin_claim       none
+8 logical tracks
+8 non-idle FM4 release-tail slots
+8 non-idle 8-BIT current slots
+256 warmup frames
+4096 measured frames
+3 identical reset-to-run repetitions
 ```
 
-WP5.9 closeout evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`.
+S2 starts from the same 8+8 state and requires one 256-frame callback with queue depth 32 at entry and four audition voices, producing exactly 1024 audition `sine()` calls. It also repeats three times identically.
+
+Host wall-clock data is informational only. Target TIMER4 runtime timing remains deferred until a reproducible execution-return path exists. Emulator timing is never a physical FM-1 margin claim.
 
 ## Exact next action
 
-1. freeze `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`;
-2. add its fail-closed contract-freeze verification gate;
-3. commit the contract checkpoint before benchmark code;
-4. implement test-only mixed saturation and full-callback pressure evidence;
-5. preserve inherited all-8BIT, D055, D056 and WP5.9 regressions;
-6. measure uninstrumented target image/RAM/pool against the frozen baselines;
-7. authorize production optimization only through a new bounded sub-contract if measured evidence proves it necessary;
-8. record the Phase 5 exit decision.
-
-WP5.10 does not implement future VA/subtractive or drum engines. Those remain explicit product directions and must survive the handoff.
+1. get `tests/run_wp5_10_contract_freeze.sh` green in CI;
+2. implement S1/S2 with generated test-only wrappers/probes;
+3. add the final dual-engine realtime audit;
+4. run inherited WP5.9/D056/D055/all-8BIT regressions;
+5. run uninstrumented pinned-target resource closeout;
+6. open an optimization sub-contract only if accepted evidence proves it necessary;
+7. otherwise record Phase 5 software exit with physical validation debt explicit.
