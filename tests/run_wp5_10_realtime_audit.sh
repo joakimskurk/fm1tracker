@@ -67,11 +67,16 @@ assert 'fmt_fm_envelope_advance' in fr
 for token in ('fmt_store_', 'fmt_lock_', 'fmt_tracker_screen_', 'fmt_lock_editor_'):
     assert token not in fr
 
-# Realtime code stays integer-only by source contract. This checks the final DSP
-# family files for floating literals/types rather than host benchmark helpers.
+# Realtime code stays integer-only by source contract. Scan executable C tokens,
+# not comments such as the SPDX identifier "GPL-3.0-only".
+def without_c_comments(text):
+    text = re.sub(r'/\*.*?\*/', ' ', text, flags=re.S)
+    return re.sub(r'//[^\n]*', ' ', text)
+
 for name, text in [('bit', bit), ('fm', fm), ('algo', algo), ('feedback', feedback), ('operator', operator), ('envelope', envelope)]:
-    assert not re.search(r'\b(float|double)\b', text), name
-    assert not re.search(r'\d+\.\d+[fF]?', text), name
+    code = without_c_comments(text)
+    assert not re.search(r'\b(float|double)\b', code), name
+    assert not re.search(r'\d+\.\d+[fF]?', code), name
 
 print('WP5_10_REALTIME_AUDIT_OK=1 bit_slots=8 fm_slots=8 tracks=8 dispatch_loops=3 queue=32 audition=4 dual_render=1 heap=0 variable_slot_loops=0 float=0 production_delta=0 hardware_margin_claim=none')
 PY
