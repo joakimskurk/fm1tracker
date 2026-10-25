@@ -1,0 +1,41 @@
+name: WP5.8 D056 store resolver
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'firmware/src/fmt_8bit_linked_params.h'
+      - 'firmware/src/fmt_8bit_linked_params.c'
+      - 'firmware/src/fmt_fm_linked_params.h'
+      - 'firmware/src/fmt_fm_linked_params.c'
+      - 'firmware/src/fmt_fm_params.h'
+      - 'firmware/src/fmt_fm_params.c'
+      - 'firmware/src/fmt_param_registry.h'
+      - 'firmware/src/fmt_param_registry.c'
+      - 'tests/test_fmt_fm_store_resolver.c'
+      - 'tests/test_fmt_fm_row_cache.c'
+      - 'tests/run_wp5_8_store_resolver_tests.sh'
+      - 'tests/run_wp5_8_row_cache_tests.sh'
+      - 'tests/run_wp5_8_param_model_tests.sh'
+      - '.github/workflows/wp5_8_store_resolver.yml'
+  workflow_dispatch:
+
+jobs:
+  store-resolver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Verify D056 store-backed FM resolver
+        run: sh tests/run_wp5_8_store_resolver_tests.sh
+      - name: Upload store-resolver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-8-store-resolver-evidence
+          path: build/wp5_8_store_resolver
+          if-no-files-found: error
