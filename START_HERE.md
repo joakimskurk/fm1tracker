@@ -6,15 +6,16 @@ Read in this order:
 
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/WP5_8_CLOSEOUT_EVIDENCE.md`
-4. `docs/CURRENT_DECISIONS.md`
-5. `docs/WORK_PACKAGES.md`
-6. `docs/EXECUTION_PROTOCOL.md`
-7. `docs/CURRENT_TEST_STATE.md`
-8. `docs/TEST_MATRIX.md`
-9. `docs/ROADMAP.md`
-10. active work-package contract/audit documents
-11. `THIRD_PARTY.md`
+3. `docs/WP5_9_PRECONTRACT_AUDIT.md`
+4. `docs/WP5_8_CLOSEOUT_EVIDENCE.md`
+5. `docs/CURRENT_DECISIONS.md`
+6. `docs/WORK_PACKAGES.md`
+7. `docs/EXECUTION_PROTOCOL.md`
+8. `docs/CURRENT_TEST_STATE.md`
+9. `docs/TEST_MATRIX.md`
+10. `docs/ROADMAP.md`
+11. active WP5.9 contract/evidence as it is created
+12. `THIRD_PARTY.md`
 
 ## Product context first
 
@@ -22,15 +23,34 @@ FM1Tracker is one engine-agnostic hardware tracker/sequencer, not an FM-only pro
 
 `docs/PROJECT_CONTEXT.md` is the persistent product-memory layer. Substantive user decisions and product clarifications must be synchronized back into Git according to `docs/EXECUTION_PROTOCOL.md`.
 
-## Current handoff
+## Current execution
 
-Phase 5 mixed-engine/FM foundation is complete through **WP5.8 / D056**.
-
-Accepted WP5.8 closeout:
+**WP5.9 - mixed 8-BIT + FM4 validation is ACTIVE.**
 
 ```text
-code/workflow checkpoint   849c8b27d8c1afa09f9c093b695985c64e0c6013
-run                        40203483720 SUCCESS
+issue       #52
+branch      phase5/mixed-validation
+audit       docs/WP5_9_PRECONTRACT_AUDIT.md
+mode        contract-first, validation-only unless a real defect is exposed
+```
+
+The precontract audit is complete. Its key finding is that the repository has strong routing, FM-engine and p-lock evidence, but no direct proof of **real simultaneous FM4 + 8-BIT audio on different tracks**.
+
+Why:
+
+- D048 cross-track coexistence uses a stub second family;
+- WP5.7 uses the real FM engine but its proof pattern contains notes only on track 0, so FM -> 8-BIT -> FM happens sequentially on one track;
+- D056's real FM p-lock fixture uses the same one-track shape;
+- production already renders the real 8-BIT and FM engines once each per sample and saturating-sums them, but that path has not yet been isolated and proved under concurrent real-family ownership.
+
+No production defect has been identified by the audit.
+
+## Parent checkpoint
+
+WP5.8 / D056 is COMPLETE.
+
+```text
+accepted run               40203483720 SUCCESS
 host                       121199398344 SUCCESS
 target                     121199398538 SUCCESS
 image                       79804 B
@@ -41,32 +61,22 @@ all-8BIT WAV sha256        17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505
 hardware_margin_claim      none
 ```
 
-Evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md`.
+Full evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md`.
 
-The first closeout run's red host job was a CI `tee` directory-order race, not a production/test failure. The wrapper was fixed without weakening any gate; the accepted rerun passed host and pinned target on the same checkpoint.
-
-## What D056 leaves us with
-
-- one shared semantic parameter architecture;
-- 27 stable FM parameter IDs and seven pages;
-- max four sparse p-locks per step unchanged;
-- generalized 8,704 B row cache with the historical 2,048 B 8BIT view preserved;
-- bounded 432 B mutable FM instrument-base bank;
-- 232 B current row-boundary FM patch snapshot state, no per-row full-patch cache;
-- no sparse store/editor traversal in the per-sample FM renderer;
-- D049-D055 synthesis/voice behavior frozen;
-- exact WP5.0 all-8BIT regression equivalence.
-
-The WP5.8 normal-RAM result is 27,792 B, leaving only 864 B to the deliberately frozen D056 package ceiling of 28,656 B. This is not a claim about total physical free RAM, but it is a mandatory planning constraint for the next validation/benchmark packages.
+The 27,792 B normal-RAM result is 864 B below the deliberately frozen D056 package ceiling. It is not a physical-free-RAM claim, but it remains mandatory planning context.
 
 ## Exact next action
 
-1. close issue #51 with `docs/WP5_8_CLOSEOUT_EVIDENCE.md` as durable evidence;
-2. activate **WP5.9 - mixed 8-BIT + FM4 validation** as the only active package;
-3. perform a precontract audit before adding or changing production behavior;
-4. freeze the simultaneous-family and same-track-switch validation surface, resource expectations and fail-closed regressions;
-5. only then implement any WP5.9-specific fixture/harness changes.
+1. freeze the WP5.9 mixed-validation contract from the completed audit;
+2. prove that contract with a fail-closed preimplementation CI gate;
+3. keep `firmware/src/**` and `firmware/gen/**` frozen while implementing the validation harness;
+4. add mixed-engine-aware host observability only where required;
+5. implement real simultaneous-family, same-track-switch and event-semantics fixtures;
+6. preserve exact all-8BIT, D055 default/no-lock FM and D056 locked-FM behavior;
+7. measure the pinned target and record exact resource deltas before closeout.
 
-WP5.9 must validate the current 8-BIT + FM4 architecture. It must not pull future virtual-analog/subtractive or drum-engine implementation forward. Those engine families remain part of the product direction and must survive every handoff.
+If a validation fixture exposes a target-firmware defect, stop, document the defect and amend/freeze the contract before changing production code.
+
+WP5.9 does not implement future VA/subtractive or drum engines. Those remain explicit product directions and must survive the handoff.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
