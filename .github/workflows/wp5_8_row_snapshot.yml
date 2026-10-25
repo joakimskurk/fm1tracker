@@ -1,0 +1,34 @@
+name: WP5.8 D056 row snapshot
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'firmware/src/dinghy.c'
+      - 'firmware/src/fmt_fm_linked_params.h'
+      - 'firmware/src/fmt_fm_linked_params.c'
+      - 'firmware/src/fmt_fm_params.h'
+      - 'firmware/src/fmt_fm_params.c'
+      - 'tests/run_wp5_8_row_snapshot_tests.sh'
+      - '.github/workflows/wp5_8_row_snapshot.yml'
+  workflow_dispatch:
+
+jobs:
+  row-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Verify D056 row-boundary FM patch snapshots
+        run: sh tests/run_wp5_8_row_snapshot_tests.sh
+      - name: Upload row-snapshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-8-row-snapshot-evidence
+          path: build/wp5_8_row_snapshot
+          if-no-files-found: error
