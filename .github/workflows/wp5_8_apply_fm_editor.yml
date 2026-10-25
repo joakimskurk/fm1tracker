@@ -7,6 +7,7 @@ on:
     paths:
       - 'tools/wp5_8_apply_fm_editor_patch.py'
       - 'tests/test_fmt_fm_linked_editor.c'
+      - 'tests/test_fmt_fm_row_cache.c'
       - 'tests/run_wp5_8_fm_editor_tests.sh'
       - '.github/workflows/wp5_8_apply_fm_editor.yml'
   workflow_dispatch:
