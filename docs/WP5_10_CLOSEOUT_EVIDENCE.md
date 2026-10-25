@@ -93,8 +93,8 @@ The target job first proves `production_delta=0` against `81d3464`, then builds 
 image                    79836 B
 normal RAM               27792 B
 pool                    113000 B
-image limit            2097152 B
-image margin           2017316 B
+image limit             581564 B
+image margin            501728 B
 D056 -> WP5.10 image       +32 B
 D056 -> WP5.10 RAM           0 B
 D056 -> WP5.10 pool          0 B
@@ -108,12 +108,14 @@ The image margin above is a linker/image-space result only. It is not a claim ab
 
 ### Built artifact hashes
 
+The values below come directly from `metrics.txt` in the accepted target artifact from run `40220923958`.
+
 ```text
 fm1tracker.bin
-17d8a9ad757a9d34908a17c03a0491c9e9be8aae0d1c1573edbf73766cb9d2e5
+9ced222943dfd23443d0eba0cd1e64ebd8a4367600a537f35f55fd475adebc61
 
 fm1tracker-0.1.fwsc
-741036f46510f166a07bad2ba9a8dab5ed3e99917ce72fdbc697c736aec2a58d
+cda305ed61d7ecbb1bc0be5c9e9a201a8728a965e3eea90f2fd5fcf2eff4aaeb
 ```
 
 ## Phase 5 software exit
