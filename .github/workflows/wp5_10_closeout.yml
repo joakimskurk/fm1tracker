@@ -1,0 +1,182 @@
+name: WP5.10 Phase 5 closeout
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/worst-case-benchmark
+    paths:
+      - '.github/workflows/wp5_10_closeout.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  closeout-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install host dependency
+        run: python3 -m pip install pillow
+      - name: Re-verify frozen WP5.10 contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_contract_freeze.sh
+      - name: Re-verify dual-engine realtime bounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_realtime_audit.sh
+      - name: Re-run frozen mixed-engine benchmark and inherited regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_mixed_benchmark.sh
+          grep -F 'WP5_10_BENCHMARK_OK=1 s1=8fm+8bit warmup=256 measured=4096 repeats=3 s2=queue32+8fm+8bit audition_sines=1024 measured=256 repeats=3 deterministic=1 production_delta=0 hardware_margin_claim=none' build/wp5_10_benchmark/summary.txt
+          mkdir -p build/wp5_10_closeout_host
+          cp build/wp5_10_benchmark/s1_1.summary build/wp5_10_closeout_host/
+          cp build/wp5_10_benchmark/s2_1.summary build/wp5_10_closeout_host/
+          printf '%s\n' 'WP5_10_CLOSEOUT_HOST_OK=1 contract=frozen realtime=bounded s1=8fm+8bit s2=queue32+audition4 deterministic=1 production_delta=0 hardware_margin_claim=none' > build/wp5_10_closeout_host/summary.txt
+          cat build/wp5_10_closeout_host/summary.txt
+      - name: Upload WP5.10 host closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-10-closeout-host
+          path: |
+            build/wp5_10_contract/
+            build/wp5_10_realtime/
+            build/wp5_10_benchmark/
+            build/wp5_10_closeout_host/
+          if-no-files-found: error
+
+  closeout-target:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=81d3464059270130747e26fcc950b7a2e1bb03e1
+          git diff --exit-code "$BASE" -- \
+            firmware/src firmware/gen firmware/hal firmware/loader \
+            firmware/app.ld build.sh tools
+          printf '%s\n' 'WP5_10_TARGET_SOURCE_OK=1 base=81d3464 production_delta=0'
+      - name: Install target build dependency
+        run: python3 -m pip install pillow
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+          "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang" --version | head -n 2
+      - name: Build and verify frozen WP5.10 target
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=build/wp5_10_closeout_target
+          mkdir -p "$OUT"
+          export JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain"
+          SDK="$RUNNER_TEMP/ac79-sdk"
+          rm -rf "$SDK"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$SDK"
+          ACTUAL_SDK="$(git -C "$SDK" rev-parse HEAD)"
+          test "$ACTUAL_SDK" = d179b4484759423312073f5fbb232501aa491047
+          export AC79_SDK="$SDK"
+          printf 'AC79_SDK_COMMIT=%s\n' "$ACTUAL_SDK" > "$OUT/sdk.txt"
+
+          ./build.sh --release 0.1 > "$OUT/device.log" 2>&1
+          cat "$OUT/device.log"
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+          test -s build/fm1tracker.elf
+          "$JIELI_TOOLCHAIN/common/bin/objdump" -t build/fm1tracker.elf > "$OUT/symbols.txt"
+          grep -F 'fmt_engine_row_param_cache' "$OUT/symbols.txt" > "$OUT/row_cache_symbol.txt"
+          grep -F 'fmt_fm_instrument_base' "$OUT/symbols.txt" > "$OUT/fm_base_symbol.txt"
+          grep -F 'fmt_fm_engine_runtime' "$OUT/symbols.txt" > "$OUT/fm_engine_symbol.txt"
+
+          python3 - <<'PY' > "$OUT/metrics.txt"
+          import hashlib
+          import re
+          from pathlib import Path
+
+          log = Path('build/wp5_10_closeout_target/device.log').read_text()
+          m = re.search(r'image (\d+) B of (\d+); RAM \.data\+\.bss (\d+) B of 98304; pool (\d+) B of 344064', log)
+          assert m, log[-4000:]
+          image, image_limit, ram, pool = map(int, m.groups())
+          expected_image = 79836
+          expected_ram = 27792
+          expected_pool = 113000
+          d056_image = 79804
+
+          assert image == expected_image, (image, expected_image)
+          assert ram == expected_ram, (ram, expected_ram)
+          assert pool == expected_pool, (pool, expected_pool)
+
+          def sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          print('WP5_10_TARGET_FOOTPRINT_OK=1')
+          print(f'image_bytes={image}')
+          print(f'normal_ram_bytes={ram}')
+          print(f'pool_ram_bytes={pool}')
+          print(f'image_delta_vs_d056={image-d056_image}')
+          print(f'normal_ram_delta_vs_wp5_9={ram-expected_ram}')
+          print(f'pool_delta_vs_wp5_9={pool-expected_pool}')
+          print(f'image_limit_bytes={image_limit}')
+          print(f'image_margin_bytes={image_limit-image}')
+          print(f'fm1tracker_bin_sha256={sha("build/fm1tracker.bin")}')
+          print(f'fm1tracker_fwsc_sha256={sha("build/fm1tracker-0.1.fwsc")}')
+          PY
+          cat "$OUT/metrics.txt"
+
+          grep -F 'FM1Tracker package' "$OUT/device.log"
+          grep -F 'identity FM-1_987' "$OUT/device.log"
+          grep -F 'WP5_10_TARGET_FOOTPRINT_OK=1' "$OUT/metrics.txt"
+          printf '%s\n' 'WP5_10_CLOSEOUT_TARGET_OK=1 target=pinned production=81d3464 image=79836 ram=27792 pool=113000 production_delta=0 hardware_margin_claim=none' > "$OUT/summary.txt"
+          cat "$OUT/summary.txt"
+      - name: Upload WP5.10 target closeout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-10-closeout-target
+          path: build/wp5_10_closeout_target/
+          if-no-files-found: error
+
+  phase5-software-exit:
+    needs:
+      - closeout-host
+      - closeout-target
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record software-only Phase 5 exit gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp5_10_phase5_exit
+          cat > build/wp5_10_phase5_exit/summary.txt <<'EOF'
+          WP5_10_PHASE5_SOFTWARE_EXIT_OK=1
+          phase5_software_exit=pass
+          physical_audio_stability=unverified
+          physical_cpu_headroom=unverified
+          physical_free_ram_margin=unverified
+          target_runtime_timing_gate=deferred_without_execution_path
+          hardware_margin_claim=none
+          EOF
+          cat build/wp5_10_phase5_exit/summary.txt
+      - name: Upload Phase 5 software-exit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-10-phase5-software-exit
+          path: build/wp5_10_phase5_exit/
+          if-no-files-found: error
