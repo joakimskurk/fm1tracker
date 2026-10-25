@@ -8,7 +8,7 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.4 complete; WP5.5 technical verification COMPLETE; closeout-head verification pending - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.4 complete; WP5.5 technical verification COMPLETE; final closeout-head verification pending - 2026-10-25**
 
 Current active package: **WP5.5 - bounded deterministic FM4 feedback closeout**  
 Active issue: **#48**  
@@ -17,7 +17,7 @@ Next package after closeout: **WP5.6 - bounded FM4 envelope strategy**
 Next issue: **#49**  
 Expected next branch: `phase5/fm4-envelope`
 
-Do not activate WP5.6 until the WP5.5 documentation closeout head has passed the same host/target verification and #48 is closed.
+Do not activate WP5.6 until the final WP5.5 closeout head has passed the host/target verification and #48 is closed.
 
 ## Completed Phase 5 baseline
 
@@ -26,7 +26,7 @@ Do not activate WP5.6 until the WP5.5 documentation closeout head has passed the
 - WP5.2 / D050 curated four-operator routing - COMPLETE.
 - WP5.3 / D051 integer ratio/pitch mapping - COMPLETE.
 - WP5.4 / D052 operator level/modulation-index mapping - COMPLETE.
-- WP5.5 / D053 bounded OP4 feedback - TECHNICALLY COMPLETE, closeout-head rerun pending.
+- WP5.5 / D053 bounded OP4 feedback - TECHNICALLY COMPLETE, final closeout-head rerun pending.
 
 ## D053 canonical evidence
 
@@ -34,10 +34,12 @@ Normative contract: `docs/WP5_5_FM_FEEDBACK_CONTRACT.md`.
 Preimplementation evidence: `docs/WP5_5_PREIMPLEMENTATION_EVIDENCE.md`.  
 Final technical evidence: `docs/WP5_5_VERIFICATION.md`.
 
-Source-absent gate:
+Accepted source-absent gate:
 
 - run `40164610821`, job `121082987705`;
 - artifact ID `12587966076`, SHA `0eb34eb28a92f69eeeb653ddae2661ca62d72e8eaf887a881e227fbe26c7e4b9`.
+
+The source-absent workflow is now intentionally manual-only. It is historical preimplementation evidence and must not run on ordinary postimplementation documentation pushes after `fmt_fm_feedback.*` exists. The red postimplementation run `40165277354` was caused only by the obsolete push trigger correctly observing that production source now exists; it does not invalidate the accepted source-absent checkpoint above.
 
 Implementation verification:
 
@@ -87,11 +89,10 @@ FWSC SHA   cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073
 
 ## Current exact action
 
-1. commit the WP5.5 closeout documentation;
-2. require `.github/workflows/wp5_5_feedback_verify.yml` to pass again on that exact closeout head;
-3. close #48 only after both host and target jobs are green;
-4. create `phase5/fm4-envelope` from the accepted closeout head;
-5. activate #49 and begin D054 envelope audit contract-first.
+1. require `.github/workflows/wp5_5_feedback_verify.yml` to pass on this final closeout head;
+2. close #48 only after both host and target jobs are green;
+3. create `phase5/fm4-envelope` from that exact accepted closeout head;
+4. activate #49 and begin D054 envelope audit contract-first.
 
 No WP5.6 production envelope source is allowed before D054 is frozen source-absent.
 
