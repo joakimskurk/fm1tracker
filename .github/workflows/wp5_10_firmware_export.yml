@@ -50,16 +50,22 @@ jobs:
           test "$(git -C "$SDK" rev-parse HEAD)" = d179b4484759423312073f5fbb232501aa491047
           export AC79_SDK="$SDK"
 
-          ./build.sh --release 0.1
+          ./build.sh --release 0.1 | tee build/export-build.log
           test -s build/fm1tracker.bin
           test -s build/fm1tracker-0.1.fwsc
+          grep -F 'image 79836 B of 581564; RAM .data+.bss 27792 B of 98304; pool 113000 B of 344064' build/export-build.log
+          grep -F 'FM1Tracker package' build/export-build.log
+          grep -F 'identity FM-1_987' build/export-build.log
 
           BIN_SHA="$(sha256sum build/fm1tracker.bin | awk '{print $1}')"
           FWSC_SHA="$(sha256sum build/fm1tracker-0.1.fwsc | awk '{print $1}')"
-          test "$BIN_SHA" = 17d8a9ad757a9d34908a17c03a0491c9e9be8aae0d1c1573edbf73766cb9d2e5
-          test "$FWSC_SHA" = 741036f46510f166a07bad2ba9a8dab5ed3e99917ce72fdbc697c736aec2a58d
+          printf 'fm1tracker.bin sha256=%s\n' "$BIN_SHA"
+          printf 'fm1tracker-0.1.fwsc sha256=%s\n' "$FWSC_SHA"
+          test "$BIN_SHA" = 9ced222943dfd23443d0eba0cd1e64ebd8a4367600a537f35f55fd475adebc61
+          test "$FWSC_SHA" = cda305ed61d7ecbb1bc0be5c9e9a201a8728a965e3eea90f2fd5fcf2eff4aaeb
 
           printf 'production_checkpoint=81d3464059270130747e26fcc950b7a2e1bb03e1\n' > build/FIRMWARE_EXPORT.txt
+          printf 'image_bytes=79836\nnormal_ram_bytes=27792\npool_ram_bytes=113000\n' >> build/FIRMWARE_EXPORT.txt
           printf 'fm1tracker_bin_sha256=%s\n' "$BIN_SHA" >> build/FIRMWARE_EXPORT.txt
           printf 'fm1tracker_fwsc_sha256=%s\n' "$FWSC_SHA" >> build/FIRMWARE_EXPORT.txt
           printf 'hardware_margin_claim=none\n' >> build/FIRMWARE_EXPORT.txt
