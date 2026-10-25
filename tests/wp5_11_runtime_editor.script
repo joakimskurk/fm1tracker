@@ -1,0 +1,12 @@
+# WP5.11 panel integration regression
+# EDIT -> track 2 -> instrument 5 -> FM4 -> ENV/ATTACK -> OP1 attack +10
+100 btn 6
+150 enc 0 1
+200 enc 6 3
+250 enc 1 4
+300 btn 4
+350 enc 2 10
+400 probe
+500 btn 6
+550 probe
+650 end
