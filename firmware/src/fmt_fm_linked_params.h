@@ -58,4 +58,14 @@ int fmt_fm_linked_params_compose(uint32_t instrument,
                                  const FmtFmRowOverrides *overrides,
                                  FmtFmPatch *patch_out);
 
+/* Main/UI-only D056 held-step adapter. Page is one of the seven frozen FM
+ * pages; knob is 0..3. Reference values come from the resolved instrument's
+ * normalized base when the semantic ID is not already locked. */
+int fmt_fm_linked_editor_is_fm(const FmtLockEditor *editor);
+int fmt_fm_linked_editor_apply_delta(FmtLockEditor *editor,
+                                     uint8_t page,
+                                     uint32_t knob,
+                                     int32_t delta);
+int fmt_fm_linked_editor_confirm_delete(FmtLockEditor *editor);
+
 #endif /* FM1TRACKER_FMT_FM_LINKED_PARAMS_H */
