@@ -590,8 +590,20 @@ static void tracker_apply_event(uint32_t track,
     if (event->kind == FMT_PLAYBACK_EVENT_NOTE)
         tracker_apply_effect_pitch(track);
 
-    tracker_fm_row_patch_valid[track] =
-        (uint8_t)tracker_fm_snapshot_row(track, event->step, instrument);
+    {
+        uint8_t fm_snapshot_valid =
+            (uint8_t)tracker_fm_snapshot_row(track, event->step, instrument);
+
+        /* WP5.9 Defect 001: NOTE_DELAY keeps the old route alive until its
+         * scheduled tick. If that route is FM and the future instrument cannot
+         * publish an FM snapshot, keep the already-valid current FM patch until
+         * the delayed NOTE goes through the normal replacement path. */
+        if (fm_snapshot_valid ||
+            !row_event->pending_valid ||
+            fmt_engine_router_family(&fmt_engine_router_runtime,
+                                     (uint8_t)track) != FMT_ENGINE_FAMILY_FM)
+            tracker_fm_row_patch_valid[track] = fm_snapshot_valid;
+    }
 
     if (event->kind != FMT_PLAYBACK_EVENT_NOTE)
         tracker_apply_effect_pitch(track);
