@@ -45,24 +45,12 @@ Last target-validated production checkpoint:
 |---|---|
 | precontract audit | ✅ `docs/WP5_9_PRECONTRACT_AUDIT.md` |
 | mixed-validation contract frozen | ✅ `docs/WP5_9_MIXED_VALIDATION_CONTRACT.md` |
-| validation-first production freeze | ✅ |
-| real simultaneous FM4 + 8-BIT coverage | ✅ |
-| parameterized high/low peak crossing | ✅ |
-| one-step delayed overlap | ✅ |
-| delayed single-family PCM -> FM | ✅ target PASS |
-| delayed single-family FM -> PCM | ✅ target PASS |
-| delayed mixed -> PCM-only | ✅ target PASS |
 | delayed cross-family defect reproduced before repair | ✅ `docs/WP5_9_DEFECT_001_DELAYED_CROSS_FAMILY.md` |
 | defect fix separately frozen | ✅ `docs/WP5_9_DEFECT_001_FIX_CONTRACT.md` |
 | production fix scope | ✅ `firmware/src/dinghy.c` only |
-| inherited all-8BIT regression | ✅ |
-| inherited D055 default/no-lock FM regression | ✅ |
-| inherited D056 locked-FM regression | ✅ |
 | accepted closeout run | ✅ `40210173573` |
 | closeout target | ✅ `121219510315` |
 | closeout host | ✅ `121219510342` |
-| WP5.9 target mixed validation | ✅ PASS |
-| D056 target closeout regression | ✅ PASS |
 | pinned target image | ✅ 79,836 B |
 | pinned target normal RAM | ✅ 27,792 B |
 | pinned target pool | ✅ 113,000 B |
@@ -72,25 +60,47 @@ Last target-validated production checkpoint:
 | eight logical tracks preserved | ✅ |
 | durable closeout evidence | ✅ `docs/WP5_9_CLOSEOUT_EVIDENCE.md` |
 
-The +32 B image delta is the measured cost of the separately governed defect correction and remains within the frozen +1024 B amendment cap. Normal RAM and pool remain bit-for-bit unchanged in size.
-
 The documentation-only closeout/handoff commit after `81d3464` is not a new target-validated firmware checkpoint.
 
-## WP5.10 next state
+## WP5.10 active state
 
-**WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit** is next. Before any production optimization:
+**WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit** is ACTIVE on issue `#53`, branch `phase5/worst-case-benchmark`.
 
-- precontract audit ⬜
-- freeze realistic worst-case mixed-engine workload ⬜
-- preserve all eight logical tracks ⬜
-- freeze reproducible host + target benchmark path ⬜
-- measure target/resource effects against the D056/WP5.9 baseline ⬜
-- determine whether a real measured constraint exists ⬜
-- if and only if required, freeze a bounded optimization sub-contract ⬜
-- record Phase 5 exit decision ⬜
+| Check | Status |
+|---|---|
+| precontract audit | ✅ `docs/WP5_10_PRECONTRACT_AUDIT.md` |
+| real linked callback inspected | ✅ both family renderers + tracker/control + audition path |
+| family-local voice bounds identified | ✅ 8 8-BIT + 8 FM4 slots, 8 logical tracker tracks |
+| mixed occupancy must be observed, not assumed | ✅ |
+| full callback bounded extras identified | ✅ queue cap 32 + 4 audition voices |
+| inherited test-only instrumentation strategy identified | ✅ WP4.10/WP5.9 |
+| 24 MHz target TIMER4 candidate identified | ✅ `fm1_ticks()` |
+| automated physical target runtime path | ⛔ unavailable |
+| host wall-clock accepted as physical timing gate | ⛔ forbidden |
+| benchmark contract frozen | ⬜ NEXT |
+| fail-closed contract-freeze gate | ⬜ NEXT |
+| mixed saturation workload implemented | ⬜ |
+| full callback pressure workload implemented | ⬜ |
+| exact reachable mixed occupancy recorded | ⬜ |
+| deterministic repeated benchmark digests | ⬜ |
+| extended dual-engine realtime audit | ⬜ |
+| inherited WP5.9/D056/D055/all-8BIT regressions | ⬜ |
+| uninstrumented target footprint closeout | ⬜ |
+| optimization sub-contract | ⬜ only if measured constraint requires it |
+| Phase 5 exit decision | ⬜ |
 
-Future virtual-analog/subtractive and drum engines remain persistent product directions but are not WP5.10 implementation scope.
+### Required benchmark evidence boundary
+
+The contract must keep distinct:
+
+1. deterministic host workload shape/state/audio evidence;
+2. host timing, if collected, as informational only;
+3. target build image/RAM/pool evidence from the uninstrumented production firmware;
+4. target/emulator TIMER4 telemetry only if a reproducible runtime-return path is established;
+5. physical FM-1 realtime/audio/free-RAM evidence as unavailable.
+
+No production optimization is authorized yet.
 
 ## Physical hardware boundary
 
-No physical FM-1 is available. Physical audio stability remains unverified. `hardware_margin_claim=none`.
+No physical FM-1 is available. Physical audio stability and real-device CPU headroom remain unverified. `hardware_margin_claim=none`.

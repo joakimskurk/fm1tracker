@@ -6,15 +6,19 @@ This is the **single source of truth for current execution state**. Read `START_
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.9 complete; WP5.10 next - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.9 complete; WP5.10 ACTIVE - 2026-10-25**
+
+Active package: **WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit**  
+Tracking issue: **#53**  
+Branch: `phase5/worst-case-benchmark`  
+Precontract audit: `docs/WP5_10_PRECONTRACT_AUDIT.md` - COMPLETE  
+Benchmark contract: `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md` - NEXT
 
 Last closed package: **WP5.9 - mixed 8-BIT + FM4 validation**  
 Closed issue: **#52**  
-Closeout branch: `phase5/mixed-validation`  
-Precontract audit: `docs/WP5_9_PRECONTRACT_AUDIT.md`  
 Closeout evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`
 
-Next package: **WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit**. WP5.10 is not implementation-active until its precontract audit and benchmark contract are frozen according to `docs/EXECUTION_PROTOCOL.md`.
+No WP5.10 benchmark implementation or production optimization is authorized until the benchmark contract and its fail-closed freeze gate are committed.
 
 ## Persistent product direction
 
@@ -52,8 +56,6 @@ Full evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md`.
 
 ## Accepted WP5.9 closeout
 
-The WP5.9 audit began as a validation-gap package. Its new delayed cross-family fixture exposed a real target cleanup defect. The defect was documented before repair, then a separate frozen fix contract authorized only the narrow `firmware/src/dinghy.c` correction.
-
 Final accepted production checkpoint and closeout:
 
 ```text
@@ -74,24 +76,32 @@ Full evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`.
 
 `81d3464059270130747e26fcc950b7a2e1bb03e1` remains the last target-validated WP5.9 production-code checkpoint. Documentation/handoff commits after it do not supersede it as firmware validation evidence.
 
-## WP5.10 frozen direction before implementation
+## WP5.10 precontract audit result
 
-WP5.10 is the Phase 5 exit package. Per `docs/WORK_PACKAGES.md`, it must:
+The audit inspected the real linked production callback and inherited benchmark infrastructure.
 
-- begin with a precontract audit;
-- freeze a realistic worst-case mixed-engine benchmark/load definition before optimization;
-- preserve all eight logical tracker tracks;
-- measure target/resource effects against the frozen D056/WP5.9 baseline;
-- distinguish target/resource evidence from physical-audio stability;
-- permit optimization only if the frozen benchmark exposes a real measured constraint;
-- record an explicit Phase 5 exit decision.
+Frozen findings:
 
-No physical FM-1 is available. `hardware_margin_claim=none`.
+- `app_audio()` renders both family engines once per tracker frame, then advances the shared tracker/control path;
+- 8-BIT and FM4 each own a fixed eight-slot voice bank while the tracker remains eight logical tracks;
+- detached release tails mean a realistic mixed load must prove actual family-local occupancy rather than assume eight logical tracks equal eight total DSP voices;
+- the contract must attempt a reachable 8 FM4 + 8 8-BIT non-idle saturation window and record the measured reachable maximum if ordinary tracker semantics cannot reach the full 8+8 state;
+- the same callback can additionally process up to 32 queued audition events and four manual/audition voices, so engine saturation and full-callback pressure must be separate evidence cases;
+- WP4.10 test-only wrapper/digest instrumentation and WP5.9 source-injected mixed fixtures are the preferred non-invasive mechanisms;
+- existing realtime audits must be extended to both final engine renderers;
+- target HAL exposes a free-running 24 MHz TIMER4 via `fm1_ticks()`, but current automated target closeout does not execute firmware on physical hardware;
+- host timing is informational only, emulator timing must be labeled emulator timing, and no such number is a physical FM-1 margin claim;
+- uninstrumented production resource evidence stays anchored to D056/WP5.9;
+- optimization remains forbidden unless the frozen benchmark exposes a real measured constraint.
+
+`hardware_margin_claim=none`
 
 ## Exact next action
 
-1. close WP5.9 issue `#52` with `docs/WP5_9_CLOSEOUT_EVIDENCE.md` as durable evidence;
-2. create/activate WP5.10 from this documentation-only handoff;
-3. perform the WP5.10 precontract audit before implementation changes;
-4. freeze its benchmark/load contract and fail-closed verification path;
-5. only then implement the benchmark and evaluate whether any production optimization is justified.
+1. freeze `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md` from the completed audit;
+2. add a fail-closed contract-freeze verification gate;
+3. commit that contract checkpoint before benchmark implementation;
+4. implement test-only mixed saturation/full-callback benchmark evidence without production changes;
+5. run inherited regressions and pinned target resource closeout;
+6. only if measured evidence exposes a real constraint, stop and freeze a separate bounded optimization sub-contract;
+7. record the Phase 5 exit decision.

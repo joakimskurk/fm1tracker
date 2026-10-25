@@ -66,22 +66,48 @@ Evidence: `WP5_8_CLOSEOUT_EVIDENCE.md`.
 
 The accepted target is 864 B below the frozen D056 normal-RAM package ceiling. This does not claim only 864 B remains physically available, but later Phase 5 packages must measure resource growth rather than assume it.
 
-### WP5.9 - mixed 8-BIT + FM4 validation - NEXT
+### WP5.9 - mixed 8-BIT + FM4 validation - COMPLETE - issue #52
 
-Purpose: validate that the already-implemented engine families and D056 parameter path behave coherently under genuinely mixed tracker use before worst-case benchmarking.
+Purpose: validate that the implemented engine families and D056 parameter path behave coherently under genuinely mixed tracker use before worst-case benchmarking.
+
+Accepted closeout:
+
+```text
+code checkpoint  81d3464059270130747e26fcc950b7a2e1bb03e1
+run              40210173573 SUCCESS
+target           121219510315 SUCCESS
+host             121219510342 SUCCESS
+image            79836 B
+normal RAM       27792 B
+pool            113000 B
+D056 delta       +32 B image / +0 B RAM / +0 B pool
+```
+
+The validation-first package exposed delayed cross-family defect 001 before repair. A separately frozen fix contract authorized only the narrow `firmware/src/dinghy.c` correction. All eight logical tracks remain intact. Full evidence: `WP5_9_CLOSEOUT_EVIDENCE.md`.
+
+### WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit - ACTIVE - issue #53
+
+Purpose: benchmark the bounded mixed-engine production path under realistic high-load conditions and make an evidence-based Phase 5 exit decision without silently reducing the eight logical tracker tracks.
+
+Precontract audit: `WP5_10_PRECONTRACT_AUDIT.md` - COMPLETE.
 
 Contract-first scope:
 
-1. audit existing WP5.0/WP5.7 mixed fixtures, D048 routing, D043 ownership and D056 row/p-lock integration;
-2. define simultaneous 8-BIT + FM4 workloads that exercise multiple tracks at the same time, not only separated time windows;
-3. define same-track family-switch sequences and exact ownership/state cleanup expectations;
-4. include NOTE, TIE/EMPTY, RETRIG, OFF/CUT and relevant p-lock transitions where they cross the family-routing seam;
-5. preserve exact WP5.0 all-8BIT bitstream equivalence as a non-negotiable regression;
-6. preserve D055 default/no-lock FM behavior and D056 locked-FM semantics;
-7. require deterministic repeated renders for every mixed fixture;
-8. audit realtime/sample-path boundedness and forbid new sparse-store/editor traversal in audio;
-9. record target image/RAM/pool deltas from the accepted D056 closeout, with the 27,792 B normal-RAM result visible in the contract;
-10. use fail-closed host and pinned-target gates before closeout.
+1. freeze benchmark/load shape before implementation;
+2. benchmark the real linked `app_audio()` path, not only isolated DSP helpers;
+3. preserve exactly eight logical tracker tracks;
+4. prove actual family-local voice occupancy at the measurement window;
+5. attempt a reachable eight non-idle FM4 + eight non-idle 8-BIT state through ordinary tracker/release-tail semantics and record the actual reachable maximum if full 8+8 cannot be reached;
+6. keep mixed-engine saturation separate from a full-callback-pressure case that may add bounded D034 queue ingress and four audition voices;
+7. use test-only observation wrappers/source-injected fixtures rather than permanent production debug hooks;
+8. extend inherited realtime audits to both final engine renderers and preserve fixed bounds/no heap/no sparse-store traversal;
+9. require deterministic repeated sample/state/occupancy evidence;
+10. keep host wall-clock timing informational only;
+11. use 24 MHz TIMER4 target/emulator telemetry only if a reproducible execution-return path is established, and label emulator timing as emulator timing;
+12. measure the ordinary uninstrumented target image/RAM/pool against D056/WP5.9;
+13. preserve exact all-8BIT, D055 default/no-lock FM, D056 locked-FM and WP5.9 mixed/defect regressions;
+14. authorize production optimization only if the frozen benchmark demonstrates a real measured constraint and only after a separate bounded optimization sub-contract;
+15. record an explicit Phase 5 exit decision.
 
 Non-goals:
 
@@ -89,28 +115,28 @@ Non-goals:
 - no virtual-analog/subtractive implementation;
 - no drum-engine implementation;
 - no song/order/persistence work;
-- no physical hardware-margin claim;
-- no broad performance benchmark beyond what is required to validate correctness. Worst-case benchmarking belongs to WP5.10.
+- no reduction below eight logical tracks;
+- no speculative production optimization;
+- no physical timing, audio-stability or free-RAM claim without a physical FM-1.
 
 Exit criteria:
 
-- precontract audit and frozen validation contract committed before production behavior changes;
-- simultaneous-family fixtures deterministic and green;
-- same-track family-switch fixtures deterministic and green;
-- no ownership leak/active cross-track primary stealing;
-- all-8BIT exact regression green;
-- inherited D055/D056 semantics green;
-- host + pinned-target closeout green on one accepted checkpoint;
-- exact resource deltas recorded;
-- durable verification document committed.
-
-### WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit - PLANNED
-
-Representative worst-case mixed workload, realtime audit, inherited regressions and exact target closeout. WP5.10 may measure and, if necessary, force an explicit architecture/resource decision; it may not silently reduce eight logical tracks.
+- precontract audit committed before benchmark implementation;
+- benchmark contract and fail-closed freeze gate committed before benchmark implementation;
+- mixed saturation workload reproducible and actual occupancy recorded;
+- full callback pressure workload reproducible;
+- deterministic repeated host digests green;
+- dual-engine realtime audit green;
+- inherited correctness regressions green;
+- uninstrumented pinned-target build green with exact resource result recorded;
+- any optimization, if required, separately contracted and evidence-driven;
+- all eight logical tracks preserved;
+- `hardware_margin_claim=none` explicit unless real physical evidence exists;
+- Phase 5 exit decision and durable closeout evidence committed.
 
 ## Mandatory core milestone - live performance capture + performance FX
 
-PLANNED after engine foundations. Reference `LIVE_PERFORMANCE_CAPTURE_VISION.md`. Drums remain a required playable/capturable direction even though their engine implementation is not part of WP5.9.
+PLANNED after engine foundations. Reference `LIVE_PERFORMANCE_CAPTURE_VISION.md`. Drums remain a required playable/capturable direction even though their engine implementation is not part of WP5.10.
 
 ## Future engine-family expansion
 
