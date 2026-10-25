@@ -6,6 +6,7 @@ mkdir -p build/host build/wp5_8_store_resolver
 
 cc -std=c99 -O2 -Wall -Wextra -Werror \
     -Ifirmware/src \
+    -include firmware/src/fmt_playback.h \
     tests/test_fmt_fm_store_resolver.c \
     firmware/src/fmt_store.c \
     firmware/src/fmt_lock_store.c \
