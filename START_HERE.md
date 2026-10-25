@@ -5,30 +5,31 @@ Repository state is authoritative. Do not reconstruct the plan from old chat con
 Read in this order:
 
 1. `docs/PROJECT_STATE.md`
-2. `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`
-3. `docs/WP5_7_PRECONTRACT_AUDIT.md`
-4. `docs/WP5_6_VERIFICATION.md`
-5. `docs/WP5_6_FM_ENVELOPE_CONTRACT.md`
-6. `docs/WP5_5_VERIFICATION.md`
-7. `docs/WP5_4_VERIFICATION.md`
-8. `docs/WP5_3_VERIFICATION.md`
-9. `docs/WP5_2_VERIFICATION.md`
-10. `docs/WP5_1_VERIFICATION.md`
-11. `docs/WP5_0_VERIFICATION.md`
-12. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-13. `docs/CURRENT_DECISIONS.md`
-14. `docs/WORK_PACKAGES.md`
-15. `docs/EXECUTION_PROTOCOL.md`
-16. `docs/CURRENT_TEST_STATE.md`
-17. `docs/TEST_MATRIX.md`
-18. `docs/ROADMAP.md`
-19. `THIRD_PARTY.md`
+2. `docs/WP5_7_PREIMPLEMENTATION_EVIDENCE.md`
+3. `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`
+4. `docs/WP5_7_PRECONTRACT_AUDIT.md`
+5. `docs/WP5_6_VERIFICATION.md`
+6. `docs/WP5_6_FM_ENVELOPE_CONTRACT.md`
+7. `docs/WP5_5_VERIFICATION.md`
+8. `docs/WP5_4_VERIFICATION.md`
+9. `docs/WP5_3_VERIFICATION.md`
+10. `docs/WP5_2_VERIFICATION.md`
+11. `docs/WP5_1_VERIFICATION.md`
+12. `docs/WP5_0_VERIFICATION.md`
+13. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
+14. `docs/CURRENT_DECISIONS.md`
+15. `docs/WORK_PACKAGES.md`
+16. `docs/EXECUTION_PROTOCOL.md`
+17. `docs/CURRENT_TEST_STATE.md`
+18. `docs/TEST_MATRIX.md`
+19. `docs/ROADMAP.md`
+20. `THIRD_PARTY.md`
 
 ## Current handoff
 
 WP5.0/D048 through WP5.6/D054 are complete.
 
-WP5.7 / issue #50 is now the only active package.
+WP5.7 / issue #50 is the only active package.
 
 Active branch: `phase5/fm4-voice-integration`.
 
@@ -39,34 +40,46 @@ Parent closeout:
 - host `121093715194` SUCCESS
 - target `121093715000` SUCCESS
 
-## D055 direction
+## D055 source-absent evidence
 
-D055 is contract-first and source-absent.
+D055 contract checkpoint:
 
-The candidate architecture freezes:
+- head `01f8f6c8f81f9057909d99223372b0901296e3ec`
+- run `40171940961`
+- job `121104425642` SUCCESS
+- artifact `12590656915`
+- SHA `ab44e0a8553edaf02eefbf8c175b717a7d5ee32ae4c9ad44de77d94228f0d9c5`
 
-- eight family-local FM slots;
-- reuse of the existing D043 allocator policy;
-- `FmtFmVoice = 92 B`;
-- `FmtFmEngine = 788 B`;
-- one immutable 28 B default FM bridge patch in ROM;
-- no mutable FM instrument bank or FM p-lock/page cache in WP5.7;
-- one backward-compatible D050 seam for externally rendered OP4;
-- exact D048 family-switch ordering;
-- default all-8BIT audio regression exact.
+Evidence: `docs/WP5_7_PREIMPLEMENTATION_EVIDENCE.md`.
+
+The source-absent gate proved eight FM slots, 92 B per voice, 788 B engine state, the exact D043 allocator policy, D048 route ordering, zero active cross-track steals and inherited D054 through WP5.0 regressions before integration source existed.
+
+## Production integration now authorized
+
+Allowed production files only:
+
+```text
+firmware/src/fmt_fm_engine.h
+firmware/src/fmt_fm_engine.c
+firmware/src/fmt_fm_algorithm.h
+firmware/src/fmt_fm_algorithm.c
+firmware/src/dinghy.c
+```
+
+D050 may change only for the frozen externally-rendered-OP4 composition seam. D049, D051, D052, D053, D054, D043 allocator source and generated tables remain frozen.
 
 ## Exact next action
 
-Run the D055 source-absent gate.
+Implement and verify, in this order:
 
-Production integration is blocked until that gate proves:
+1. backward-compatible D050 composition seam;
+2. exact 8-slot FM engine;
+3. D048 FM family dispatch in `dinghy.c`;
+4. focused host ownership/release/retrigger/cross-family fixtures;
+5. exact all-8BIT WP5.0 WAV regression;
+6. pinned PI32v2/full-target resource gate;
+7. `WP5_7_VERIFICATION.md` and formal #50 closeout.
 
-1. `fmt_fm_engine.*` is absent;
-2. D043/D048/D049-D054 and `dinghy.c` still equal the WP5.6 closeout baseline;
-3. the 8-slot allocator model has zero active cross-track steals;
-4. route ordering matches D048;
-5. inherited D054 through WP5.0 host regressions remain exact.
-
-Only after durable green evidence may WP5.7 integration source begin.
+Do not start WP5.8 before WP5.7 is closed.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

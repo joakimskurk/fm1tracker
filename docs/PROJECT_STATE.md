@@ -8,13 +8,11 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.6 complete; WP5.7 D055 contract freeze active - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.6 complete; WP5.7 D055 source-absent gate ACCEPTED, implementation authorized - 2026-10-25**
 
 Current active package: **WP5.7 - FM4 voice allocation and D048 router integration**  
 Active issue: **#50**  
 Active branch: `phase5/fm4-voice-integration`
-
-Do not begin production FM voice/router integration until the D055 source-absent gate is green and durable.
 
 ## Completed Phase 5 baseline
 
@@ -34,12 +32,24 @@ WP5.6 final closeout:
 - target `121093715000` SUCCESS;
 - full running application remains exact WP5.0.
 
-## WP5.7 D055 current contract candidate
+## D055 accepted contract
 
-Normative contract: `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`.  
-Audit: `docs/WP5_7_PRECONTRACT_AUDIT.md`.
+Normative: `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`.  
+Audit: `docs/WP5_7_PRECONTRACT_AUDIT.md`.  
+Preimplementation evidence: `docs/WP5_7_PREIMPLEMENTATION_EVIDENCE.md`.
 
-Frozen candidate architecture:
+Accepted source-absent gate:
+
+```text
+head      01f8f6c8f81f9057909d99223372b0901296e3ec
+run       40171940961
+job       121104425642
+status    SUCCESS
+artifact  12590656915
+SHA-256   ab44e0a8553edaf02eefbf8c175b717a7d5ee32ae4c9ad44de77d94228f0d9c5
+```
+
+Frozen D055 architecture:
 
 ```text
 FM slots                     8
@@ -50,16 +60,11 @@ immutable bridge patch      28 B ROM
 mutable FM instrument bank   0 B in WP5.7
 ```
 
-Allocator policy is the existing D043 policy:
+Allocator remains exact D043 policy: reuse own primary, otherwise lowest idle, otherwise oldest detached RELEASE tail, never another track's active primary.
 
-- reuse own primary;
-- otherwise lowest idle;
-- otherwise oldest detached release tail;
-- never steal another track's active primary.
+The 28 B bridge patch is temporary WP5.7 integration input. WP5.8 owns mutable FM parameter pages/p-lock storage.
 
-The bridge patch is only for WP5.7 integration. WP5.8 owns mutable FM parameter pages/p-lock storage.
-
-D055 permits one narrow backward-compatible D050 composition seam so D053 can render OP4 before D050 renders the remaining topology. Existing D050 output must remain exact.
+D055 permits exactly one backward-compatible D050 composition seam for externally rendered OP4 so D053 feedback can compose without duplicating topology logic.
 
 ## D055 resource ceilings
 
@@ -68,7 +73,8 @@ parent image          72792 B
 parent normal RAM     19676 B
 parent pool          113000 B
 
-FM engine target        788 B
+FmtFmEngine target      788 B
+engine hard ceiling     800 B
 RAM increment max      1024 B
 total RAM max         20700 B
 image increment max    8192 B
@@ -77,13 +83,29 @@ pool increment            0 B
 pool total           113000 B
 ```
 
+## Production boundary now authorized
+
+Only these production files may change during WP5.7 implementation:
+
+```text
+firmware/src/fmt_fm_engine.h
+firmware/src/fmt_fm_engine.c
+firmware/src/fmt_fm_algorithm.h
+firmware/src/fmt_fm_algorithm.c
+firmware/src/dinghy.c
+```
+
+D049, D051, D052, D053, D054, D043 allocator source and generated tables remain frozen. D050 may change only for the D055 composition seam.
+
 ## Current exact action
 
-1. freeze D055 plus source-absent reference tests;
-2. prove production source is still exactly the WP5.6 closeout;
-3. run inherited D054/D053/.../WP5.0 host regressions;
-4. record durable preimplementation evidence;
-5. only then implement the FM engine, D050 composition seam and D048 FM dispatch.
+1. add the D050 externally-rendered-OP4 composition seam while keeping the old D050 renderer bit-exact;
+2. implement the exact 8-slot / 788 B FM engine;
+3. connect FM family cases to the existing D048 router in `dinghy.c`;
+4. verify event/release/retrigger/cross-family semantics and zero active cross-track steals;
+5. require the normal all-8BIT host WAV to remain exact WP5.0;
+6. run pinned PI32v2/full-target build inside the D055 image/RAM/pool ceilings;
+7. write `WP5_7_VERIFICATION.md` and close #50 before WP5.8 begins.
 
 No WP5.8 parameter-page/p-lock work is allowed in WP5.7.
 
