@@ -25,6 +25,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install inherited host UI dependency
+        run: python3 -m pip install pillow
       - name: Run isolated D055 engine gate
         shell: bash
         run: |
