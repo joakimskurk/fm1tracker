@@ -1,0 +1,33 @@
+name: WP5.8 D056 contract freeze
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'docs/WP5_8_PRECONTRACT_AUDIT.md'
+      - 'docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md'
+      - 'tests/wp5_8_reference.py'
+      - 'tests/run_wp5_8_contract_freeze.sh'
+      - '.github/workflows/wp5_8_contract_freeze.yml'
+      - 'START_HERE.md'
+      - 'docs/PROJECT_STATE.md'
+      - 'docs/CURRENT_DECISIONS.md'
+  workflow_dispatch:
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify D056 source-absent contract
+        run: sh tests/run_wp5_8_contract_freeze.sh
+      - name: Upload contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-8-contract-evidence
+          path: build/wp5_8_contract
+          if-no-files-found: error

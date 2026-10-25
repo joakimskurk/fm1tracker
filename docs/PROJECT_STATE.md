@@ -8,11 +8,11 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.6 complete; WP5.7/D055 technically complete, documentation closeout active - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.7 complete; WP5.8/D056 contract frozen, source-absent gate active - 2026-10-25**
 
-Current active package: **WP5.7 - FM4 voice allocation and D048 router integration closeout**  
-Active issue: **#50**  
-Active branch: `phase5/fm4-voice-integration`
+Current active package: **WP5.8 - FM4 parameter pages and p-lock mapping**  
+Active issue: **#51**  
+Active branch: `phase5/fm4-parameters`
 
 ## Completed Phase 5 foundation
 
@@ -20,56 +20,50 @@ Active branch: `phase5/fm4-voice-integration`
 - WP5.1 / D049 fixed-point FM operator - COMPLETE.
 - WP5.2 / D050 curated four-operator routing - COMPLETE.
 - WP5.3 / D051 integer ratio/pitch mapping - COMPLETE.
-- WP5.4 / D052 operator level/modulation-index mapping - COMPLETE.
+- WP5.4 / D052 level/modulation-index mapping - COMPLETE.
 - WP5.5 / D053 bounded OP4 feedback - COMPLETE.
 - WP5.6 / D054 four independent FM4 ADSR envelopes - COMPLETE.
+- WP5.7 / D055 FM voice allocation and D048 integration - COMPLETE; closeout `80587f12786122dcec819260ddad5dd5db4b1005`, run `40177151084` SUCCESS.
 
-## WP5.7 / D055 technical checkpoint
+## WP5.8 / D056 current state
 
-Normative: `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`.  
-Evidence: `docs/WP5_7_VERIFICATION.md`.
+Audit: `docs/WP5_8_PRECONTRACT_AUDIT.md`.  
+Normative: `docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md`.
 
-Canonical implementation checkpoint:
-
-```text
-head    75ff8136881799ad652df380a53002c5efa70516
-run     40173076046 SUCCESS
-host    121107852886 SUCCESS
-target  121107852943 SUCCESS
-```
-
-Verified architecture:
+D056 is frozen before production code:
 
 ```text
-FM slots                    8
-FmtFmVoice                 92 B
-FmtFmEngine               788 B
-active cross-track steals    0
-allocator                   exact D043
-mutable FM parameter bank     0 B
+FM semantic IDs          27
+namespace                0x60..0x7B, except 0x63
+logical pages            7
+FmtFmParamSet            27 B target
+FM base bank            432 B target
+max p-locks per step      4 unchanged
+generalized row cache  8704 B target
+legacy 8BIT view       2048 B exact
+known normal-RAM growth 7088 B
 ```
 
-Verified full target:
+Exact default normalized FM controls must compose the D055 bridge patch SHA:
 
 ```text
-image       77048 B  (+4256 vs WP5.0)
-normal RAM  20464 B  (+788 vs WP5.0)
-pool       113000 B  (unchanged)
+3d2ef849d345d12f79312af92950062db0dbfd5b56966c6f7a2d557251edac52
 ```
 
-Default all-8BIT production output remains exact WP5.0:
+Frozen absolute package ceilings:
 
 ```text
-frames  286464
-sha256  17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076
+image       <= 93432 B
+normal RAM  <= 28656 B
+pool         = 113000 B
 ```
 
-A production `FM4 -> 8-BIT -> FM4` same-track fixture renders deterministically with byte-identical repeated WAV output.
+D049-D055 synthesis/voice source and generated tables remain frozen.
 
 ## Current exact action
 
-This documentation closeout head must pass the normal WP5.7 host+target workflow. When green, close #50 and branch WP5.8 from this exact head.
+Run the D056 source-absent contract workflow. It must prove zero firmware/gen diff from the WP5.7 closeout and green D055 focused regressions. If green, write durable preimplementation evidence and only then begin the bounded production source activation defined in D056.
 
-WP5.8 is **FM parameter pages + p-lock mapping**. It must begin contract-first by auditing existing page semantics, p-lock semantic IDs/storage, family-specific dispatch and the temporary immutable 28 B WP5.7 bridge patch before any mutable FM parameter source is introduced.
+Do not start WP5.9.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

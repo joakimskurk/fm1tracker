@@ -5,51 +5,56 @@ Repository state is authoritative. Do not reconstruct the plan from old chat con
 Read in this order:
 
 1. `docs/PROJECT_STATE.md`
-2. `docs/WP5_7_VERIFICATION.md`
-3. `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`
-4. `docs/WP5_7_PREIMPLEMENTATION_EVIDENCE.md`
-5. `docs/CURRENT_DECISIONS.md`
-6. `docs/WORK_PACKAGES.md`
-7. `docs/EXECUTION_PROTOCOL.md`
-8. `docs/CURRENT_TEST_STATE.md`
-9. `docs/TEST_MATRIX.md`
-10. `docs/ROADMAP.md`
-11. `THIRD_PARTY.md`
+2. `docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md`
+3. `docs/WP5_8_PRECONTRACT_AUDIT.md`
+4. `docs/WP5_7_VERIFICATION.md`
+5. `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`
+6. `docs/CURRENT_DECISIONS.md`
+7. `docs/WORK_PACKAGES.md`
+8. `docs/EXECUTION_PROTOCOL.md`
+9. `docs/CURRENT_TEST_STATE.md`
+10. `docs/TEST_MATRIX.md`
+11. `docs/ROADMAP.md`
+12. `THIRD_PARTY.md`
 
 ## Current handoff
 
-WP5.0/D048 through WP5.6/D054 are complete.
+WP5.0/D048 through WP5.7/D055 are complete.
 
-WP5.7 / D055 implementation is technically complete and this branch is at formal documentation closeout.
+WP5.8 / D056 is the only active package.
 
-Active issue: #50.  
-Active branch: `phase5/fm4-voice-integration`.
+Active issue: #51.  
+Active branch: `phase5/fm4-parameters`.
 
-Canonical implementation checkpoint:
+Parent closeout checkpoint:
 
-- head `75ff8136881799ad652df380a53002c5efa70516`
-- run `40173076046` SUCCESS
-- host `121107852886` SUCCESS
-- target `121107852943` SUCCESS
-- host artifact `12590982004`
-- target artifact `12590199901`
+- head `80587f12786122dcec819260ddad5dd5db4b1005`
+- run `40177151084` SUCCESS
+- host `121120200847` SUCCESS
+- target `121120200983` SUCCESS
+- target 77,048 B image / 20,464 B normal RAM / 113,000 B pool
+- exact all-8BIT SHA `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`
 
-Verified target footprint:
+## D056 freeze state
 
-```text
-image       77048 B
-normal RAM  20464 B
-pool       113000 B
-```
+The WP5.8 audit is complete and D056 is frozen in `docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md` before production implementation.
 
-Default all-8BIT WAV remains exact WP5.0: `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076`.
+Key frozen decisions:
+
+- 27 stable FM semantic IDs in `0x60..0x7B`, with `0x63` intentionally unassigned;
+- seven logical pages: CORE/RATIO/LEVEL/ATTACK/DECAY/SUSTAIN/RELEASE;
+- normalized 27 B FM base per instrument, 432 B total;
+- exact D055 default-patch reproduction;
+- existing max four sparse p-locks per step unchanged;
+- one generalized 8,704 B physical engine-row cache preserving the old 2,048 B 8BIT view;
+- D049-D055 DSP/voice modules frozen;
+- +8,192 B normal-RAM and +16,384 B image package ceilings.
 
 ## Exact next action
 
-1. require the normal WP5.7 host+target workflow to pass on this documentation closeout head;
-2. close issue #50 only after that run is green;
-3. create the WP5.8 issue and branch from the accepted closeout head;
-4. begin WP5.8 with a contract-first audit of existing parameter-page, p-lock ID/storage and family-routing semantics;
-5. do not implement mutable FM parameter storage until the WP5.8 decision is frozen and its source-absent gate is green.
+1. require `.github/workflows/wp5_8_contract_freeze.yml` to pass on the D056 documentation/source-absent checkpoint;
+2. record the run/job/artifact as WP5.8 preimplementation evidence;
+3. only then activate the 27 IDs and implement `fmt_fm_params` / linked publication within the frozen source boundary;
+4. preserve exact all-8BIT behavior and do not start WP5.9.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
