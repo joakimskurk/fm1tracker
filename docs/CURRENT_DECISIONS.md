@@ -2,7 +2,7 @@
 
 Date: 2026-10-25
 
-`DECISIONS.md` remains the append-only historical decision log through D046. D047-D053 are accepted Phase 5 decisions.
+`DECISIONS.md` remains the append-only historical decision log through D046. D047-D053 are accepted and verified Phase 5 decisions. D054 is frozen source-absent and accepted for implementation.
 
 ## D047 - mixed-engine instrument architecture
 
@@ -65,13 +65,42 @@ Frozen compatibility:
 
 Canonical source-absent gate: run `40164610821`, job `121082987705`.
 
-Canonical implementation verification: run `40164953532`, host `121083999893`, target `121083999790`.
+Canonical final closeout: run `40165352623`, host `121085156557`, target `121085156767`.
 
-## D054
+## D054 - four independent FM4 ADSR envelopes
 
-Status: **NOT YET DEFINED**
+Status: **FROZEN SOURCE-ABSENT, ACCEPTED FOR IMPLEMENTATION**  
+Normative: `WP5_6_FM_ENVELOPE_CONTRACT.md`  
+Audit: `WP5_6_PRECONTRACT_AUDIT.md`  
+Evidence: `WP5_6_PREIMPLEMENTATION_EVIDENCE.md`
 
-WP5.6 / issue #49 must freeze D054 contract-first after WP5.5 formal closeout. D054 must choose a bounded deterministic FM4 envelope strategy without pulling WP5.7 voice/router integration forward.
+Frozen compatibility:
+
+- four independent per-operator ADSR envelopes;
+- envelope scales each D052 Q15 LEVEL before D049 render;
+- exactly 20 B persistent envelope state per future FM voice;
+- exactly 16 B envelope control model;
+- Q15.16 internal level, full scale `0x7fff0000`;
+- stable OFF/ATTACK/DECAY/SUSTAIN/RELEASE stage IDs 0..4;
+- ATTACK/DECAY/RELEASE time controls use one immutable 1,024 B table;
+- 16 exact steps per octave from approximately 1 ms through approximately 61.3 s;
+- control 0 is true instant transition;
+- SUSTAIN uses the exact D052 LEVEL byte-to-Q15 mapping;
+- hard retrigger from zero;
+- note-off releases from current level;
+- D050 algorithm changes do not reset envelope state;
+- per-sample bounded update, four state updates + four level scalings per FM voice;
+- no heap, runtime division/modulo, 64-bit integer or floating-point requirement;
+- D049-D053 and `dinghy.c` remain unchanged in WP5.6 primitive work.
+
+Accepted source-absent gate:
+
+- head `151401f164a17c3459f965971f2855bb05831c4b`;
+- run `40167537148`;
+- job `121091550742` SUCCESS;
+- artifact ID `12588534519`, SHA `eaea6ae76ee55779f45b4e2692c226e0790e0ebeb22326a9e722359fe76eec36`.
+
+Production envelope source is now permitted only inside the D054 boundary.
 
 ## Current precedence
 
@@ -82,6 +111,6 @@ WP5.6 / issue #49 must freeze D054 contract-first after WP5.5 formal closeout. D
 - D051 governs base-pitch to operator-ratio mapping.
 - D052 governs operator LEVEL and global INDEX mapping.
 - D053 governs bounded one-sample OP4 feedback.
-- D054 does not exist yet.
+- D054 governs isolated four-operator ADSR envelope semantics.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.
