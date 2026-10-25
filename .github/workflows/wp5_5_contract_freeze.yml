@@ -1,19 +1,10 @@
 name: WP5.5 D053 bounded feedback contract freeze
 
+# Historical preimplementation gate. The accepted source-absent evidence is
+# run 40164610821 at commit 10bf0e3bf8ef49253666bee999b2de95de10046d.
+# After D053 production source exists this workflow is intentionally manual-only.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - phase5/fm4-feedback
-    paths:
-      - docs/WP5_5_PRECONTRACT_AUDIT.md
-      - docs/WP5_5_FM_FEEDBACK_CONTRACT.md
-      - tests/wp5_5_reference.py
-      - tests/run_wp5_5_contract_freeze.sh
-      - .github/workflows/wp5_5_contract_freeze.yml
-      - docs/PROJECT_STATE.md
-      - docs/CURRENT_DECISIONS.md
-      - START_HERE.md
 
 permissions:
   contents: read
