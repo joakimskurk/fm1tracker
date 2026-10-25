@@ -1,18 +1,10 @@
 name: WP5.6 D054 FM envelope contract freeze
 
+# Historical preimplementation gate. Keep manual-only after D054 production
+# source exists so later documentation/closeout commits cannot create false red
+# runs by re-testing the intentionally obsolete source-absent condition.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - phase5/fm4-envelope
-    paths:
-      - docs/WP5_6_PRECONTRACT_AUDIT.md
-      - docs/WP5_6_FM_ENVELOPE_CONTRACT.md
-      - tests/wp5_6_reference.py
-      - tests/run_wp5_6_contract_freeze.sh
-      - .github/workflows/wp5_6_contract_freeze.yml
-      - docs/PROJECT_STATE.md
-      - START_HERE.md
 
 permissions:
   contents: read
