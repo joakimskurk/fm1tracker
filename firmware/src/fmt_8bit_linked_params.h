@@ -2,6 +2,7 @@
 #ifndef FM1TRACKER_FMT_8BIT_LINKED_PARAMS_H
 #define FM1TRACKER_FMT_8BIT_LINKED_PARAMS_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "fmt_8bit_params.h"
