@@ -9,65 +9,59 @@ Legend: ✅ verified/frozen, ⬜ active/future, ⛔ physical unavailable.
 
 - Phase 1-3: COMPLETE ✅
 - D046 Phase 4 all-8-BIT baseline: COMPLETE ✅ run `40124536375`, job `120963022289`
-- D048 WP5.0 mixed-engine routing: COMPLETE ✅ run `40129822006`, job `120978955451`
-- D049 WP5.1 fixed-point FM operator: COMPLETE ✅ run `40134823600`, host `120994003059`, target `120994002842`
-- D050 WP5.2 curated FM4 algorithm routing: COMPLETE ✅ run `40136425976`, host `120998804031`, target `120998804175`
-- D051 WP5.3 integer FM4 ratio mapping: COMPLETE ✅ run `40139154497`, host `121006986068`, target `121006985928`
-- D052 WP5.4 level/index mapping: COMPLETE ✅ run `40143482844`, host `121019875458`, target `121019875309`
-- D053 WP5.5 bounded OP4 feedback: TECHNICALLY COMPLETE ✅ run `40164953532`, host `121083999893`, target `121083999790`
+- D048 WP5.0 mixed-engine routing: COMPLETE ✅
+- D049 WP5.1 fixed-point FM operator: COMPLETE ✅
+- D050 WP5.2 curated FM4 routing: COMPLETE ✅
+- D051 WP5.3 integer ratio/pitch mapping: COMPLETE ✅
+- D052 WP5.4 level/index mapping: COMPLETE ✅
+- D053 WP5.5 bounded OP4 feedback: COMPLETE ✅ final run `40165352623`
 
-## WP5.5 / D053 verification state
+## WP5.6 / D054 technical state - COMPLETE
 
 | Check | Status |
 |---|---|
-| D053 frozen before production source | ✅ |
-| source-absent reference gate | ✅ run `40164610821`, job `121082987705` |
-| OP4-only one-sample topology | ✅ |
-| feedback state | ✅ exactly 2 B |
-| FEEDBACK byte mapping | ✅ 256/256 |
-| malformed scalar saturation | ✅ |
-| full int16 history x controls | ✅ 16,777,216 pairs |
-| arithmetic positive max/margin | ✅ 2,147,287,044 / 196,603 |
-| arithmetic negative min/margin | ✅ -2,147,352,576 / 131,072 |
-| canonical OP4 4,096 hash | ✅ `6eee497f...` |
-| four D050 composition hashes | ✅ |
-| algorithm-switch continuity | ✅ |
-| four 65,536-sample extreme stresses | ✅ |
-| reset/retrigger/null semantics | ✅ |
-| FEEDBACK=0 history tracking | ✅ |
-| production source boundary | ✅ only `fmt_fm_feedback.h/.c` |
-| D049-D052 + dinghy unchanged | ✅ |
-| static bounded source audit | ✅ loops/div/mod/int64/float/heap/tables/globals all zero |
-| inherited D052-D049 regressions | ✅ |
-| full host app WAV exact WP5.0 | ✅ |
-| PI32v2 feedback object | ✅ 130 B / 1,024 B ceiling |
-| feedback object SHA | ✅ `147c623c49fa8756f36937589d96f2da5139b6e3d1a09790e95d91c5f770256d` |
+| four independent per-operator ADSR architecture | ✅ |
+| D054 frozen before production source | ✅ |
+| source-absent gate | ✅ run `40167537148`, job `121091550742` |
+| state size | ✅ 20 B |
+| control size | ✅ 16 B |
+| Q15.16 level domain | ✅ max `0x7fff0000` |
+| stage IDs OFF/A/D/S/R | ✅ 0/1/2/3/4 |
+| 256-entry A/D/R table | ✅ 1,024 B |
+| time-table SHA | ✅ `6e94aa6553b78919913d49a24c80ca7317c913fff344294a107137f85ffbc025` |
+| SUSTAIN map exact | ✅ SHA `a799f70bd763053e79c3d9de6acdda97523fe54632105756c4252dc33d51c815` |
+| 65,536 LEVEL composition pairs | ✅ SHA `196659105845f6183b0779183a583226129a5b7f35e8ac8ac811479b117e606b` |
+| zero-time A/D/R semantics | ✅ |
+| hard retrigger | ✅ zero |
+| release from current level | ✅ |
+| max release termination | ✅ `2701155` advances |
+| 65,536-sample 4-op stress | ✅ SHA `8cdf12197813d5718b3b4c5a40375534f93ea006f61e5aa325f4b48af71e0849` |
+| production source boundary | ✅ exactly 4 allowed files |
+| generated table regeneration | ✅ byte-identical |
+| no loops/div/mod/int64/float/heap/mutable globals | ✅ |
+| inherited D053-D049 + WP5.0 host WAV | ✅ |
+| PI32v2 envelope object | ✅ 1,680 B / 2,048 B ceiling |
+| object SHA | ✅ `22fa7937d7776fea37c8e758ca83ee0a3f5d6c506ebd4661a8290a4516e048d1` |
 | full target exact WP5.0 | ✅ 72,792 / 19,676 / 113,000 B |
 | BIN/FWSC exact WP5.0 | ✅ |
-| `WP5_5_VERIFICATION.md` | ✅ |
-| final documentation closeout-head rerun | ⬜ current exact action |
+| implementation run | ✅ `40167933064` |
+| host job | ✅ `121092688126` |
+| target job | ✅ `121092688295` |
+| `WP5_6_VERIFICATION.md` | ✅ |
+| final documentation-head rerun | ⬜ pending |
 
 Canonical implementation artifacts:
 
-- host ID `12587379892`, SHA `d57ad000b83e5aa7c155ff817a9feb74727998f7baa417ca73b11da735850408`
-- target ID `12587649156`, SHA `96183e229059cbc6ceb09b2057de5abf914d4d62ca0db89a8d1dea576ecb8645`
+- host ID `12588901443`, SHA `4452eec3d50127a392dad79246b54cf93883837f9a02b2af64848d129c76a202`
+- target ID `12588804647`, SHA `c8eed7e762c3d58da18f0a3b5fbad28878b6da2e70181d22f2376ea7c3686f20`
 
-## WP5.6 next state - BLOCKED UNTIL WP5.5 CLOSEOUT
+## WP5.7 next state - PLANNED
 
-Issue #49. Expected branch `phase5/fm4-envelope`.
+Issue #50. Expected branch `phase5/fm4-voice-integration`.
 
-| Check | Status |
-|---|---|
-| audit common vs per-operator envelope strategy | ⬜ |
-| freeze stage model and time/level domains | ⬜ |
-| freeze retrigger/reset/zero-time semantics | ⬜ |
-| freeze update cadence | ⬜ |
-| deterministic vectors/stress | ⬜ |
-| state/realtime/object ceilings | ⬜ |
-| D054 frozen before production source | ⬜ |
-| source-absent reference CI | ⬜ |
+WP5.7 remains blocked until WP5.6 closeout-head host+target verification is green and #49 is closed.
 
-D054 does not exist yet.
+D055 must be frozen contract-first before voice/router integration changes.
 
 ## Physical hardware boundary
 

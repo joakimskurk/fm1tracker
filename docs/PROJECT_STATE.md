@@ -8,14 +8,16 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.5 complete; WP5.6 ACTIVE; D054 source-absent gate ACCEPTED - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.5 complete; WP5.6 technical verification COMPLETE; closeout-head verification pending - 2026-10-25**
 
-Current active package: **WP5.6 - bounded FM4 envelope strategy**  
+Current active package: **WP5.6 - bounded FM4 envelope strategy closeout**  
 Active issue: **#49**  
 Active branch: `phase5/fm4-envelope`  
-Parent closeout: **WP5.5 / D053** at `216c7e34b6d761cadb683bd1fc356c216b98cc27`
+Next package after closeout: **WP5.7 - FM4 voice allocation and D048 router integration**  
+Next issue: **#50**  
+Expected next branch: `phase5/fm4-voice-integration`
 
-Do not begin WP5.7 voice/router integration, WP5.8 tracker parameter pages, WP5.9 audible mixed integration or WP5.10 Phase 5 exit while WP5.6 is active.
+Do not activate WP5.7 until the WP5.6 documentation closeout head has passed the same host/target verification and #49 is closed.
 
 ## Completed Phase 5 baseline
 
@@ -24,53 +26,62 @@ Do not begin WP5.7 voice/router integration, WP5.8 tracker parameter pages, WP5.
 - WP5.2 / D050 curated four-operator routing - COMPLETE.
 - WP5.3 / D051 integer ratio/pitch mapping - COMPLETE.
 - WP5.4 / D052 operator level/modulation-index mapping - COMPLETE.
-- WP5.5 / D053 bounded OP4 one-sample feedback - COMPLETE.
+- WP5.5 / D053 bounded OP4 feedback - COMPLETE.
+- WP5.6 / D054 four independent FM4 ADSR envelopes - TECHNICALLY COMPLETE, closeout-head rerun pending.
 
-WP5.5 final closeout:
+## D054 canonical evidence
 
-- head `216c7e34b6d761cadb683bd1fc356c216b98cc27`;
-- run `40165352623`;
-- host `121085156557` SUCCESS;
-- target `121085156767` SUCCESS.
-
-## D054 accepted preimplementation state
-
-Audit: `docs/WP5_6_PRECONTRACT_AUDIT.md`.  
 Normative contract: `docs/WP5_6_FM_ENVELOPE_CONTRACT.md`.  
-Preimplementation evidence: `docs/WP5_6_PREIMPLEMENTATION_EVIDENCE.md`.
+Preimplementation evidence: `docs/WP5_6_PREIMPLEMENTATION_EVIDENCE.md`.  
+Technical verification: `docs/WP5_6_VERIFICATION.md`.
 
-Accepted source-absent gate:
+Source-absent gate:
 
 - head `151401f164a17c3459f965971f2855bb05831c4b`;
 - run `40167537148`;
 - job `121091550742` SUCCESS;
-- artifact ID `12588534519`;
-- artifact SHA `eaea6ae76ee55779f45b4e2692c226e0790e0ebeb22326a9e722359fe76eec36`.
+- artifact ID `12588534519`, SHA `eaea6ae76ee55779f45b4e2692c226e0790e0ebeb22326a9e722359fe76eec36`.
 
-Frozen D054:
+Implementation verification:
+
+- head `401e666d21fa8290c7c622603e06e97b166c6b3e`;
+- run `40167933064`;
+- host `121092688126` SUCCESS;
+- target `121092688295` SUCCESS;
+- host artifact ID `12588901443`, SHA `4452eec3d50127a392dad79246b54cf93883837f9a02b2af64848d129c76a202`;
+- target artifact ID `12588804647`, SHA `c8eed7e762c3d58da18f0a3b5fbad28878b6da2e70181d22f2376ea7c3686f20`.
+
+Measured D054 cost:
+
+```text
+FmtFmEnvelopeState                 20 B per future FM voice
+FmtFmEnvelopeControls              16 B per FM instrument
+immutable time-step table        1024 B
+fmt_fm_envelope.o text+rodata    1680 B
+object ceiling                   2048 B
+object margin                     368 B
+object SHA 22fa7937d7776fea37c8e758ca83ee0a3f5d6c506ebd4661a8290a4516e048d1
+```
+
+D050 + D053 + D054 synthesis state before allocator metadata is 38 B per future FM voice.
+
+## Frozen D054 compatibility
 
 - four independent per-operator ADSR envelopes;
-- 16 stable control bytes total, A/D/S/R x 4;
-- exactly 20 B persistent envelope state per future FM voice;
-- Q15.16 level accumulator, max `0x7fff0000`;
-- stable stage IDs OFF/ATTACK/DECAY/SUSTAIN/RELEASE = 0..4;
-- per-sample update;
+- 16 stable A/D/S/R control bytes total;
+- Q15.16 envelope state, full scale `0x7fff0000`;
+- envelope scales D052 Q15 LEVEL before D049 render;
+- per-sample bounded update;
 - hard retrigger from zero;
 - release from current level;
-- zero time = true instant transition;
-- 256-entry immutable 32-bit A/D/R step table, exactly 1024 B;
-- time-table SHA `6e94aa6553b78919913d49a24c80ca7317c913fff344294a107137f85ffbc025`;
-- SUSTAIN mapping SHA `a799f70bd763053e79c3d9de6acdda97523fe54632105756c4252dc33d51c815`;
-- exhaustive LEVEL composition SHA `196659105845f6183b0779183a583226129a5b7f35e8ac8ac811479b117e606b`;
-- canonical 65,536-sample stress SHA `8cdf12197813d5718b3b4c5a40375534f93ea006f61e5aa325f4b48af71e0849`;
-- maximum release reaches OFF after exactly `2701155` advances;
-- PI32v2 object ceiling <= 2048 B text+rodata;
-- zero new mutable global RAM;
-- D049-D053 and `dinghy.c` remain unchanged.
+- control 0 gives true instant A/D/R transitions;
+- A/D/R controls 1..255 use the exact immutable 1,024 B time-step table;
+- SUSTAIN uses the exact D052 LEVEL mapping;
+- D050 algorithm changes do not reset envelope state;
+- D049-D053 and `dinghy.c` remain unchanged;
+- production source is isolated from the running application.
 
-## Full target identity at WP5.6 entry
-
-WP5.6 remains isolated from the running application:
+## Full target identity after D054
 
 ```text
 image       72792 B
@@ -81,24 +92,14 @@ BIN SHA    a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125
 FWSC SHA   cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073
 ```
 
-No physical FM-1 is available. `hardware_margin_claim=none`.
-
 ## Current exact action
 
-D054 implementation is now authorized only within:
+1. commit the WP5.6 closeout documentation;
+2. require `.github/workflows/wp5_6_fm_envelope_verify.yml` to pass again on that exact closeout head;
+3. close #49 only after both host and target jobs are green;
+4. create `phase5/fm4-voice-integration` from the accepted closeout head;
+5. activate #50 and begin D055 voice/allocator/router audit contract-first.
 
-```text
-firmware/src/fmt_fm_envelope.h
-firmware/src/fmt_fm_envelope.c
-firmware/gen/fmt_fm_envelope_step_q15_16.inc
-tools/gen_fmt_fm_envelope.py
-```
+No WP5.7 integration change is allowed before D055 is frozen.
 
-Next:
-
-1. generate the frozen 1,024 B step table from the exact integer D054 law;
-2. implement the 20 B/16 B envelope primitive without changing D049-D053 or `dinghy.c`;
-3. add production C tests matching all frozen D054 hashes/vectors;
-4. compile isolated envelope object for PI32v2 and enforce <= 2,048 B text+rodata;
-5. rebuild full target and require exact WP5.0 identity;
-6. write `WP5_6_VERIFICATION.md` before WP5.7 begins.
+No physical FM-1 is available. `hardware_margin_claim=none`.

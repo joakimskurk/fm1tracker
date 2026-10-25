@@ -5,52 +5,55 @@ Repository state is authoritative. Do not reconstruct the plan from old chat con
 Read in this order:
 
 1. `docs/PROJECT_STATE.md`
-2. `docs/WP5_6_PRECONTRACT_AUDIT.md`
-3. `docs/WP5_5_VERIFICATION.md`
-4. `docs/WP5_5_FM_FEEDBACK_CONTRACT.md`
-5. `docs/WP5_4_VERIFICATION.md`
-6. `docs/WP5_3_VERIFICATION.md`
-7. `docs/WP5_2_VERIFICATION.md`
-8. `docs/WP5_1_VERIFICATION.md`
-9. `docs/WP5_0_VERIFICATION.md`
-10. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
-11. `docs/CURRENT_DECISIONS.md`
-12. `docs/WORK_PACKAGES.md`
-13. `docs/EXECUTION_PROTOCOL.md`
-14. `docs/CURRENT_TEST_STATE.md`
-15. `docs/TEST_MATRIX.md`
-16. `docs/ROADMAP.md`
-17. `THIRD_PARTY.md`
+2. `docs/WP5_6_VERIFICATION.md`
+3. `docs/WP5_6_FM_ENVELOPE_CONTRACT.md`
+4. `docs/WP5_6_PREIMPLEMENTATION_EVIDENCE.md`
+5. `docs/WP5_5_VERIFICATION.md`
+6. `docs/WP5_4_VERIFICATION.md`
+7. `docs/WP5_3_VERIFICATION.md`
+8. `docs/WP5_2_VERIFICATION.md`
+9. `docs/WP5_1_VERIFICATION.md`
+10. `docs/WP5_0_VERIFICATION.md`
+11. `docs/D047_MIXED_ENGINE_ARCHITECTURE.md`
+12. `docs/CURRENT_DECISIONS.md`
+13. `docs/WORK_PACKAGES.md`
+14. `docs/EXECUTION_PROTOCOL.md`
+15. `docs/CURRENT_TEST_STATE.md`
+16. `docs/TEST_MATRIX.md`
+17. `docs/ROADMAP.md`
+18. `THIRD_PARTY.md`
 
 ## Current handoff
 
-WP5.0/D048 through WP5.5/D053 are COMPLETE.
+WP5.0/D048 through WP5.5/D053 are COMPLETE. WP5.6/D054 is technically complete and is in formal closeout.
 
-Active package: **WP5.6 - bounded FM4 envelope strategy**.  
+Active package: **WP5.6 closeout**.  
 Active issue: **#49**.  
-Active branch: `phase5/fm4-envelope`.  
-Parent closeout head: `216c7e34b6d761cadb683bd1fc356c216b98cc27`.
+Active branch: `phase5/fm4-envelope`.
 
-WP5.5 final closeout run `40165352623` passed host `121085156557` and target `121085156767`.
+Canonical implementation verification:
 
-## WP5.6 contract-first boundary
+```text
+head    401e666d21fa8290c7c622603e06e97b166c6b3e
+run     40167933064
+host    121092688126 SUCCESS
+target  121092688295 SUCCESS
+```
 
-No production envelope source exists yet and none may be added before D054 is frozen and its source-absent gate is accepted.
+D054 result:
 
-Current audit direction:
-
-- reject a final post-mix envelope because it only shapes final loudness;
-- preserve D049-D053 unchanged;
-- use the existing per-operator Q15 LEVEL surface as the envelope insertion point;
-- working candidate: four independent per-operator ADSR envelopes;
-- envelope output scales each D052 mapped LEVEL before the corresponding D049 operator render;
-- candidate packed persistent state is 20 B per future FM voice, still to be proven/frozen;
-- exact accumulator, rate/time law, zero-time behavior, retrigger/release semantics and target ceilings are not frozen until D054.
+- four independent per-operator ADSR envelopes;
+- exactly 20 B state per future FM voice;
+- exactly 16 B controls per FM instrument;
+- immutable 1,024 B A/D/R step table;
+- PI32v2 object 1,680 B text+rodata, 368 B under ceiling;
+- D049-D053 unchanged;
+- full running firmware remains exact WP5.0.
 
 ## Exact next action
 
-Finish `docs/WP5_6_PRECONTRACT_AUDIT.md`, select and quantify the V1 envelope arithmetic, then freeze D054 and source-absent reference tests before implementation.
+Run the same WP5.6 host/target verification on the documentation closeout head. Only after both jobs are green may #49 close and WP5.7 / #50 become active on `phase5/fm4-voice-integration`.
 
-Do not begin WP5.7 integration or add `fmt_fm_envelope.*` before the D054 gate is green.
+WP5.7 must start D055 contract-first. Do not integrate FM voices into D048 before D055 is frozen.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

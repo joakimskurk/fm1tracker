@@ -44,60 +44,49 @@ Evidence `WP5_3_VERIFICATION.md`.
 
 Evidence `WP5_4_VERIFICATION.md`.
 
-### WP5.5 - bounded feedback - TECHNICALLY COMPLETE / CLOSEOUT - issue #48 - D053
+### WP5.5 - bounded feedback - COMPLETE - issue #48 - D053
 
-D053 froze and verified:
+D053 froze one bounded OP4 self-feedback edge, one-sample history and 2 B persistent state. Final closeout run `40165352623` passed host and target. Evidence `WP5_5_VERIFICATION.md`.
 
-- one OP4 self-feedback edge;
-- exactly one-sample history;
-- exactly 2 B feedback state per future FM voice;
-- one distinct FEEDBACK byte 0..255;
-- exact Q14 mapping `(v << 6) | (v >> 2)`;
-- signed phase offset `previous * depth * 4`;
-- reset/retrigger clear history;
-- D050 algorithm switches retain history;
-- full signed-int16 x 256 control arithmetic proof;
-- isolated production source only `fmt_fm_feedback.h/.c`.
+### WP5.6 - FM envelope strategy - TECHNICALLY COMPLETE, CLOSEOUT ACTIVE - issue #49 - D054
 
-Verified:
+D054 froze:
 
-- source-absent run `40164610821`, job `121082987705`;
-- implementation run `40164953532`, host `121083999893`, target `121083999790`;
-- PI32v2 object 130 B, SHA `147c623c49fa8756f36937589d96f2da5139b6e3d1a09790e95d91c5f770256d`;
-- full application remains exact WP5.0;
-- D049-D052 and `dinghy.c` unchanged.
+- four independent per-operator ADSR envelopes;
+- 16 A/D/S/R control bytes;
+- 20 B persistent state per future FM voice;
+- Q15.16 envelope level;
+- exact 1,024 B immutable A/D/R step table;
+- exact D052-compatible SUSTAIN mapping;
+- hard retrigger, current-level release and true instant zero-time transitions;
+- fixed per-sample work with no heap, traversal, runtime division/modulo, 64-bit integer or float.
 
-Evidence: `WP5_5_VERIFICATION.md`.
+Verified at technical checkpoint:
 
-Final closeout-head rerun is required before #48 closes.
+- source-absent run `40167537148`, job `121091550742`;
+- implementation run `40167933064`, host `121092688126`, target `121092688295`;
+- production source boundary exactly four allowed files;
+- PI32v2 object 1,680 B text+rodata, SHA `22fa7937d7776fea37c8e758ca83ee0a3f5d6c506ebd4661a8290a4516e048d1`;
+- full application remains exact WP5.0.
 
-### WP5.6 - FM envelope strategy - PLANNED / NEXT - issue #49
+Evidence: `WP5_6_VERIFICATION.md`.
 
-Goal: choose the smallest bounded deterministic envelope architecture that still enables useful FM timbral evolution, using measured state and realtime cost before WP5.7 integration.
+Exit remaining: same host/target verification must pass on the documentation closeout head, then #49 may close.
+
+### WP5.7 - FM voice allocation/integration - PLANNED - issue #50
+
+Blocked until WP5.6 closes.
 
 Required order:
 
-1. audit actual D049-D053 envelope needs;
-2. compare common amplitude envelope versus per-operator envelopes;
-3. choose bounded V1 architecture from musical capability and measured cost;
-4. freeze stage, time, level, reset/retrigger and zero-time semantics;
-5. freeze sample/tick update cadence and realtime bounds;
-6. define deterministic vectors and long stress;
-7. freeze state and PI32v2 ceilings;
-8. freeze D054 before production source;
-9. pass source-absent gate;
-10. only then implement and verify;
-11. write `WP5_6_VERIFICATION.md` before WP5.7.
-
-Out of scope:
-
-- FM voice/D048 integration, WP5.7;
-- FM tracker pages/p-lock IDs, WP5.8;
-- audible mixed 8-BIT + FM4, WP5.9.
-
-D054 does not exist yet.
-
-### WP5.7 - FM voice allocation/integration - PLANNED
+1. audit D045 8-BIT allocator and D048 route semantics against the complete D049-D054 FM voice state;
+2. freeze voice count, ownership, primary/release-tail policy and allocator tie-breaks;
+3. freeze D055 before production integration changes;
+4. preserve D048 cross-family NOTE ordering and current-family non-NOTE semantics;
+5. preserve no active cross-track primary stealing;
+6. integrate D049-D054 reset/retrigger/release behavior;
+7. prove exact all-8-BIT regression equivalence;
+8. measure full target image/RAM/pool and close only with durable verification.
 
 ### WP5.8 - FM parameter pages + p-lock mapping - PLANNED
 

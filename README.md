@@ -8,7 +8,7 @@ License: GPL-3.0-only unless otherwise noted. See `THIRD_PARTY.md`.
 
 ## Current status
 
-**Phase 5 is in progress. WP5.0 mixed-engine routing through WP5.5 bounded feedback are complete. WP5.6 bounded FM4 envelope strategy is ACTIVE and remains contract-first.**
+**Phase 5 is in progress. WP5.0 through WP5.5 are complete. WP5.6 / D054 four-operator ADSR envelopes are technically complete and are in formal closeout. WP5.7 / #50 is planned but blocked until that closeout is green.**
 
 Completed engine foundation:
 
@@ -18,27 +18,58 @@ Completed engine foundation:
 - D050 deterministic four-operator routing;
 - D051 deterministic 16-ID integer FM ratio mapping;
 - D052 deterministic four-LEVEL plus global-INDEX mapping;
-- D053 deterministic bounded OP4 one-sample feedback.
+- D053 bounded OP4 one-sample feedback;
+- D054 four independent per-operator ADSR envelopes.
 
-Canonical WP5.5 closeout head: `216c7e34b6d761cadb683bd1fc356c216b98cc27`; run `40165352623`, host `121085156557`, target `121085156767`, both SUCCESS. Evidence: `docs/WP5_5_VERIFICATION.md`.
+## FM primitive baseline
 
-Full running application remains exact WP5.0: 72,792 B image / 19,676 B normal RAM / 113,000 B pool, identity `FM-1_987`.
+D049 operator: 4 B phase state, Q15 output and generated sine table.
+
+D050 routing: four static algorithms, fixed OP4 -> OP3 -> OP2 -> OP1 evaluation and 16 B phase/routing state.
+
+D051 ratio mapping: 16 stable Q8 ratios with deterministic clamp/rounding.
+
+D052 control mapping: four LEVEL bytes + global INDEX byte with exact Q15/Q14 mappings.
+
+D053 feedback: one OP4 self-feedback edge, exact one-sample history and 2 B persistent state.
+
+D054 envelopes:
+
+- four independent ADSR envelopes;
+- 16 A/D/S/R control bytes per FM instrument;
+- 20 B persistent envelope state per future FM voice;
+- Q15.16 internal level;
+- one generated immutable 1,024 B A/D/R time-step table;
+- hard retrigger from zero;
+- release from current level;
+- true instant zero-time stages;
+- envelope scales each D052 operator LEVEL before D049/D050 render;
+- PI32v2 object 1,680 B text+rodata, 368 B under its 2,048 B ceiling.
+
+Canonical WP5.6 implementation verification:
+
+```text
+head    401e666d21fa8290c7c622603e06e97b166c6b3e
+run     40167933064
+host    121092688126 SUCCESS
+target  121092688295 SUCCESS
+```
+
+Evidence: `docs/WP5_6_VERIFICATION.md`.
+
+Full running application remains exact WP5.0 because FM primitives are still isolated: 72,792 B image / 19,676 B normal RAM / 113,000 B pool, identity `FM-1_987`.
 
 ## Current work package
 
-**WP5.6 - bounded FM4 envelope strategy**, issue #49, branch `phase5/fm4-envelope`.
+**WP5.6 closeout**, issue #49, branch `phase5/fm4-envelope`.
 
-Current precontract direction:
+The documentation closeout head must pass the same host/target verification before #49 closes.
 
-- reject a final post-mix envelope because it only shapes final loudness;
-- preserve D049-D053 unchanged;
-- use the existing per-operator Q15 LEVEL surface as the envelope insertion point;
-- working architecture candidate: four independent per-operator ADSR envelopes;
-- candidate envelope output scales each D052 mapped LEVEL before the corresponding D049 render;
-- candidate packed persistent state is 20 B per future FM voice;
-- exact rate/time law, zero-time behavior, retrigger/release semantics and target ceilings must be frozen by D054 before implementation.
+## Next work package
 
-No production `fmt_fm_envelope.*` source may be added before D054 and its source-absent gate are accepted.
+**WP5.7 - FM4 voice allocation and D048 router integration**, issue #50, expected branch `phase5/fm4-voice-integration`.
+
+WP5.7 starts contract-first with D055. It must freeze FM voice count, state budget, ownership, release-tail policy, allocator tie-breaks and D048 event routing before production integration changes.
 
 ## FM4 sequence
 
@@ -47,8 +78,8 @@ No production `fmt_fm_envelope.*` source may be added before D054 and its source
 3. WP5.3 integer ratios/pitch mapping - COMPLETE
 4. WP5.4 levels / modulation index - COMPLETE
 5. WP5.5 bounded feedback - COMPLETE
-6. WP5.6 envelope strategy - ACTIVE
-7. WP5.7 voice allocation/integration
+6. WP5.6 envelope strategy - TECHNICALLY COMPLETE, CLOSEOUT ACTIVE
+7. WP5.7 voice allocation/integration - PLANNED
 8. WP5.8 parameter pages + p-lock mapping
 9. WP5.9 mixed 8-BIT + FM4 validation
 10. WP5.10 worst-case mixed-engine Phase 5 exit
