@@ -10,6 +10,12 @@
 /* Isolated host fixture for the one production allocation. */
 volatile FmtEngineRowParamCache fmt_engine_row_param_cache;
 
+/* The row-cache unit stays independent of the frozen D055 implementation. */
+uint8_t fmt_fm_engine_supported(uint8_t engine_id)
+{
+    return engine_id == FMT_FM_ENGINE_FM4;
+}
+
 static uint32_t pack(FmtParamId a_id, uint8_t a_value,
                      FmtParamId b_id, uint8_t b_value)
 {
