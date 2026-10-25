@@ -39,6 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build
           sh tests/run_host.sh | tee build/wp5_7_apply_host.log
           test "$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')" = '17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076'
           python3 - <<'PY'
