@@ -2,7 +2,7 @@
 
 Date: 2026-10-25
 
-`DECISIONS.md` remains the append-only historical decision log through D046. D047-D052 are accepted and verified Phase 5 decisions. D053 is frozen preimplementation and awaits its source-absent acceptance gate.
+`DECISIONS.md` remains the append-only historical decision log through D046. D047-D052 are accepted and verified Phase 5 decisions. D053 is accepted source-absent and authorized for its bounded isolated implementation.
 
 ## D047 - mixed-engine instrument architecture
 
@@ -39,30 +39,35 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_4_FM_LEVEL_INDEX_CONTRACT.md`  
 Evidence: `WP5_4_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_4_VERIFICATION.md`
 
-D052 keeps four independent LEVEL bytes plus one global INDEX byte, exact Q15/Q14 mappings, 10 B transient state and zero persistent state. WP5.4 closeout head is `d3501eca952f3e903d4dcc4faab2851d439f7ad0`.
-
 ## D053 - bounded one-sample OP4 feedback
 
-Status: **FROZEN BEFORE PRODUCTION SOURCE - SOURCE-ABSENT GATE PENDING**  
+Status: **ACCEPTED SOURCE-ABSENT - IMPLEMENTATION AUTHORIZED**  
 Normative: `WP5_5_FM_FEEDBACK_CONTRACT.md`  
-Audit: `WP5_5_PRECONTRACT_AUDIT.md`
+Audit: `WP5_5_PRECONTRACT_AUDIT.md`  
+Evidence: `WP5_5_PREIMPLEMENTATION_EVIDENCE.md`
 
-Frozen compatibility candidate:
+Frozen compatibility:
 
 - one OP4 -> OP4 feedback edge only;
 - exactly one sample of delay;
 - `FmtFmFeedbackState` exactly 2 B signed-16 prior OP4 output;
 - FEEDBACK is a distinct byte `0..255`;
-- byte-to-Q14 mapping `(v << 6) | (v >> 2)`, numerically identical to D052 INDEX mapping;
+- byte-to-Q14 mapping `(v << 6) | (v >> 2)`;
 - feedback phase offset `previous_op4_q15 * depth_q14 * 4`;
 - history updates every OP4 render even at FEEDBACK=0;
 - reset/retrigger clears history;
-- algorithm changes retain history;
+- D050 algorithm changes retain history;
 - no D049-D052 or `dinghy.c` modification in WP5.5;
-- production feedback surface, only after gate, limited to `fmt_fm_feedback.h/.c`;
+- isolated production surface limited to `fmt_fm_feedback.h/.c`;
 - exhaustive full signed-16 history x 256 controls is signed-32 safe.
 
-D053 is not accepted for implementation until its source-absent CI gate passes.
+Accepted source-absent checkpoint:
+
+- head `10bf0e3bf8ef49253666bee999b2de95de10046d`;
+- run `40164610821`;
+- job `121082987705`;
+- artifact `12587966076`;
+- artifact SHA `0eb34eb28a92f69eeeb653ddae2661ca62d72e8eaf887a881e227fbe26c7e4b9`.
 
 ## Current precedence
 
@@ -72,6 +77,6 @@ D053 is not accepted for implementation until its source-absent CI gate passes.
 - D050 governs four-operator connection/evaluation.
 - D051 governs base-pitch to operator-ratio mapping.
 - D052 governs operator LEVEL and global INDEX mapping.
-- D053, once source-absent accepted, governs bounded OP4 feedback state/control semantics.
+- D053 governs bounded one-sample OP4 feedback state/control semantics.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.
