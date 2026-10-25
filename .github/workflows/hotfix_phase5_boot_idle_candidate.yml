@@ -1,0 +1,122 @@
+name: Phase 5 boot-idle hotfix candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - hotfix/phase5-boot-idle
+    paths:
+      - '.github/workflows/hotfix_phase5_boot_idle_candidate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify pre-hotfix production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=81d3464059270130747e26fcc950b7a2e1bb03e1
+          git diff --exit-code "$BASE" -- \
+            firmware/src firmware/gen firmware/hal firmware/loader \
+            firmware/app.ld build.sh tools
+
+      - name: Apply bounded boot-idle candidate patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('firmware/src/dinghy.c')
+          text = path.read_text()
+
+          init_old = '''    tracker_fm_lock_page = FMT_FM_PAGE_CORE;\n    tracker_play_requested = 1u;\n    tracker_transport_stopped = 1u;\n    tracker_ready = 1u;'''
+          init_new = '''    tracker_fm_lock_page = FMT_FM_PAGE_CORE;\n    /* Post-Phase-5 emulator hotfix candidate: boot stopped. The seeded proof\n     * pattern remains available, but only an explicit PLAY edge starts it. */\n    tracker_play_requested = 0u;\n    tracker_transport_stopped = 1u;\n    tracker_ready = 1u;'''
+          ui_old = '    draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);'
+          ui_new = '    draw_text_box(0, 52, 240, &FONT_S, "PERFORMANCE  v" APP_VER, C_OFF, 1);'
+
+          assert text.count(init_old) == 1
+          assert text.count(ui_old) == 1
+          text = text.replace(init_old, init_new, 1).replace(ui_old, ui_new, 1)
+          path.write_text(text)
+          PY
+
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('firmware/src/dinghy.c').read_text()
+          anchor = text.index('tracker_fm_lock_page = FMT_FM_PAGE_CORE;')
+          tail = text.index('tracker_ready = 1u;', anchor)
+          init = text[anchor:tail]
+          assert 'tracker_play_requested = 0u;' in init
+          assert 'tracker_play_requested = 1u;' not in init
+          assert '"PERFORMANCE  v" APP_VER' in text
+          print('BOOT_IDLE_PATCH_OK=1 play_requested=0 proof_pattern=retained home=PERFORMANCE')
+          PY
+
+          git diff -- firmware/src/dinghy.c
+
+      - name: Install host dependency
+        run: python3 -m pip install pillow
+
+      - name: Verify existing button and SEQ context behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_pattern_context_host.sh
+          sh tests/run_host.sh
+          printf '%s\n' 'BOOT_IDLE_HOST_OK=1 seq_input_regression=pass host_smoke=pass'
+
+      - name: Fetch pinned JieLi toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./tools/get_toolchain.sh "$RUNNER_TEMP/jieli"
+          test -x "$RUNNER_TEMP/jieli/toolchain/pi32v2/bin/clang"
+
+      - name: Build pinned target candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JIELI_TOOLCHAIN="$RUNNER_TEMP/jieli/toolchain"
+          SDK="$RUNNER_TEMP/ac79-sdk"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$SDK"
+          test "$(git -C "$SDK" rev-parse HEAD)" = d179b4484759423312073f5fbb232501aa491047
+          export AC79_SDK="$SDK"
+
+          ./build.sh --release 0.1 | tee build/hotfix-target.log
+          test -s build/fm1tracker.bin
+          test -s build/fm1tracker-0.1.fwsc
+          grep -F 'FM1Tracker package' build/hotfix-target.log
+          grep -F 'identity FM-1_987' build/hotfix-target.log
+
+          BIN_SHA="$(sha256sum build/fm1tracker.bin | awk '{print $1}')"
+          FWSC_SHA="$(sha256sum build/fm1tracker-0.1.fwsc | awk '{print $1}')"
+          printf 'candidate_branch=hotfix/phase5-boot-idle\n' > build/HOTFIX_BOOT_IDLE.txt
+          printf 'baseline_production=81d3464059270130747e26fcc950b7a2e1bb03e1\n' >> build/HOTFIX_BOOT_IDLE.txt
+          printf 'boot_play_requested=0\n' >> build/HOTFIX_BOOT_IDLE.txt
+          printf 'proof_pattern=retained\n' >> build/HOTFIX_BOOT_IDLE.txt
+          printf 'fm1tracker_bin_sha256=%s\n' "$BIN_SHA" >> build/HOTFIX_BOOT_IDLE.txt
+          printf 'fm1tracker_fwsc_sha256=%s\n' "$FWSC_SHA" >> build/HOTFIX_BOOT_IDLE.txt
+          printf 'hardware_margin_claim=none\n' >> build/HOTFIX_BOOT_IDLE.txt
+          cat build/HOTFIX_BOOT_IDLE.txt
+
+      - name: Upload emulator-test candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: fm1tracker-boot-idle-hotfix-candidate
+          path: |
+            build/fm1tracker-0.1.fwsc
+            build/fm1tracker.bin
+            build/HOTFIX_BOOT_IDLE.txt
+            build/hotfix-target.log
+          if-no-files-found: error
