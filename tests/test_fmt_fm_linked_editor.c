@@ -119,6 +119,7 @@ static void test_four_lock_limit_and_delete_refresh(void)
     FmtLockEditor editor;
     FmtFmRowOverrides row;
     uint8_t count = 0u;
+    uint16_t deleted_value = 0u;
 
     setup_fm_row(&editor);
     assert(fmt_fm_linked_editor_apply_delta(&editor, FMT_FM_PAGE_CORE, 0u, 1));
@@ -138,7 +139,7 @@ static void test_four_lock_limit_and_delete_refresh(void)
     assert(fmt_fm_linked_editor_confirm_delete(&editor));
     assert(editor.last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_DELETED);
     assert(fmt_lock_get(FMT_PLAYBACK_PATTERN, 0u, 0u,
-                        FMT_PARAM_FM_INDEX, (uint16_t *)&count) ==
+                        FMT_PARAM_FM_INDEX, &deleted_value) ==
            FMT_LOCK_STATUS_NOT_FOUND);
 
     assert(fmt_fm_linked_params_read(0u, 0u, &row));
