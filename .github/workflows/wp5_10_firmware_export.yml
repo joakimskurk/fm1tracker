@@ -50,6 +50,7 @@ jobs:
           test "$(git -C "$SDK" rev-parse HEAD)" = d179b4484759423312073f5fbb232501aa491047
           export AC79_SDK="$SDK"
 
+          mkdir -p build
           ./build.sh --release 0.1 | tee build/export-build.log
           test -s build/fm1tracker.bin
           test -s build/fm1tracker-0.1.fwsc
