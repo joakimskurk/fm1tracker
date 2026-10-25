@@ -33,7 +33,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sh tests/run_wp5_5_contract_freeze.sh
+          mkdir -p build/wp5_5_contract
+          sh -x tests/run_wp5_5_contract_freeze.sh 2>&1 | tee build/wp5_5_contract/ci.log
 
       - name: Upload D053 contract evidence
         if: always()
