@@ -1,0 +1,36 @@
+name: WP5.8 D056 FM base API
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'firmware/src/fmt_fm_linked_params.h'
+      - 'firmware/src/fmt_fm_linked_params.c'
+      - 'firmware/src/fmt_fm_params.h'
+      - 'firmware/src/fmt_fm_params.c'
+      - 'tests/test_fmt_fm_base_api.c'
+      - 'tests/run_wp5_8_base_api_tests.sh'
+      - '.github/workflows/wp5_8_base_api.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fm-base-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Verify D056 mutable FM base API
+        run: sh tests/run_wp5_8_base_api_tests.sh
+      - name: Upload FM base API evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-8-fm-base-api-evidence
+          path: build/wp5_8_base_api
+          if-no-files-found: error
