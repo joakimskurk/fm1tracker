@@ -4,14 +4,33 @@ This is the procedure for doing project work. It exists to prevent scope drift a
 
 ## Read order at the start of any session
 
-1. `docs/PROJECT_STATE.md` — what is active right now.
-2. `docs/WORK_PACKAGES.md` — exact boundaries and exit criteria.
-3. `docs/DECISIONS.md` — constraints that must not be silently overturned.
-4. Active phase/architecture docs referenced by the work package.
-5. `THIRD_PARTY.md` before importing any external code or assets.
-6. Current GitHub issue/PR for the active work package.
+1. `docs/PROJECT_CONTEXT.md` - what FM1Tracker is, its product direction and context that must survive work-package changes.
+2. `docs/PROJECT_STATE.md` - what is active right now.
+3. `docs/WORK_PACKAGES.md` - exact boundaries and exit criteria.
+4. `docs/DECISIONS.md` - constraints that must not be silently overturned.
+5. Active phase/architecture docs referenced by the work package.
+6. `THIRD_PARTY.md` before importing any external code or assets.
+7. Current GitHub issue/PR for the active work package.
 
 Do not begin by re-planning the whole project unless the active package reveals a real architectural conflict.
+
+## Conversation-to-repository context sync
+
+Git is the durable project memory. The roadmap controls execution order, but it is not sufficient context by itself.
+
+Substantive user decisions or clarifications from the current conversation must not remain chat-only. When a message changes or reaffirms product scope, architecture, UX intent, engine-family direction, constraints, priorities, testing expectations, resource assumptions or the meaning of future work, capture that context in the appropriate repository documentation at the same checkpoint or the next real repository checkpoint.
+
+Do not create noisy commits for every casual sentence. Capture decisions when they materially affect how a future session should understand or continue the project.
+
+At each real checkpoint, ask whether the repository now answers all of these without chat history:
+- what are we building and why;
+- what product directions remain intended even if they are not the active work package;
+- what is implemented and verified;
+- what decisions and constraints are locked;
+- what is uncertain, deferred or hardware-blocked;
+- what is the exact next action.
+
+If not, update the relevant context/state/decision/test documents before moving on.
 
 ## Work-package lifecycle
 
@@ -57,6 +76,7 @@ Before closing a package:
 - all exit criteria pass or an explicit waiver/deferral is recorded in `DECISIONS.md`;
 - `PROJECT_STATE.md` is updated;
 - `TEST_MATRIX.md` is updated if coverage changed;
+- product/context documents still describe the intended instrument, including future engine families and other non-active directions that must survive the handoff;
 - docs match actual behavior;
 - issue is closed with verification evidence/notes;
 - next package becomes the only active package.
@@ -106,11 +126,14 @@ Do not simply edit old text to make history look consistent.
 
 1. Add a new decision in `DECISIONS.md` that supersedes the old one.
 2. Update affected architecture/control/data docs.
-3. Update `PROJECT_STATE.md`.
-4. Add migration implications if persisted data or user workflow changes.
+3. Update `PROJECT_CONTEXT.md` when the change affects durable product direction.
+4. Update `PROJECT_STATE.md`.
+5. Add migration implications if persisted data or user workflow changes.
 
 ## New chat / handoff rule
 
 A new session should be able to continue using repository state alone.
 
-If chat history and repository state disagree, repository state wins unless the user explicitly chooses to change it. Any chosen change is then written back into the repository before further implementation.
+Read `PROJECT_CONTEXT.md` before reducing the project to the currently active roadmap item. An inactive future direction is not abandoned merely because it is not the current work package.
+
+If chat history and repository state disagree, stop and resolve the discrepancy against the user's latest explicit decision. Write the resolved state back into the repository before further implementation so that Git becomes authoritative again.
