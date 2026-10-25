@@ -45,6 +45,7 @@
 #include "fmt_fm_envelope.c"                   /* WP5.6 D054: four operator ADSRs */
 #include "fmt_fm_engine.c"                     /* WP5.7 D055: fixed eight-slot FM family */
 #include "fmt_engine_router.c"                 /* WP5.0/D055: per-instrument family router */
+#include "fmt_runtime_editor.c"                /* WP5.11: discoverable runtime instrument editor */
 
 /* Externally visible so CI can verify the small runtime control states stay in
  * ordinary RAM and never consume editable-song pool space. */
@@ -65,6 +66,8 @@ FmtInstrumentIdentityPublication fmt_instrument_identity_publication
     __attribute__((aligned(4)));
 FmtRtQueue fmt_rt_queue_runtime;
 volatile uint32_t fmt_rt_queue_overflow_seen;
+FmtRuntimeEditor fmt_runtime_editor_runtime;
+static volatile uint8_t runtime_audition_instrument[FMT_TRACKS];
 
 /* app_main seeds the proof pattern before setting this one-way handoff. Audio
  * IRQs exist before app_main(), so the ISR must not read the song store earlier. */
@@ -640,6 +643,142 @@ static void tracker_apply_tick(uint32_t track)
     tracker_apply_effect_pitch(track);
 }
 
+static uint16_t runtime_editor_velocity_gain(uint8_t velocity)
+{
+    uint32_t gain = (uint32_t)velocity * 258u;
+    return (uint16_t)(gain > 32767u ? 32767u : gain);
+}
+
+static uint32_t runtime_editor_8bit_page_word(uint8_t engine_id,
+                                              uint8_t instrument)
+{
+    const Fmt8BitParamSet *base = fmt_8bit_linked_params_base(instrument);
+    uint8_t value[4] = {0u, 0u, 0u, 0u};
+    uint32_t slot;
+
+    if (!base || !fmt_8bit_engine_supported(engine_id))
+        return 0u;
+    for (slot = 0u; slot < 4u; slot++)
+        (void)fmt_8bit_page_value_from_set(engine_id,
+                                           (uint8_t)slot,
+                                           base,
+                                           &value[slot]);
+    return fmt_8bit_page_pack(value[0], value[1], value[2], value[3]);
+}
+
+static uint8_t runtime_editor_note_on(uint8_t track, uint8_t note, uint8_t velocity)
+{
+    uint8_t instrument, family = FMT_ENGINE_FAMILY_NONE, engine_id = 0xFFu;
+    uint8_t voice_index;
+    uint16_t pitch_q7, gain_q15;
+
+    if (track >= FMT_TRACKS || note > FMT_NOTE_MAX || !velocity)
+        return 0u;
+    instrument = runtime_audition_instrument[track];
+    if (instrument >= FMT_INSTRUMENTS ||
+        !fmt_instrument_identity_read(&fmt_instrument_identity_publication,
+                                      instrument,
+                                      &family,
+                                      &engine_id,
+                                      (uint8_t *)0,
+                                      (uint8_t *)0))
+        return 0u;
+
+    tracker_hard_silence_route(track);
+    pitch_q7 = (uint16_t)((uint16_t)note << 7);
+    gain_q15 = runtime_editor_velocity_gain(velocity);
+
+    if (family == FMT_ENGINE_FAMILY_8BIT && fmt_8bit_engine_supported(engine_id)) {
+        const Fmt8BitParamSet *base = fmt_8bit_linked_params_base(instrument);
+        uint32_t page_word = runtime_editor_8bit_page_word(engine_id, instrument);
+        if (!base)
+            return 0u;
+        voice_index = fmt_8bit_engine_note(&fmt_8bit_engine_runtime,
+                                           track,
+                                           engine_id,
+                                           instrument,
+                                           pitch_q7,
+                                           gain_q15,
+                                           page_word,
+                                           base);
+        if (voice_index == FMT_VOICE_NONE ||
+            !fmt_engine_router_commit(&fmt_engine_router_runtime,
+                                      track,
+                                      FMT_ENGINE_FAMILY_8BIT)) {
+            (void)fmt_8bit_engine_silence_track(&fmt_8bit_engine_runtime, track);
+            fmt_engine_router_clear(&fmt_engine_router_runtime, track);
+            return 0u;
+        }
+        return 1u;
+    }
+
+    if (family == FMT_ENGINE_FAMILY_FM && fmt_fm_engine_supported(engine_id)) {
+        FmtFmRowOverrides empty;
+        FmtFmPatch patch;
+        uint32_t slot;
+        for (slot = 0u; slot < FMT_FM_MAX_ROW_OVERRIDES; slot++) {
+            empty.slot[slot].id = (FmtParamId)FMT_PARAM_NONE;
+            empty.slot[slot].value = 0u;
+        }
+        if (!fmt_fm_linked_params_compose(instrument, &empty, &patch))
+            return 0u;
+        voice_index = fmt_fm_engine_note(&fmt_fm_engine_runtime,
+                                         track,
+                                         engine_id,
+                                         instrument,
+                                         pitch_q7,
+                                         gain_q15,
+                                         &patch);
+        if (voice_index == FMT_VOICE_NONE ||
+            !fmt_engine_router_commit(&fmt_engine_router_runtime,
+                                      track,
+                                      FMT_ENGINE_FAMILY_FM)) {
+            (void)fmt_fm_engine_silence_track(&fmt_fm_engine_runtime, track);
+            fmt_engine_router_clear(&fmt_engine_router_runtime, track);
+            return 0u;
+        }
+        return 1u;
+    }
+    return 0u;
+}
+
+static void runtime_editor_note_off(uint8_t track)
+{
+    uint8_t family;
+
+    if (track >= FMT_TRACKS)
+        return;
+    family = fmt_engine_router_family(&fmt_engine_router_runtime, track);
+    if (family == FMT_ENGINE_FAMILY_8BIT) {
+        uint8_t voice_index = fmt_8bit_engine_track_voice(&fmt_8bit_engine_runtime, track);
+        if (voice_index != FMT_VOICE_NONE) {
+            Fmt8BitVoice *v = &fmt_8bit_engine_runtime.voice[voice_index];
+            (void)fmt_8bit_engine_release(&fmt_8bit_engine_runtime,
+                                          track,
+                                          v->gain_q15,
+                                          v->page_word);
+        }
+    } else if (family == FMT_ENGINE_FAMILY_FM) {
+        uint8_t instrument = runtime_audition_instrument[track];
+        FmtFmRowOverrides empty;
+        FmtFmPatch patch;
+        uint32_t slot;
+        for (slot = 0u; slot < FMT_FM_MAX_ROW_OVERRIDES; slot++) {
+            empty.slot[slot].id = (FmtParamId)FMT_PARAM_NONE;
+            empty.slot[slot].value = 0u;
+        }
+        if (instrument < FMT_INSTRUMENTS &&
+            fmt_fm_linked_params_compose(instrument, &empty, &patch))
+            (void)fmt_fm_engine_release(&fmt_fm_engine_runtime,
+                                        track,
+                                        32767u,
+                                        &patch);
+        else
+            (void)fmt_fm_engine_silence_track(&fmt_fm_engine_runtime, track);
+    }
+    fmt_engine_router_clear(&fmt_engine_router_runtime, track);
+}
+
 static void audition_release_all(void)
 {
     uint32_t v;
@@ -701,10 +840,19 @@ static void audition_consume_queue(void)
             continue;
         if (event.type == FMT_RT_EVENT_NOTE_ON) {
             vel = fmt_rt_event_velocity(&event);
-            if (vel != 0u && vel <= 127u)
-                audition_note_on(note, vel);
+            if (vel != 0u && vel <= 127u) {
+                if (fmt_runtime_editor_runtime.active && !tracker_play_requested)
+                    (void)runtime_editor_note_on(event.track, note, vel);
+                else
+                    audition_note_on(note, vel);
+            }
         } else if (event.type == FMT_RT_EVENT_NOTE_OFF) {
-            audition_note_off(note);
+            if (!fmt_playback_runtime.started &&
+                fmt_engine_router_family(&fmt_engine_router_runtime,
+                                         event.track) != FMT_ENGINE_FAMILY_NONE)
+                runtime_editor_note_off(event.track);
+            else
+                audition_note_off(note);
         }
     }
 }
@@ -719,8 +867,13 @@ static void app_audio(int32_t *out, uint32_t n)
 
     if (tracker_ready) {
         if (!tracker_play_requested) {
-            if (fmt_transport_runtime.running)
-                fmt_transport_stop(&fmt_transport_runtime);
+            if (fmt_transport_runtime.running || fmt_playback_runtime.started) {
+                if (fmt_transport_runtime.running)
+                    fmt_transport_stop(&fmt_transport_runtime);
+                for (track = 0u; track < FMT_TRACKS; track++)
+                    tracker_hard_silence_route(track);
+                fmt_playback_reset(&fmt_playback_runtime);
+            }
             tracker_transport_stopped = 1u;
         } else {
             tracker_transport_stopped = 0u;
@@ -740,7 +893,9 @@ static void app_audio(int32_t *out, uint32_t n)
     /* D045 preserves D020/D021 frame ordering: render current engine state,
      * advance transport, then apply a crossed row to the next frame. A D032
      * tick is processed only when no row boundary crossed on that frame. */
-    if (fmt_playback_runtime.started) {
+    if (fmt_playback_runtime.started ||
+            !fmt_8bit_engine_quiet(&fmt_8bit_engine_runtime) ||
+            !fmt_fm_engine_quiet(&fmt_fm_engine_runtime)) {
         for (i = 0u; i < n; i++) {
             int32_t sample = fmt_8bit_engine_render(&fmt_8bit_engine_runtime);
             sample += fmt_fm_engine_render(&fmt_fm_engine_runtime);
@@ -875,11 +1030,12 @@ static void draw_keys(uint32_t lit)
     cv_blit(0, 140);
 }
 
-static void draw_status(int32_t oct)
+static void draw_status(int32_t oct, uint8_t track)
 {
-    char s[12] = "OCTAVE +0";
-    s[7] = oct < 0 ? '-' : '+';
-    s[8] = (char)('0' + (oct < 0 ? -oct : oct));
+    char s[16] = "T1 OCTAVE +0";
+    s[1] = (char)('1' + (track < FMT_TRACKS ? track : 0u));
+    s[10] = oct < 0 ? '-' : '+';
+    s[11] = (char)('0' + (oct < 0 ? -oct : oct));
     draw_text_box(0, 212, 240, &FONT_S, s, C_OFF, 1);
 }
 
@@ -887,7 +1043,7 @@ static void draw_home_static(void)
 {
     lcd_fill(0, 0, 240, 240, C_BLACK);
     draw_text_box(0, 18, 240, &FONT_L, APP_NAME, C_ACC, 1);
-    draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);
+    draw_text_box(0, 52, 240, &FONT_S, "PERFORMANCE  v" APP_VER, C_OFF, 1);
 }
 
 static void draw_tracker_header(void)
@@ -963,11 +1119,105 @@ static void draw_tracker_region(uint8_t region)
         draw_tracker_row(row);
 }
 
+static uint32_t runtime_text_cat(char *dst, uint32_t at, const char *src)
+{
+    while (*src)
+        dst[at++] = *src++;
+    dst[at] = 0;
+    return at;
+}
+
+static uint32_t runtime_text_u8_3(char *dst, uint32_t at, uint8_t value)
+{
+    dst[at++] = (char)('0' + value / 100u);
+    dst[at++] = (char)('0' + (value / 10u) % 10u);
+    dst[at++] = (char)('0' + value % 10u);
+    dst[at] = 0;
+    return at;
+}
+
+static void runtime_editor_value_line(char *line,
+                                      uint32_t first_knob,
+                                      const FmtSong *song)
+{
+    uint32_t at = 0u, knob;
+    for (knob = first_knob; knob < first_knob + 2u; knob++) {
+        uint8_t value = 0u;
+        const char *label = fmt_runtime_editor_slot_name(
+            &fmt_runtime_editor_runtime,
+            fmt_runtime_editor_header(song, &fmt_pattern_input_runtime),
+            knob);
+        if (knob != first_knob)
+            at = runtime_text_cat(line, at, "  ");
+        line[at++] = 'K';
+        line[at++] = (char)('1' + knob);
+        line[at++] = ' ';
+        at = runtime_text_cat(line, at, label);
+        line[at++] = ' ';
+        line[at] = 0;
+        if (fmt_runtime_editor_value(&fmt_runtime_editor_runtime,
+                                     song,
+                                     &fmt_pattern_input_runtime,
+                                     knob,
+                                     &value))
+            at = runtime_text_u8_3(line, at, value);
+        else
+            at = runtime_text_cat(line, at, "---");
+    }
+}
+
+static void draw_runtime_editor(void)
+{
+    const FmtSong *song = fmt_store_song_const();
+    const FmtInstrumentHeader *header;
+    uint8_t instrument;
+    char line[32];
+    uint32_t at;
+
+    if (!song)
+        return;
+    instrument = fmt_runtime_editor_instrument(song, &fmt_pattern_input_runtime);
+    header = fmt_runtime_editor_header(song, &fmt_pattern_input_runtime);
+    lcd_fill(0, 0, 240, 240, C_BLACK);
+    draw_text_box(0, 8, 240, &FONT_S, "INSTRUMENT EDIT", C_ACC, 1);
+
+    at = 0u;
+    at = runtime_text_cat(line, at, "TRACK ");
+    at = runtime_text_u8_3(line, at,
+                           (uint8_t)(fmt_pattern_input_runtime.selected_track + 1u));
+    at = runtime_text_cat(line, at, "  INST ");
+    (void)runtime_text_u8_3(line, at, (uint8_t)(instrument + 1u));
+    draw_text_box(4, 36, 232, &FONT_S, line, C_KEY, 0);
+
+    at = 0u;
+    at = runtime_text_cat(line, at, "ENGINE ");
+    (void)runtime_text_cat(line, at, fmt_runtime_editor_engine_name(header));
+    draw_text_box(4, 60, 232, &FONT_S, line, C_WHITE, 0);
+
+    at = 0u;
+    at = runtime_text_cat(line, at, "PAGE ");
+    (void)runtime_text_cat(line, at,
+                           fmt_runtime_editor_page_name(&fmt_runtime_editor_runtime,
+                                                        header));
+    draw_text_box(4, 84, 232, &FONT_S, line, C_OFF, 0);
+
+    runtime_editor_value_line(line, 0u, song);
+    draw_text_box(4, 112, 232, &FONT_S, line, C_KEY, 0);
+    runtime_editor_value_line(line, 2u, song);
+    draw_text_box(4, 136, 232, &FONT_S, line, C_KEY, 0);
+
+    draw_text_box(4, 172, 232, &FONT_S, "SEL TRACK  PRESET INST", C_OFF, 0);
+    draw_text_box(4, 192, 232, &FONT_S, "ALG ENGINE  OCT PAGE", C_OFF, 0);
+    draw_text_box(4, 212, 232, &FONT_S, "K1-K4 VALUE  EDIT EXIT", C_OFF, 0);
+    fmt_runtime_editor_mark_clean(&fmt_runtime_editor_runtime);
+}
+
 static void app_main(void)
 {
     struct { int8_t oct; } set = {0};
     uint32_t prev = 0, k, t_change = 0, dirty = 0, lit_drawn = ~0u, note_drawn = ~0u;
     int32_t oct_drawn = 99;
+    uint8_t track_drawn = 0xFFu;
     uint8_t held[27] = {0};
 
     fmt_store_reset();
@@ -1021,6 +1271,7 @@ static void app_main(void)
             tracker_current_instrument[track] =
                 song ? song->tracks[track].instrument : 0u;
             tracker_note_instrument[track] = tracker_current_instrument[track];
+            runtime_audition_instrument[track] = tracker_current_instrument[track];
             tracker_fm_row_patch[track] = *fmt_fm_engine_default_patch();
             tracker_fm_row_patch_valid[track] = 0u;
         }
@@ -1034,8 +1285,9 @@ static void app_main(void)
     fmt_step_record_reset(&fmt_step_record_runtime);
     fmt_tracker_screen_reset(&fmt_tracker_screen_runtime);
     fmt_lock_editor_reset(&fmt_lock_editor_runtime);
+    fmt_runtime_editor_reset(&fmt_runtime_editor_runtime);
     tracker_fm_lock_page = FMT_FM_PAGE_CORE;
-    tracker_play_requested = 1u;
+    tracker_play_requested = 0u;
     tracker_transport_stopped = 1u;
     tracker_ready = 1u;
 
@@ -1047,7 +1299,8 @@ static void app_main(void)
     for (;;) {
         uint32_t keys, down, up, rel, b, lit = 0, base, write_key;
         uint8_t st, d1, d2, lowest_key;
-        int32_t lock_select_delta, lock_delta[FMT_LOCK_EDITOR_KNOBS];
+        int32_t lock_select_delta, algorithm_delta, preset_delta;
+        int32_t lock_delta[FMT_LOCK_EDITOR_KNOBS];
         int pattern_mode, step_rec_mode, lock_began = 0, lock_ended = 0;
         int delete_was_armed, delete_activity = 0;
         platform_poll();
@@ -1055,6 +1308,8 @@ static void app_main(void)
         /* D029/D030: always drain every encoder stream owned by the held-step
          * editor. Only a stable eligible poll may consume these deltas later. */
         lock_select_delta = fm1_enc_take(ENC_SELECT);
+        algorithm_delta = fm1_enc_take(ENC_ALGORITHM);
+        preset_delta = fm1_enc_take(ENC_PRESETS);
         for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++)
             lock_delta[k] = fm1_enc_take(ENC_KNOB1 + k);
 
@@ -1072,6 +1327,8 @@ static void app_main(void)
         }
 
         if (b & (1u << BTN_HOME)) {
+            if (fmt_runtime_editor_runtime.active)
+                fmt_runtime_editor_exit(&fmt_runtime_editor_runtime);
             if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
                 fmt_lock_editor_cancel(&fmt_lock_editor_runtime);
                 lock_ended = 1;
@@ -1079,8 +1336,11 @@ static void app_main(void)
             fmt_step_record_exit(&fmt_step_record_runtime);
             fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
         } else {
-            if (b & (1u << BTN_SEQ))
+            if (b & (1u << BTN_SEQ)) {
+                if (fmt_runtime_editor_runtime.active)
+                    fmt_runtime_editor_exit(&fmt_runtime_editor_runtime);
                 fmt_pattern_input_enter_pattern(&fmt_pattern_input_runtime);
+            }
 
             if (b & (1u << BTN_PLAY)) {
                 if (fmt_step_record_is_active(&fmt_step_record_runtime)) {
@@ -1107,6 +1367,24 @@ static void app_main(void)
             }
         }
 
+        if ((b & (1u << BTN_EDIT)) &&
+            !fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            !fmt_step_record_is_active(&fmt_step_record_runtime) &&
+            !tracker_play_requested && tracker_transport_stopped &&
+            fm1_in.notes == 0u) {
+            if (fmt_runtime_editor_runtime.active) {
+                fmt_runtime_editor_exit(&fmt_runtime_editor_runtime);
+                draw_home_static();
+                lit_drawn = ~0u;
+                note_drawn = ~0u;
+                oct_drawn = 99;
+                track_drawn = 0xFFu;
+            } else {
+                fmt_pattern_input_enter_performance(&fmt_pattern_input_runtime);
+                fmt_runtime_editor_enter(&fmt_runtime_editor_runtime);
+            }
+        }
+
         pattern_mode = fmt_pattern_input_is_pattern(&fmt_pattern_input_runtime);
         step_rec_mode = fmt_step_record_is_active(&fmt_step_record_runtime);
 
@@ -1115,6 +1393,52 @@ static void app_main(void)
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
+
+        if (!fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            !step_rec_mode && !tracker_play_requested && tracker_transport_stopped &&
+            keys == 0u && lock_select_delta != 0) {
+            if (fmt_runtime_editor_select_track(&fmt_runtime_editor_runtime,
+                                                &fmt_pattern_input_runtime,
+                                                lock_select_delta))
+                track_drawn = 0xFFu;
+        }
+
+        if (fmt_runtime_editor_runtime.active && !tracker_play_requested &&
+            tracker_transport_stopped && keys == 0u) {
+            FmtSong *song = fmt_store_song();
+            uint8_t edit_track = fmt_pattern_input_runtime.selected_track;
+            if (song && preset_delta != 0) {
+                if (fmt_runtime_editor_select_instrument(&fmt_runtime_editor_runtime,
+                                                         song,
+                                                         &fmt_pattern_input_runtime,
+                                                         preset_delta)) {
+                    tracker_current_instrument[edit_track] = song->tracks[edit_track].instrument;
+                    tracker_note_instrument[edit_track] = tracker_current_instrument[edit_track];
+                    runtime_audition_instrument[edit_track] = tracker_current_instrument[edit_track];
+                    (void)fmt_8bit_linked_params_rebuild_track(edit_track);
+                    (void)fmt_fm_linked_params_rebuild_track(edit_track);
+                }
+            }
+            if (song && algorithm_delta != 0)
+                (void)fmt_runtime_editor_select_engine(&fmt_runtime_editor_runtime,
+                                                       song,
+                                                       &fmt_instrument_identity_publication,
+                                                       &fmt_pattern_input_runtime,
+                                                       algorithm_delta);
+            if (song && (b & (1u << BTN_ENV)))
+                (void)fmt_runtime_editor_env_page(&fmt_runtime_editor_runtime,
+                                                  song,
+                                                  &fmt_pattern_input_runtime);
+            if (song) {
+                for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++)
+                    if (lock_delta[k] != 0)
+                        (void)fmt_runtime_editor_apply_knob(&fmt_runtime_editor_runtime,
+                                                            song,
+                                                            &fmt_pattern_input_runtime,
+                                                            k,
+                                                            lock_delta[k]);
+            }
+        }
 
         /* D029 release/context precedence. Ending a gesture discards this poll's
          * already-drained SELECT + KNOB deltas and all D030 destructive state. */
@@ -1223,7 +1547,19 @@ static void app_main(void)
             }
         }
 
-        if (pattern_mode && !step_rec_mode) {
+        if (fmt_runtime_editor_runtime.active) {
+            const FmtSong *song = fmt_store_song_const();
+            if (song && (b & (1u << BTN_OCT_DOWN)))
+                (void)fmt_runtime_editor_page_delta(&fmt_runtime_editor_runtime,
+                                                    song,
+                                                    &fmt_pattern_input_runtime,
+                                                    -1);
+            if (song && (b & (1u << BTN_OCT_UP)))
+                (void)fmt_runtime_editor_page_delta(&fmt_runtime_editor_runtime,
+                                                    song,
+                                                    &fmt_pattern_input_runtime,
+                                                    1);
+        } else if (pattern_mode && !step_rec_mode) {
             if (!fmt_lock_editor_is_active(&fmt_lock_editor_runtime)) {
                 if (b & (1u << BTN_OCT_DOWN))
                     (void)fmt_pattern_input_page_prev(&fmt_pattern_input_runtime);
@@ -1318,21 +1654,39 @@ static void app_main(void)
         }
 
         base = (uint32_t)(KEY0 + 12 * set.oct);
-        for (k = 0; k < NV; k++)
-            if (voice[k].gate && voice[k].note >= base && voice[k].note < base + 27u)
-                lit |= 1u << (voice[k].note - base);
+        if (fmt_runtime_editor_runtime.active) {
+            lit = keys;
+        } else {
+            for (k = 0; k < NV; k++)
+                if (voice[k].gate && voice[k].note >= base && voice[k].note < base + 27u)
+                    lit |= 1u << (voice[k].note - base);
+        }
         for (k = 0; k < 27u; k++)
             fm1_led_key(KEY_LED(k), lit >> k & 1u);
 
-        fm1_led_key(BTN_HOME, !pattern_mode);
-        fm1_led_key(BTN_SEQ, pattern_mode);
+        fm1_led_key(BTN_HOME, !pattern_mode && !fmt_runtime_editor_runtime.active);
+        fm1_led_key(BTN_SEQ, pattern_mode && !fmt_runtime_editor_runtime.active);
         fm1_led_key(BTN_PLAY, tracker_play_requested != 0u);
         fm1_led_key(BTN_REC, step_rec_mode);
         fm1_led_key(BTN_FX, step_rec_mode && fmt_step_record_runtime.fx_pending);
-        fm1_led_key(BTN_EDIT, pattern_mode && !step_rec_mode && fmt_lock_editor_runtime.delete_armed);
-        if (pattern_mode && !step_rec_mode &&
-            fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
-            fmt_fm_linked_editor_is_fm(&fmt_lock_editor_runtime)) {
+        fm1_led_key(BTN_EDIT, fmt_runtime_editor_runtime.active ||
+                                  (pattern_mode && !step_rec_mode &&
+                                   fmt_lock_editor_runtime.delete_armed));
+        fm1_led_key(BTN_ENV, fmt_runtime_editor_runtime.active &&
+                                 fmt_runtime_editor_runtime.page >= FMT_FM_PAGE_ATTACK);
+        fm1_led_key(BTN_LFO, 0);
+        fm1_led_key(BTN_GLO, 0);
+        fm1_led_key(BTN_SAVE, 0);
+        fm1_led_key(BTN_ARP, 0);
+        if (fmt_runtime_editor_runtime.active) {
+            const FmtInstrumentHeader *header = fmt_runtime_editor_header(
+                fmt_store_song_const(), &fmt_pattern_input_runtime);
+            uint8_t pages = fmt_runtime_editor_page_count(header);
+            fm1_led_key(BTN_OCT_DOWN, fmt_runtime_editor_runtime.page > 0u);
+            fm1_led_key(BTN_OCT_UP, fmt_runtime_editor_runtime.page + 1u < pages);
+        } else if (pattern_mode && !step_rec_mode &&
+                   fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+                   fmt_fm_linked_editor_is_fm(&fmt_lock_editor_runtime)) {
             fm1_led_key(BTN_OCT_DOWN, tracker_fm_lock_page > 0u);
             fm1_led_key(BTN_OCT_UP, tracker_fm_lock_page + 1u < FMT_FM_PAGE_COUNT);
         } else {
@@ -1342,7 +1696,10 @@ static void app_main(void)
 
         /* D026 screen ownership. Tracker drawing is strictly main-loop work and
          * at most two of the ten bounded regions can be blitted per poll. */
-        if (pattern_mode) {
+        if (fmt_runtime_editor_runtime.active) {
+            if (fmt_runtime_editor_runtime.dirty)
+                draw_runtime_editor();
+        } else if (pattern_mode) {
             uint32_t draws;
             uint8_t region;
 
@@ -1373,7 +1730,12 @@ static void app_main(void)
 
             if (lit != lit_drawn) { lit_drawn = lit; draw_keys(lit); }
             if (last_note != note_drawn) { note_drawn = last_note; draw_note(); }
-            if (set.oct != oct_drawn) { oct_drawn = set.oct; draw_status(set.oct); }
+            if (set.oct != oct_drawn ||
+                fmt_pattern_input_runtime.selected_track != track_drawn) {
+                oct_drawn = set.oct;
+                track_drawn = fmt_pattern_input_runtime.selected_track;
+                draw_status(set.oct, track_drawn);
+            }
         }
 
         if (dirty && quiet() && fm1_ms - t_change > 2000u) {

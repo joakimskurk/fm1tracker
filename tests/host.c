@@ -24,6 +24,7 @@
 #include "fmt_tracker_event.h"
 #include "fmt_transport.h"
 #include "fmt_rt_queue.h"
+#include "fmt_runtime_editor.h"
 
 /* D045 host-only read probes. platform.c includes this harness before dinghy.c
  * defines the externally visible runtime objects, so declare only those public
@@ -36,6 +37,8 @@ extern FmtTrackerRowEventState fmt_tracker_row_event_runtime_extra[FMT_TRACKS - 
 extern Fmt8BitEngine fmt_8bit_engine_runtime;
 extern FmtRtQueue fmt_rt_queue_runtime;
 extern volatile uint32_t fmt_rt_queue_overflow_seen;
+extern FmtPatternInput fmt_pattern_input_runtime;
+extern FmtRuntimeEditor fmt_runtime_editor_runtime;
 
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
@@ -458,6 +461,26 @@ static void platform_poll(void)                 /* one call = one millisecond */
             printf(" transport=step%u/phase%u", fmt_transport_runtime.step,
                    fmt_transport_runtime.phase);
             putchar('\n');
+            {
+                const FmtSong *song = fmt_store_song_const();
+                uint8_t instrument = fmt_runtime_editor_instrument(song, &fmt_pattern_input_runtime);
+                const FmtInstrumentHeader *header = fmt_runtime_editor_header(song, &fmt_pattern_input_runtime);
+                uint8_t k1 = 0u;
+                (void)fmt_runtime_editor_value(&fmt_runtime_editor_runtime,
+                                               song,
+                                               &fmt_pattern_input_runtime,
+                                               0u,
+                                               &k1);
+                printf("%6u ms  WP5_11_EDITOR active=%u track=%u instrument=%u family=%u engine=%u page=%u k1=%u\n",
+                       fm1_ms,
+                       fmt_runtime_editor_runtime.active,
+                       fmt_pattern_input_runtime.selected_track,
+                       instrument,
+                       header ? header->mode : 0xFFu,
+                       header ? header->engine : 0xFFu,
+                       fmt_runtime_editor_runtime.page,
+                       k1);
+            }
             if (host_bench_target_rows) {
                 printf("%6u ms  D046 probe lock_used=%u lock_free=%u queue_depth=%u overflow=%u seen=%u\n",
                        fm1_ms, (unsigned)fmt_lock_store_used_count(),
