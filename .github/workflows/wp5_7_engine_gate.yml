@@ -1,0 +1,40 @@
+name: WP5.7 isolated FM engine gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-voice-integration
+    paths:
+      - firmware/src/fmt_fm_algorithm.h
+      - firmware/src/fmt_fm_algorithm.c
+      - firmware/src/fmt_fm_engine.h
+      - firmware/src/fmt_fm_engine.c
+      - tests/wp5_7_engine_host.c
+      - tests/run_wp5_7_engine_gate.sh
+      - .github/workflows/wp5_7_engine_gate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  engine-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run isolated D055 engine gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp5_7_engine
+          sh tests/run_wp5_7_engine_gate.sh 2>&1 | tee build/wp5_7_engine/ci.log
+      - name: Upload isolated engine evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-7-fm-engine-isolated
+          path: build/wp5_7_engine/
+          if-no-files-found: warn

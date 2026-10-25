@@ -58,11 +58,12 @@ static int32_t fmt_fm_algorithm_normalize(int32_t sum, uint8_t shift)
     return (int32_t)((uint32_t)sum >> shift);
 }
 
-int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
-                                uint8_t algorithm,
-                                const uint32_t phase_increment[4],
-                                const uint16_t level_q15[4],
-                                uint16_t mod_depth_q14)
+int32_t fmt_fm_algorithm_render_from_op4(FmtFmAlgorithmState *state,
+                                         uint8_t algorithm,
+                                         const uint32_t phase_increment[4],
+                                         const uint16_t level_q15[4],
+                                         uint16_t mod_depth_q14,
+                                         int32_t op4_sample)
 {
     uint8_t selected;
     uint16_t depth;
@@ -74,10 +75,9 @@ int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
 
     selected = fmt_fm_algorithm_sanitize(algorithm);
     depth = fmt_fm_algorithm_clamp_mod_depth_q14(mod_depth_q14);
+    s4 = op4_sample;
 
     if (selected == FMT_FM_ALGO_STACK4) {
-        s4 = fmt_fm_operator_render(&state->op[3], phase_increment[3], 0,
-                                    level_q15[3]);
         s3 = fmt_fm_operator_render(&state->op[2], phase_increment[2],
                                     fmt_fm_algorithm_edge_mod(s4, depth),
                                     level_q15[2]);
@@ -91,8 +91,6 @@ int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
     }
 
     if (selected == FMT_FM_ALGO_FAN3) {
-        s4 = fmt_fm_operator_render(&state->op[3], phase_increment[3], 0,
-                                    level_q15[3]);
         s3 = fmt_fm_operator_render(&state->op[2], phase_increment[2], 0,
                                     level_q15[2]);
         s2 = fmt_fm_operator_render(&state->op[1], phase_increment[1], 0,
@@ -108,8 +106,6 @@ int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
     }
 
     if (selected == FMT_FM_ALGO_DUAL2) {
-        s4 = fmt_fm_operator_render(&state->op[3], phase_increment[3], 0,
-                                    level_q15[3]);
         s3 = fmt_fm_operator_render(&state->op[2], phase_increment[2],
                                     fmt_fm_algorithm_edge_mod(s4, depth),
                                     level_q15[2]);
@@ -121,8 +117,6 @@ int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
         return fmt_fm_algorithm_normalize(s1 + s3, 1u);
     }
 
-    s4 = fmt_fm_operator_render(&state->op[3], phase_increment[3], 0,
-                                level_q15[3]);
     s3 = fmt_fm_operator_render(&state->op[2], phase_increment[2], 0,
                                 level_q15[2]);
     s2 = fmt_fm_operator_render(&state->op[1], phase_increment[1], 0,
@@ -130,4 +124,25 @@ int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
     s1 = fmt_fm_operator_render(&state->op[0], phase_increment[0], 0,
                                 level_q15[0]);
     return fmt_fm_algorithm_normalize(s1 + s2 + s3 + s4, 2u);
+}
+
+int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
+                                uint8_t algorithm,
+                                const uint32_t phase_increment[4],
+                                const uint16_t level_q15[4],
+                                uint16_t mod_depth_q14)
+{
+    int32_t s4;
+
+    if (!state || !phase_increment || !level_q15)
+        return 0;
+
+    s4 = fmt_fm_operator_render(&state->op[3], phase_increment[3], 0,
+                                level_q15[3]);
+    return fmt_fm_algorithm_render_from_op4(state,
+                                            algorithm,
+                                            phase_increment,
+                                            level_q15,
+                                            mod_depth_q14,
+                                            s4);
 }

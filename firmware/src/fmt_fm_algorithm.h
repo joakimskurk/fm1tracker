@@ -22,6 +22,20 @@ void fmt_fm_algorithm_reset(FmtFmAlgorithmState *state);
 void fmt_fm_algorithm_retrigger(FmtFmAlgorithmState *state);
 uint8_t fmt_fm_algorithm_sanitize(uint32_t algorithm);
 uint16_t fmt_fm_algorithm_clamp_mod_depth_q14(uint32_t depth);
+
+/* D055 composition seam. OP4 has already been rendered and advanced exactly
+ * once by the caller (normally D053 feedback). This function never touches
+ * state->op[3]; it renders OP3/OP2/OP1 and applies the frozen D050 carrier
+ * normalization for the selected topology. */
+int32_t fmt_fm_algorithm_render_from_op4(FmtFmAlgorithmState *state,
+                                         uint8_t algorithm,
+                                         const uint32_t phase_increment[4],
+                                         const uint16_t level_q15[4],
+                                         uint16_t mod_depth_q14,
+                                         int32_t op4_sample);
+
+/* Original D050 public path remains bit-exact: render OP4 without feedback,
+ * then delegate the remaining topology to the D055 seam. */
 int32_t fmt_fm_algorithm_render(FmtFmAlgorithmState *state,
                                 uint8_t algorithm,
                                 const uint32_t phase_increment[4],
