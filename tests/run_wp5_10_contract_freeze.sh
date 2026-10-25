@@ -48,13 +48,14 @@ assert define_u(time_h, 'FM1_TICKS_PER_US') == 24
 assert '#define NV 4u' in dinghy
 
 # The linked tracker callback must render both final family engines exactly once
-# per sample frame and retain the shared eight-track row/tick dispatch.
+# per sample frame and retain exactly three fixed eight-track dispatch loops:
+# playback-start event dispatch, row-boundary event dispatch and sub-row tick.
 a0 = dinghy.index('static void app_audio(')
 a1 = dinghy.index('/* ---- notes (main loop) */', a0)
 audio = dinghy[a0:a1]
 assert audio.count('fmt_8bit_engine_render(&fmt_8bit_engine_runtime)') == 1
 assert audio.count('fmt_fm_engine_render(&fmt_fm_engine_runtime)') == 1
-assert audio.count('for (track = 0u; track < FMT_TRACKS; track++)') == 2
+assert audio.count('for (track = 0u; track < FMT_TRACKS; track++)') == 3
 assert 'audition_consume_queue();' in audio
 
 # Both production family renderers remain fixed eight-slot scans.
@@ -111,13 +112,13 @@ assert 'state->stage[operator_index] = FMT_FM_ENVELOPE_STAGE_RELEASE;' in fm_env
 nominal_ticks = 24000000 * 256 / 44100
 assert 139319.0 < nominal_ticks < 139321.0
 
-print('WP5_10_REFERENCE_OK=1 tracks=8 bit_slots=8 fm_slots=8 audition=4 queue=32 fs=44100 half_frames=256 timer_mhz=24')
+print('WP5_10_REFERENCE_OK=1 tracks=8 bit_slots=8 fm_slots=8 audition=4 queue=32 fs=44100 half_frames=256 timer_mhz=24 dispatch_loops=3')
 print('WP5_10_MIXED_REACHABILITY_OK=1 fm_release_control=255 release_step=795 release_seconds_gt=60 route_clear_after_off=1')
 print('WP5_10_DUAL_RENDER_OK=1 bit_render_calls=1 fm_render_calls=1 fixed_slot_scans=8+8 fan3_ops=4')
 print(f'WP5_10_TIMER_REFERENCE_OK=1 nominal_half_buffer_ticks={nominal_ticks:.3f} target_runtime_timing_gate=deferred_without_execution_path')
 PY
 cat "$OUT/reference.log"
-grep -F 'WP5_10_REFERENCE_OK=1 tracks=8 bit_slots=8 fm_slots=8 audition=4 queue=32 fs=44100 half_frames=256 timer_mhz=24' "$OUT/reference.log"
+grep -F 'WP5_10_REFERENCE_OK=1 tracks=8 bit_slots=8 fm_slots=8 audition=4 queue=32 fs=44100 half_frames=256 timer_mhz=24 dispatch_loops=3' "$OUT/reference.log"
 grep -F 'WP5_10_MIXED_REACHABILITY_OK=1 fm_release_control=255 release_step=795 release_seconds_gt=60 route_clear_after_off=1' "$OUT/reference.log"
 grep -F 'WP5_10_DUAL_RENDER_OK=1 bit_render_calls=1 fm_render_calls=1 fixed_slot_scans=8+8 fan3_ops=4' "$OUT/reference.log"
 grep -F 'target_runtime_timing_gate=deferred_without_execution_path' "$OUT/reference.log"
