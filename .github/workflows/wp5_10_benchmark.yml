@@ -1,0 +1,51 @@
+name: WP5.10 mixed benchmark
+
+on:
+  push:
+    branches:
+      - phase5/worst-case-benchmark
+    paths:
+      - 'tests/run_wp5_10_mixed_benchmark.sh'
+      - 'tests/run_wp5_10_realtime_audit.sh'
+      - '.github/workflows/wp5_10_benchmark.yml'
+      - 'docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Re-verify frozen contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_contract_freeze.sh
+      - name: Verify dual-engine realtime bounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_realtime_audit.sh
+      - name: Run frozen mixed-engine benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_wp5_10_mixed_benchmark.sh
+      - name: Upload WP5.10 benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-10-benchmark-evidence
+          path: |
+            build/wp5_10_contract/
+            build/wp5_10_realtime/
+            build/wp5_10_benchmark/
+          if-no-files-found: error
