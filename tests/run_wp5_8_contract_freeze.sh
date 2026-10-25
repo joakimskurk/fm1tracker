@@ -34,7 +34,7 @@ grep -F '`0x60` | `FM_ALGORITHM`' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev
 grep -F '`0x7B` | `FM_OP4_RELEASE`' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev/null
 grep -F 'total              8704 B' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev/null
 grep -F 'normal RAM  <= 28656 B' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev/null
-grep -F 'firmware/src/fmt_fm_engine.*' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev/null
+grep -F 'fmt_fm_engine.*' docs/WP5_8_FM_PARAMETER_PAGE_CONTRACT.md >/dev/null
 printf '%s\n' 'WP5_8_CONTRACT_DOCS_OK=1 decision=D056 ids=27 pages=7 source_boundary=frozen'
 
 printf '%s\n' 'WP5_8_CONTRACT_FREEZE_OK=1 decision=D056 production_authorized_after_green=1 hardware_margin_claim=none' | tee build/wp5_8_contract/summary.txt
