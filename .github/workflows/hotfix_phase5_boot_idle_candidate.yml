@@ -29,7 +29,7 @@ jobs:
             firmware/src firmware/gen firmware/hal firmware/loader \
             firmware/app.ld build.sh tools
 
-      - name: Apply bounded boot-idle candidate patch
+      - name: Apply bounded boot and stop candidate patch
         shell: bash
         run: |
           set -euo pipefail
@@ -41,12 +41,19 @@ jobs:
 
           init_old = '''    tracker_fm_lock_page = FMT_FM_PAGE_CORE;\n    tracker_play_requested = 1u;\n    tracker_transport_stopped = 1u;\n    tracker_ready = 1u;'''
           init_new = '''    tracker_fm_lock_page = FMT_FM_PAGE_CORE;\n    /* Post-Phase-5 emulator hotfix candidate: boot stopped. The seeded proof\n     * pattern remains available, but only an explicit PLAY edge starts it. */\n    tracker_play_requested = 0u;\n    tracker_transport_stopped = 1u;\n    tracker_ready = 1u;'''
+
+          stop_old = '''    if (tracker_ready) {\n        if (!tracker_play_requested) {\n            if (fmt_transport_runtime.running)\n                fmt_transport_stop(&fmt_transport_runtime);\n            tracker_transport_stopped = 1u;\n        } else {'''
+          stop_new = '''    if (tracker_ready) {\n        if (!tracker_play_requested) {\n            /* PLAY -> STOP is a transport panic for sequenced voices. Merely\n             * stopping the clock leaves sustain envelopes sounding forever and\n             * keeps the expensive engine render path alive. Silence every owned\n             * tracker route once, then make the next PLAY re-enter the current row. */\n            if (fmt_transport_runtime.running || fmt_playback_runtime.started) {\n                if (fmt_transport_runtime.running)\n                    fmt_transport_stop(&fmt_transport_runtime);\n                for (track = 0u; track < FMT_TRACKS; track++)\n                    tracker_hard_silence_route(track);\n                fmt_playback_reset(&fmt_playback_runtime);\n            }\n            tracker_transport_stopped = 1u;\n        } else {'''
+
           ui_old = '    draw_text_box(0, 52, 240, &FONT_S, "a sine to build on  v" APP_VER, C_OFF, 1);'
           ui_new = '    draw_text_box(0, 52, 240, &FONT_S, "PERFORMANCE  v" APP_VER, C_OFF, 1);'
 
           assert text.count(init_old) == 1
+          assert text.count(stop_old) == 1
           assert text.count(ui_old) == 1
-          text = text.replace(init_old, init_new, 1).replace(ui_old, ui_new, 1)
+          text = text.replace(init_old, init_new, 1)
+          text = text.replace(stop_old, stop_new, 1)
+          text = text.replace(ui_old, ui_new, 1)
           path.write_text(text)
           PY
 
@@ -58,8 +65,10 @@ jobs:
           init = text[anchor:tail]
           assert 'tracker_play_requested = 0u;' in init
           assert 'tracker_play_requested = 1u;' not in init
+          assert 'fmt_playback_reset(&fmt_playback_runtime);' in text
+          assert 'tracker_hard_silence_route(track);' in text
           assert '"PERFORMANCE  v" APP_VER' in text
-          print('BOOT_IDLE_PATCH_OK=1 play_requested=0 proof_pattern=retained home=PERFORMANCE')
+          print('BOOT_STOP_PATCH_OK=1 play_requested=0 stop_panic=all_tracks proof_pattern=retained')
           PY
 
           git diff -- firmware/src/dinghy.c
@@ -67,13 +76,26 @@ jobs:
       - name: Install host dependency
         run: python3 -m pip install pillow
 
-      - name: Verify existing button and SEQ context behavior
+      - name: Verify button, SEQ and stop-silence behavior
         shell: bash
         run: |
           set -euo pipefail
           sh tests/run_pattern_context_host.sh
           sh tests/run_host.sh
-          printf '%s\n' 'BOOT_IDLE_HOST_OK=1 seq_input_regression=pass host_smoke=pass'
+
+          mkdir -p build/host
+          cc -O2 -Wall -Wno-unused-function -DDINGHY_HOST \
+            -DAPP_NAME='"FM1TRACKER"' -DAPP_VER='"hotfix"' \
+            -Ifirmware/src -Ifirmware/gen \
+            -o build/host/fm1tracker_hotfix firmware/src/dinghy.c
+          build/host/fm1tracker_hotfix \
+            build/host/fm1tracker_hotfix_stop \
+            tests/hotfix_stop_silence.script \
+            > build/hotfix_stop_silence.log
+
+          grep -E '^[[:space:]]*200 ms[[:space:]]+fixture probe tracks t0=v' build/hotfix_stop_silence.log
+          grep -F '400 ms  fixture probe tracks t0=- t1=- t2=- t3=- t4=- t5=- t6=- t7=-' build/hotfix_stop_silence.log
+          printf '%s\n' 'HOTFIX_HOST_OK=1 seq_input_regression=pass stop_silence=pass'
 
       - name: Fetch pinned JieLi toolchain
         shell: bash
@@ -104,6 +126,7 @@ jobs:
           printf 'candidate_branch=hotfix/phase5-boot-idle\n' > build/HOTFIX_BOOT_IDLE.txt
           printf 'baseline_production=81d3464059270130747e26fcc950b7a2e1bb03e1\n' >> build/HOTFIX_BOOT_IDLE.txt
           printf 'boot_play_requested=0\n' >> build/HOTFIX_BOOT_IDLE.txt
+          printf 'stop_silence=all_tracker_routes\n' >> build/HOTFIX_BOOT_IDLE.txt
           printf 'proof_pattern=retained\n' >> build/HOTFIX_BOOT_IDLE.txt
           printf 'fm1tracker_bin_sha256=%s\n' "$BIN_SHA" >> build/HOTFIX_BOOT_IDLE.txt
           printf 'fm1tracker_fwsc_sha256=%s\n' "$FWSC_SHA" >> build/HOTFIX_BOOT_IDLE.txt
@@ -113,10 +136,11 @@ jobs:
       - name: Upload emulator-test candidate
         uses: actions/upload-artifact@v4
         with:
-          name: fm1tracker-boot-idle-hotfix-candidate
+          name: fm1tracker-boot-stop-hotfix-candidate-v2
           path: |
             build/fm1tracker-0.1.fwsc
             build/fm1tracker.bin
             build/HOTFIX_BOOT_IDLE.txt
             build/hotfix-target.log
+            build/hotfix_stop_silence.log
           if-no-files-found: error
