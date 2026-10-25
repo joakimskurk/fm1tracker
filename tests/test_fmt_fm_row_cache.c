@@ -16,6 +16,33 @@ uint8_t fmt_fm_engine_supported(uint8_t engine_id)
     return engine_id == FMT_FM_ENGINE_FM4;
 }
 
+/* D056's main-only editor adapter lives in the same production translation
+ * unit. Keep this cache-only host focused by satisfying those unused seams. */
+int fmt_playback_params_refresh_track_step(uint32_t track, uint32_t step)
+{
+    (void)track;
+    (void)step;
+    return 1;
+}
+
+int fmt_lock_editor_apply_param_delta(FmtLockEditor *editor,
+                                      FmtParamId param_id,
+                                      uint16_t reference_value,
+                                      int32_t delta)
+{
+    (void)editor;
+    (void)param_id;
+    (void)reference_value;
+    (void)delta;
+    return 0;
+}
+
+int fmt_lock_editor_confirm_delete(FmtLockEditor *editor)
+{
+    (void)editor;
+    return 0;
+}
+
 static uint32_t pack(FmtParamId a_id, uint8_t a_value,
                      FmtParamId b_id, uint8_t b_value)
 {
