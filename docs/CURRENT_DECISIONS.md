@@ -25,56 +25,56 @@ Evidence: `WP5_1_VERIFICATION.md`
 
 Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_2_FM_ALGORITHM_CONTRACT.md`  
-Evidence: `WP5_2_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_2_VERIFICATION.md`
+Evidence: `WP5_2_VERIFICATION.md`
 
 ## D051 - curated FM4 ratio/pitch mapping
 
 Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_3_FM_RATIO_CONTRACT.md`  
-Evidence: `WP5_3_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_3_VERIFICATION.md`
+Evidence: `WP5_3_VERIFICATION.md`
 
 ## D052 - FM4 operator LEVEL / global INDEX mapping
 
 Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_4_FM_LEVEL_INDEX_CONTRACT.md`  
-Evidence: `WP5_4_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_4_VERIFICATION.md`
+Evidence: `WP5_4_VERIFICATION.md`
 
 ## D053 - bounded one-sample OP4 feedback
 
 Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_5_FM_FEEDBACK_CONTRACT.md`  
-Evidence: `WP5_5_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_5_VERIFICATION.md`
+Evidence: `WP5_5_VERIFICATION.md`
 
 ## D054 - four independent FM4 ADSR envelopes
 
 Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_6_FM_ENVELOPE_CONTRACT.md`  
-Evidence: `WP5_6_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_6_VERIFICATION.md`
+Evidence: `WP5_6_VERIFICATION.md`
 
 Final closeout run `40168286355`, host `121093715194`, target `121093715000`.
 
 ## D055 - FM4 voice allocation and D048 integration
 
-Status: **FROZEN BEFORE PRODUCTION INTEGRATION - SOURCE-ABSENT GATE PENDING**  
+Status: **ACCEPTED, IMPLEMENTED, TECHNICALLY VERIFIED; DOCUMENTATION CLOSEOUT ACTIVE**  
 Normative: `WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`  
-Audit: `WP5_7_PRECONTRACT_AUDIT.md`
+Audit: `WP5_7_PRECONTRACT_AUDIT.md`  
+Evidence: `WP5_7_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_7_VERIFICATION.md`
 
-D055 freezes:
+D055 freezes and verifies:
 
 - eight family-local FM slots;
-- direct D043 allocator reuse;
+- exact D043 allocator reuse;
 - no active cross-track primary stealing;
-- exact 92 B FM voice and 788 B FM engine targets;
-- immutable 28 B WP5.7 bridge patch in ROM;
-- no mutable FM instrument bank/page cache until WP5.8;
-- hard NOTE retrigger of D049/D053/D054;
+- exact 92 B FM voice and 788 B FM engine state;
+- hard NOTE retrigger and RETRIG reset;
 - detached OFF/CUT release tails;
 - one backward-compatible D050 OP4 composition seam;
 - D048 cross-family silence/clear/attempt/commit ordering;
-- +1024 B normal-RAM and +8192 B image ceilings for WP5.7;
-- exact default all-8BIT regression requirement.
+- exact default all-8BIT regression requirement;
+- bounded target ceiling with accepted result 77,048 B image / 20,464 B RAM / 113,000 B pool;
+- mutable FM instrument parameter storage deferred to WP5.8.
 
-No production integration change is allowed until the D055 source-absent gate is green.
+Canonical implementation run `40173076046`, host `121107852886`, target `121107852943`, all SUCCESS.
 
 ## Current precedence
 
@@ -87,5 +87,7 @@ D052 -> LEVEL/INDEX.
 D053 -> OP4 feedback.  
 D054 -> four envelopes.  
 D055 -> FM voice ownership/allocator/render composition and D048 integration.
+
+The next decision will belong to WP5.8 and must be frozen only after the parameter-page/p-lock audit.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.

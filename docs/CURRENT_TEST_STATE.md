@@ -14,54 +14,49 @@ Legend: ✅ verified/frozen, ⬜ active/future, ⛔ physical unavailable.
 - D050 WP5.2 curated FM4 routing: COMPLETE ✅
 - D051 WP5.3 integer ratio/pitch mapping: COMPLETE ✅
 - D052 WP5.4 level/index mapping: COMPLETE ✅
-- D053 WP5.5 bounded OP4 feedback: COMPLETE ✅ final run `40165352623`
+- D053 WP5.5 bounded OP4 feedback: COMPLETE ✅
+- D054 WP5.6 FM envelopes: COMPLETE ✅ final run `40168286355`
 
-## WP5.6 / D054 technical state - COMPLETE
+## WP5.7 / D055 technical state
 
 | Check | Status |
 |---|---|
-| four independent per-operator ADSR architecture | ✅ |
-| D054 frozen before production source | ✅ |
-| source-absent gate | ✅ run `40167537148`, job `121091550742` |
-| state size | ✅ 20 B |
-| control size | ✅ 16 B |
-| Q15.16 level domain | ✅ max `0x7fff0000` |
-| stage IDs OFF/A/D/S/R | ✅ 0/1/2/3/4 |
-| 256-entry A/D/R table | ✅ 1,024 B |
-| time-table SHA | ✅ `6e94aa6553b78919913d49a24c80ca7317c913fff344294a107137f85ffbc025` |
-| SUSTAIN map exact | ✅ SHA `a799f70bd763053e79c3d9de6acdda97523fe54632105756c4252dc33d51c815` |
-| 65,536 LEVEL composition pairs | ✅ SHA `196659105845f6183b0779183a583226129a5b7f35e8ac8ac811479b117e606b` |
-| zero-time A/D/R semantics | ✅ |
-| hard retrigger | ✅ zero |
-| release from current level | ✅ |
-| max release termination | ✅ `2701155` advances |
-| 65,536-sample 4-op stress | ✅ SHA `8cdf12197813d5718b3b4c5a40375534f93ea006f61e5aa325f4b48af71e0849` |
-| production source boundary | ✅ exactly 4 allowed files |
-| generated table regeneration | ✅ byte-identical |
-| no loops/div/mod/int64/float/heap/mutable globals | ✅ |
-| inherited D053-D049 + WP5.0 host WAV | ✅ |
-| PI32v2 envelope object | ✅ 1,680 B / 2,048 B ceiling |
-| object SHA | ✅ `22fa7937d7776fea37c8e758ca83ee0a3f5d6c506ebd4661a8290a4516e048d1` |
-| full target exact WP5.0 | ✅ 72,792 / 19,676 / 113,000 B |
-| BIN/FWSC exact WP5.0 | ✅ |
-| implementation run | ✅ `40167933064` |
-| host job | ✅ `121092688126` |
-| target job | ✅ `121092688295` |
-| `WP5_6_VERIFICATION.md` | ✅ |
-| final documentation-head rerun | ⬜ pending |
+| D055 contract frozen before production integration | ✅ |
+| source-absent gate | ✅ run `40171940961`, job `121104425642` |
+| family-local FM slots | ✅ 8 |
+| `FmtFmVoice` | ✅ 92 B |
+| `FmtFmEngine` | ✅ 788 B |
+| exact D043 allocation policy | ✅ |
+| no active cross-track primary stealing | ✅ zero |
+| NOTE hard retrigger | ✅ |
+| RETRIG hard reset | ✅ |
+| OFF/CUT detached release | ✅ |
+| D050 composition seam backward-compatible | ✅ four algorithms x 4096 frames |
+| D048 production FM dispatch | ✅ |
+| actual same-track `FM4 -> 8-BIT -> FM4` fixture | ✅ |
+| repeated mixed WAV byte-identical | ✅ SHA `e7bef408b3ce8c40e5b51cc6489dc39068ade82a86ccad0297070a3d2f2df034` |
+| all-8BIT production WAV exact WP5.0 | ✅ SHA `17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076` |
+| production source boundary | ✅ exactly 5 files |
+| D043/D049/D051-D054/generated tables frozen | ✅ |
+| heap/float/int64/runtime divmod in realtime path | ✅ none |
+| PI32v2 engine+algorithm text+rodata | ✅ 1664 B |
+| full target image | ✅ 77048 B / 80984 B ceiling |
+| full target normal RAM | ✅ 20464 B / 20700 B ceiling |
+| full target pool | ✅ 113000 B unchanged |
+| implementation run | ✅ `40173076046` |
+| host job | ✅ `121107852886` |
+| target job | ✅ `121107852943` |
+| `WP5_7_VERIFICATION.md` | ✅ |
+| final documentation-head rerun | ⬜ active closeout gate |
 
-Canonical implementation artifacts:
+Canonical artifacts:
 
-- host ID `12588901443`, SHA `4452eec3d50127a392dad79246b54cf93883837f9a02b2af64848d129c76a202`
-- target ID `12588804647`, SHA `c8eed7e762c3d58da18f0a3b5fbad28878b6da2e70181d22f2376ea7c3686f20`
+- host `12590982004`, SHA `156762cdc26b3400d0060530b05be42f660302d35f2322456a22a3e3f38f8f53`
+- target `12590199901`, SHA `765ab8937782dd21854eb0609f2c897e2542fd5f0595c374dfbf7e6ebe13c667`
 
-## WP5.7 next state - PLANNED
+## WP5.8 next state
 
-Issue #50. Expected branch `phase5/fm4-voice-integration`.
-
-WP5.7 remains blocked until WP5.6 closeout-head host+target verification is green and #49 is closed.
-
-D055 must be frozen contract-first before voice/router integration changes.
+Planned immediately after #50 closes: FM parameter pages + p-lock mapping. Contract-first audit required before mutable FM parameter storage or production wiring.
 
 ## Physical hardware boundary
 

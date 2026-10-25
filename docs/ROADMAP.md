@@ -23,91 +23,39 @@ The instrument should feel playable before it feels editable. Tracker data remai
   - WP5.3 integer ratio/pitch mapping: COMPLETE
   - WP5.4 level/modulation-index mapping: COMPLETE
   - WP5.5 bounded feedback: COMPLETE
-  - WP5.6 per-operator ADSR envelopes: TECHNICALLY COMPLETE, closeout active
-  - WP5.7 FM voice/router integration: PLANNED, blocked on WP5.6 closeout
+  - WP5.6 per-operator ADSR envelopes: COMPLETE
+  - WP5.7 FM voice/router integration: TECHNICALLY COMPLETE, closeout active
+  - WP5.8 FM parameter pages + p-lock mapping: NEXT
 - live performance capture milestone: PLANNED after engine foundations
 - Phase 6 song/order/persistence: PLANNED
 - Phase 7 physical hardware UX freeze: BLOCKED until physical FM-1
 - Phase 8 interoperability: PLANNED
 - Phase 9 optional extensions: DEFERRED
 
-## Architecture after D047/D048
+## Architecture after D055
 
-FM1Tracker is one engine-agnostic tracker/sequencer. Instruments own family + engine identity. D048 common routing is static/bounded and the D046 all-8-BIT configuration remains the regression baseline.
+FM1Tracker is one engine-agnostic tracker/sequencer. Instruments own family + engine identity. D048 common routing is static/bounded. FM4 now has eight family-local runtime voices using exact D043 ownership semantics. The D046/WP5.0 all-8BIT configuration remains the exact regression baseline.
 
-## Phase 5 - mixed-engine routing + FM4
-
-### WP5.0 - mixed-engine routing - COMPLETE
-
-D047/D048 implemented and verified. Full target baseline: 72,792 B image / 19,676 B RAM / 113,000 B pool.
-
-### WP5.1 - fixed-point FM operator - COMPLETE
-
-D049 established the 4 B phase-state operator, signed phase modulation, generated Q15 sine table and deterministic integer render semantics.
-
-### WP5.2 - curated FM algorithm routing - COMPLETE
-
-D050 established four static topologies and fixed OP4 -> OP3 -> OP2 -> OP1 evaluation.
-
-### WP5.3 - integer ratio table + pitch mapping - COMPLETE
-
-D051 froze 16 stable Q8 ratios, deterministic high-register clamp behavior and a stateless four-output mapping.
-
-### WP5.4 - levels / modulation index - COMPLETE
-
-D052 froze four independent LEVEL bytes and one global INDEX byte with exact Q15/Q14 mappings.
-
-### WP5.5 - bounded feedback - COMPLETE
-
-D053 froze one OP4 self-feedback edge, exact one-sample history and a 2 B feedback state. Final closeout run `40165352623` passed host and target.
-
-### WP5.6 - four independent operator envelopes - TECHNICALLY COMPLETE
-
-D054 rejected a final post-mix envelope and froze the smallest V1 envelope architecture that gives real FM timbral evolution: four independent ADSR envelopes applied to the four D052 operator LEVEL values before D049/D050 rendering.
-
-Frozen foundation:
+WP5.7 target checkpoint:
 
 ```text
-state per future FM voice     20 B
-controls per FM instrument    16 B
-A/D/R step table            1024 B
-PI32v2 object               1680 B text+rodata
-object ceiling              2048 B
+image       77048 B
+normal RAM  20464 B
+pool       113000 B
+FM engine     788 B
 ```
 
-Control 0 is a true instant stage transition. Controls 1..255 use a deterministic 16-steps-per-octave time law from roughly 1 ms through roughly 61.3 s. SUSTAIN uses the D052 LEVEL mapping. Hard retrigger starts from zero, release starts from current level, and D050 algorithm changes do not reset envelope state.
+No active cross-track primary stealing is permitted.
 
-Canonical technical verification:
-
-- source-absent run `40167537148`, job `121091550742`;
-- implementation run `40167933064`, host `121092688126`, target `121092688295`;
-- full target remains exact WP5.0.
-
-Evidence: `WP5_6_VERIFICATION.md`.
-
-Formal closeout requires the same verification on the documentation closeout head.
-
-### WP5.7 - FM voice allocation/integration - NEXT AFTER WP5.6 CLOSEOUT
-
-Issue #50. D055 must be frozen contract-first before integration.
-
-This package connects D049-D054 to D048 without changing the tracker architecture. It must freeze FM voice count/state budget, allocator ownership, release-tail policy and exact cross-family event ordering before code changes.
-
-Non-negotiable:
-
-- no active cross-track primary stealing;
-- all-8-BIT output remains exact;
-- fixed bounded render/event work;
-- no dynamic engine registry or heap;
-- target image/RAM/pool measured before package closeout.
+## Phase 5 remaining work
 
 ### WP5.8 - FM parameter pages + p-lock mapping
 
-Stable semantic IDs/pages and safe family-specific parameter behavior.
+Define stable semantic FM parameter IDs/pages and bounded mutable instrument parameter storage. Reuse the existing sparse p-lock architecture and preserve exact row-boundary timing. Invalid IDs must be family-safe and deterministic. This package replaces the temporary immutable WP5.7 FM bridge patch with parameterized controls, but does not broaden into final mixed-family stress validation.
 
 ### WP5.9 - mixed 8-BIT + FM4 validation
 
-Simultaneous families and same-track family switches with exact all-8-BIT regression equivalence.
+Simultaneous families and same-track family switches with exact all-8BIT regression equivalence.
 
 ### WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit
 

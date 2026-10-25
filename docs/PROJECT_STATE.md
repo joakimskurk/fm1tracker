@@ -8,13 +8,13 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.6 complete; WP5.7 D055 source-absent gate ACCEPTED, implementation authorized - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.6 complete; WP5.7/D055 technically complete, documentation closeout active - 2026-10-25**
 
-Current active package: **WP5.7 - FM4 voice allocation and D048 router integration**  
+Current active package: **WP5.7 - FM4 voice allocation and D048 router integration closeout**  
 Active issue: **#50**  
 Active branch: `phase5/fm4-voice-integration`
 
-## Completed Phase 5 baseline
+## Completed Phase 5 foundation
 
 - WP5.0 / D048 mixed-engine routing - COMPLETE.
 - WP5.1 / D049 fixed-point FM operator - COMPLETE.
@@ -24,89 +24,52 @@ Active branch: `phase5/fm4-voice-integration`
 - WP5.5 / D053 bounded OP4 feedback - COMPLETE.
 - WP5.6 / D054 four independent FM4 ADSR envelopes - COMPLETE.
 
-WP5.6 final closeout:
-
-- head `886cb496f4e73a91c4ded16bf9e722b770a040f6`;
-- run `40168286355`;
-- host `121093715194` SUCCESS;
-- target `121093715000` SUCCESS;
-- full running application remains exact WP5.0.
-
-## D055 accepted contract
+## WP5.7 / D055 technical checkpoint
 
 Normative: `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`.  
-Audit: `docs/WP5_7_PRECONTRACT_AUDIT.md`.  
-Preimplementation evidence: `docs/WP5_7_PREIMPLEMENTATION_EVIDENCE.md`.
+Evidence: `docs/WP5_7_VERIFICATION.md`.
 
-Accepted source-absent gate:
-
-```text
-head      01f8f6c8f81f9057909d99223372b0901296e3ec
-run       40171940961
-job       121104425642
-status    SUCCESS
-artifact  12590656915
-SHA-256   ab44e0a8553edaf02eefbf8c175b717a7d5ee32ae4c9ad44de77d94228f0d9c5
-```
-
-Frozen D055 architecture:
+Canonical implementation checkpoint:
 
 ```text
-FM slots                     8
-FmtFmVoice                  92 B
-FmtVoiceAllocator           52 B
-FmtFmEngine                788 B
-immutable bridge patch      28 B ROM
-mutable FM instrument bank   0 B in WP5.7
+head    75ff8136881799ad652df380a53002c5efa70516
+run     40173076046 SUCCESS
+host    121107852886 SUCCESS
+target  121107852943 SUCCESS
 ```
 
-Allocator remains exact D043 policy: reuse own primary, otherwise lowest idle, otherwise oldest detached RELEASE tail, never another track's active primary.
-
-The 28 B bridge patch is temporary WP5.7 integration input. WP5.8 owns mutable FM parameter pages/p-lock storage.
-
-D055 permits exactly one backward-compatible D050 composition seam for externally rendered OP4 so D053 feedback can compose without duplicating topology logic.
-
-## D055 resource ceilings
+Verified architecture:
 
 ```text
-parent image          72792 B
-parent normal RAM     19676 B
-parent pool          113000 B
-
-FmtFmEngine target      788 B
-engine hard ceiling     800 B
-RAM increment max      1024 B
-total RAM max         20700 B
-image increment max    8192 B
-total image max       80984 B
-pool increment            0 B
-pool total           113000 B
+FM slots                    8
+FmtFmVoice                 92 B
+FmtFmEngine               788 B
+active cross-track steals    0
+allocator                   exact D043
+mutable FM parameter bank     0 B
 ```
 
-## Production boundary now authorized
-
-Only these production files may change during WP5.7 implementation:
+Verified full target:
 
 ```text
-firmware/src/fmt_fm_engine.h
-firmware/src/fmt_fm_engine.c
-firmware/src/fmt_fm_algorithm.h
-firmware/src/fmt_fm_algorithm.c
-firmware/src/dinghy.c
+image       77048 B  (+4256 vs WP5.0)
+normal RAM  20464 B  (+788 vs WP5.0)
+pool       113000 B  (unchanged)
 ```
 
-D049, D051, D052, D053, D054, D043 allocator source and generated tables remain frozen. D050 may change only for the D055 composition seam.
+Default all-8BIT production output remains exact WP5.0:
+
+```text
+frames  286464
+sha256  17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076
+```
+
+A production `FM4 -> 8-BIT -> FM4` same-track fixture renders deterministically with byte-identical repeated WAV output.
 
 ## Current exact action
 
-1. add the D050 externally-rendered-OP4 composition seam while keeping the old D050 renderer bit-exact;
-2. implement the exact 8-slot / 788 B FM engine;
-3. connect FM family cases to the existing D048 router in `dinghy.c`;
-4. verify event/release/retrigger/cross-family semantics and zero active cross-track steals;
-5. require the normal all-8BIT host WAV to remain exact WP5.0;
-6. run pinned PI32v2/full-target build inside the D055 image/RAM/pool ceilings;
-7. write `WP5_7_VERIFICATION.md` and close #50 before WP5.8 begins.
+This documentation closeout head must pass the normal WP5.7 host+target workflow. When green, close #50 and branch WP5.8 from this exact head.
 
-No WP5.8 parameter-page/p-lock work is allowed in WP5.7.
+WP5.8 is **FM parameter pages + p-lock mapping**. It must begin contract-first by auditing existing page semantics, p-lock semantic IDs/storage, family-specific dispatch and the temporary immutable 28 B WP5.7 bridge patch before any mutable FM parameter source is introduced.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
