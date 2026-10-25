@@ -5,6 +5,7 @@
 
 #include "fmt_lock_store.h"
 #include "fmt_playback.h"
+#include "fmt_playback_params.h"
 #include "fmt_store.h"
 
 #define FMT_FM_LINKED_CONTEXT_INVALID   0u
@@ -339,4 +340,98 @@ int fmt_fm_linked_params_compose(uint32_t instrument,
 
     fmt_fm_params_to_patch(&resolved, patch_out);
     return 1;
+}
+
+int fmt_fm_linked_editor_is_fm(const FmtLockEditor *editor)
+{
+    const FmtSong *song = fmt_store_song_const();
+
+    if (!editor || !editor->active || !song)
+        return 0;
+    return fmt_fm_linked_row_context(song,
+                                     editor->track,
+                                     editor->step,
+                                     (uint8_t *)0,
+                                     (uint8_t *)0) == FMT_FM_LINKED_CONTEXT_FM;
+}
+
+static int fmt_fm_linked_editor_mapping(const FmtLockEditor *editor,
+                                        uint8_t page,
+                                        uint32_t knob,
+                                        FmtParamId *param_id,
+                                        uint16_t *reference)
+{
+    const FmtSong *song = fmt_store_song_const();
+    uint8_t instrument = FMT_INSTRUMENT_INHERIT;
+    uint8_t engine = 0u;
+    uint8_t value = 0u;
+    FmtParamId id;
+
+    if (!editor || !editor->active || page >= FMT_FM_PAGE_COUNT ||
+        knob >= FMT_FM_PAGE_SLOTS || !song ||
+        fmt_fm_linked_row_context(song,
+                                  editor->track,
+                                  editor->step,
+                                  &instrument,
+                                  &engine) != FMT_FM_LINKED_CONTEXT_FM)
+        return 0;
+    (void)engine;
+
+    id = fmt_fm_page_param(page, (uint8_t)knob);
+    if (id == FMT_PARAM_NONE || instrument >= FMT_INSTRUMENTS ||
+        !fmt_fm_page_value_from_set(page,
+                                    (uint8_t)knob,
+                                    &fmt_fm_instrument_base[instrument],
+                                    &value))
+        return 0;
+
+    if (param_id)
+        *param_id = id;
+    if (reference)
+        *reference = value;
+    return 1;
+}
+
+static void fmt_fm_linked_refresh_editor_row(const FmtLockEditor *editor)
+{
+    if (!editor || !editor->active)
+        return;
+    (void)fmt_playback_params_refresh_track_step(editor->track, editor->step);
+    (void)fmt_fm_linked_params_refresh_track_row(editor->track, editor->step);
+}
+
+int fmt_fm_linked_editor_apply_delta(FmtLockEditor *editor,
+                                     uint8_t page,
+                                     uint32_t knob,
+                                     int32_t delta)
+{
+    FmtParamId id = (FmtParamId)FMT_PARAM_NONE;
+    uint16_t reference = 0u;
+    int handled;
+
+    if (delta == 0 ||
+        !fmt_fm_linked_editor_mapping(editor,
+                                      page,
+                                      knob,
+                                      &id,
+                                      &reference))
+        return 0;
+
+    handled = fmt_lock_editor_apply_param_delta(editor,
+                                                id,
+                                                reference,
+                                                delta);
+    if (handled && editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_OK)
+        fmt_fm_linked_refresh_editor_row(editor);
+    return handled;
+}
+
+int fmt_fm_linked_editor_confirm_delete(FmtLockEditor *editor)
+{
+    int handled = fmt_lock_editor_confirm_delete(editor);
+
+    if (handled && editor &&
+        editor->last_status == (uint8_t)FMT_LOCK_EDITOR_STATUS_DELETED)
+        fmt_fm_linked_refresh_editor_row(editor);
+    return handled;
 }
