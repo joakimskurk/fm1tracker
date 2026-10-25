@@ -1,25 +1,24 @@
 # FM1Tracker Project State
 
-This is the **single source of truth for current execution state**. Read `START_HERE.md` and `docs/PROJECT_CONTEXT.md` first so the active roadmap item is not mistaken for the whole product.
+This is the **single source of truth for current execution state**. Read `START_HERE.md` and `docs/PROJECT_CONTEXT.md` first so roadmap order is not mistaken for the whole product.
 
 ## Current phase
 
-**Phase 5 - mixed-engine routing + FM4**
+**Phase 5 - mixed-engine routing + FM4 - COMPLETE at software level - 2026-10-25**
 
-State: **IN PROGRESS - WP5.0 through WP5.9 complete; WP5.10 ACTIVE - 2026-10-25**
-
-Active package: **WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit**  
-Tracking issue: **#53**  
+Phase 5 software exit: **PASS**  
+Final package: **WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit - COMPLETE**  
+Closed issue: **#53**  
 Branch: `phase5/worst-case-benchmark`  
-Precontract audit: `docs/WP5_10_PRECONTRACT_AUDIT.md` - COMPLETE  
-Benchmark contract: `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md` - FROZEN  
-Contract gate: `tests/run_wp5_10_contract_freeze.sh` + `.github/workflows/wp5_10_contract_freeze.yml`
+Closeout evidence: `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
 
-Last closed package: **WP5.9 - mixed 8-BIT + FM4 validation**  
-Closed issue: **#52**  
-Closeout evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`
+WP5.10 benchmark checkpoint: `6f47d832b2fc4d83cd2ad03943e919a183123ee2`.  
+WP5.10 closeout workflow checkpoint: `bcf339b5aa49cf66e8f19917bbb2c48ebc974c56`.  
+Neither checkpoint changes production firmware.
 
-Production remains frozen at `81d3464059270130747e26fcc950b7a2e1bb03e1`. Benchmark implementation must stay test/workflow/documentation-only unless a measured constraint later forces a separately frozen optimization sub-contract.
+The last target-validated production-code checkpoint remains:
+
+`81d3464059270130747e26fcc950b7a2e1bb03e1`
 
 ## Persistent product direction
 
@@ -37,69 +36,91 @@ FM1Tracker remains one coherent engine-agnostic tracker with 8-BIT, FM, future v
 - WP5.7 / D055 FM voice allocation and D048 integration - COMPLETE.
 - WP5.8 / D056 FM parameter pages and p-lock mapping - COMPLETE.
 - WP5.9 mixed 8-BIT + FM4 validation - COMPLETE.
+- WP5.10 worst-case mixed-engine benchmark + Phase 5 software exit - COMPLETE.
 
-## Accepted resource baselines
+## Accepted production resources
 
 ```text
-D056 head                849c8b27d8c1afa09f9c093b695985c64e0c6013
-D056 image               79804 B
-WP5.9 code checkpoint    81d3464059270130747e26fcc950b7a2e1bb03e1
-WP5.9 run                40210173573 SUCCESS
-WP5.9 target             121219510315 SUCCESS
-WP5.9 host               121219510342 SUCCESS
-WP5.9 image              79836 B
-normal RAM               27792 B
-pool                    113000 B
-D056 -> WP5.9 image      +32 B
-D056 -> WP5.9 RAM        +0 B
-D056 -> WP5.9 pool       +0 B
-hardware_margin_claim    none
+D056 head                  849c8b27d8c1afa09f9c093b695985c64e0c6013
+D056 image                 79804 B
+production checkpoint      81d3464059270130747e26fcc950b7a2e1bb03e1
+WP5.10 target image        79836 B
+normal RAM                 27792 B
+pool                      113000 B
+D056 -> final image          +32 B
+D056 -> final RAM              0 B
+D056 -> final pool             0 B
+WP5.9 -> final resources       0 B
+hardware_margin_claim      none
 ```
 
-Full parent evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md` and `docs/WP5_9_CLOSEOUT_EVIDENCE.md`.
+Full evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md`, `docs/WP5_9_CLOSEOUT_EVIDENCE.md` and `docs/WP5_10_CLOSEOUT_EVIDENCE.md`.
 
-`81d3464059270130747e26fcc950b7a2e1bb03e1` remains the last target-validated production-code checkpoint. WP5.10 audit/contract commits do not supersede it as firmware validation evidence.
-
-## Frozen WP5.10 benchmark
+## WP5.10 accepted benchmark
 
 ### S1 - mixed saturation
 
-All eight logical tracks first create FM4 voices with full sustain and release 255, then NOTE OFF detaches all eight FM release tails, then all eight tracks start WAVETABLE-8 voices.
-
-The measured S1 window is legal only after observation proves simultaneously:
+The frozen workload reaches and retains simultaneously:
 
 ```text
 logical_tracks_available = 8
 fm_non_idle_slots         = 8
 bit8_non_idle_slots       = 8
 bit8_owned_tracks         = 8
+warmup                    = 256 frames
+measured                  = 4096 frames
+repetitions               = 3 identical
 ```
-
-Then:
-
-- warmup = 256 frames;
-- measured window = 4096 frames exactly;
-- all 4096 frames must remain 8+8;
-- three complete reset-to-run repetitions must produce identical occupancy/state/sample evidence.
 
 ### S2 - full callback pressure
 
-On the same 8+8 state, one 256-frame callback must begin with queue depth 32, consume the queue normally, render four audition voices and observe exactly 1024 audition `sine()` calls while retaining 8+8 engine occupancy. Three reset-to-run repetitions must be identical.
+From the same exact 8+8 state, a 256-frame callback begins with queue depth 32, consumes all 32 valid audition NOTE ON events, renders four audition voices and observes exactly 1024 audition `sine()` calls while retaining 8+8 engine occupancy. Three reset-to-run repetitions are identical.
 
-### Timing boundary
+Accepted benchmark run:
 
-Host timing is informational only. Target HAL exposes 24 MHz TIMER4, but current automated target closeout does not execute on physical hardware.
+```text
+run   40218677393 SUCCESS
+job   121245277129 SUCCESS
+```
 
-`target_runtime_timing_gate=deferred_without_execution_path`
+## Pinned target closeout
 
-`hardware_margin_claim=none`
+```text
+workflow checkpoint       bcf339b5aa49cf66e8f19917bbb2c48ebc974c56
+run                       40220923958 SUCCESS
+host                      121252114781 SUCCESS
+target                    121252114877 SUCCESS
+phase5 exit               121252369061 SUCCESS
+AC79 SDK                   d179b4484759423312073f5fbb232501aa491047
+production delta           0
+image                      79836 B
+normal RAM                 27792 B
+pool                      113000 B
+```
+
+Built target hashes are recorded in `docs/WP5_10_CLOSEOUT_EVIDENCE.md`.
+
+## Phase 5 exit boundary
+
+```text
+phase5_software_exit=pass
+physical_audio_stability=unverified
+physical_cpu_headroom=unverified
+physical_free_ram_margin=unverified
+target_runtime_timing_gate=deferred_without_execution_path
+hardware_margin_claim=none
+```
+
+Host timing is informational only. No physical FM-1 exists for the required physical timing/audio/free-RAM evidence.
 
 ## Exact next action
 
-1. require the WP5.10 contract-freeze workflow to pass on the frozen contract checkpoint;
-2. implement S1/S2 through generated test-only source wrappers/probes without production changes;
-3. add the dual-engine realtime audit;
-4. run deterministic repeats and inherited WP5.9/D056/D055/all-8BIT regressions;
-5. run the uninstrumented pinned target closeout and require exact image/RAM/pool evidence if production stayed frozen;
-6. only if a real accepted constraint appears, stop and freeze a bounded optimization sub-contract;
-7. otherwise record the Phase 5 software exit with physical performance debt explicit.
+Phase 5 is closed. Phase 6 - song/order/persistence - is the next planned phase, but no Phase 6 production implementation is authorized by this closeout.
+
+Before implementation:
+
+1. audit the existing tracker/pattern/runtime/persistence surfaces against the Phase 6 roadmap;
+2. define the first bounded Phase 6 work package and tracking issue;
+3. freeze its data-format/migration/corruption-recovery contract before production changes;
+4. preserve per-instrument engine identity and the common multi-engine tracker model;
+5. keep future virtual-analog/subtractive synthesis and drums/percussion representable rather than hard-coding an FM-only project format.

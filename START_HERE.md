@@ -1,20 +1,20 @@
 # FM1Tracker - Start Here
 
-Repository state is authoritative, but roadmap order is not the whole project memory. Read persistent product context before reducing the project to the active work package.
+Repository state is authoritative, but roadmap order is not the whole project memory. Read persistent product context before reducing the project to the next work package.
 
 Read in this order:
 
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/WP5_10_PRECONTRACT_AUDIT.md`
-4. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
-5. `docs/WP5_9_CLOSEOUT_EVIDENCE.md`
-6. `docs/CURRENT_DECISIONS.md`
-7. `docs/WORK_PACKAGES.md`
-8. `docs/EXECUTION_PROTOCOL.md`
-9. `docs/CURRENT_TEST_STATE.md`
-10. `docs/TEST_MATRIX.md`
-11. `docs/ROADMAP.md`
+3. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
+4. `docs/CURRENT_DECISIONS.md`
+5. `docs/WORK_PACKAGES.md`
+6. `docs/EXECUTION_PROTOCOL.md`
+7. `docs/CURRENT_TEST_STATE.md`
+8. `docs/TEST_MATRIX.md`
+9. `docs/ROADMAP.md`
+10. `docs/WP5_10_PRECONTRACT_AUDIT.md`
+11. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
 12. `THIRD_PARTY.md`
 
 ## Product context first
@@ -23,26 +23,30 @@ FM1Tracker is one engine-agnostic hardware tracker/sequencer. The product direct
 
 ## Current execution
 
-**WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit is ACTIVE.**
+**Phase 5 - mixed-engine routing + FM4 is COMPLETE at software level.**
+
+**WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit is COMPLETE.**
 
 ```text
-issue                         #53
-branch                        phase5/worst-case-benchmark
-precontract audit             COMPLETE
-benchmark contract            FROZEN
-production baseline           81d3464059270130747e26fcc950b7a2e1bb03e1
-WP5.9 closeout run            40210173573 SUCCESS
-image                         79836 B
-normal RAM                    27792 B
-pool                         113000 B
-hardware_margin_claim         none
+final Phase 5 issue             #53
+branch                          phase5/worst-case-benchmark
+production checkpoint           81d3464059270130747e26fcc950b7a2e1bb03e1
+benchmark checkpoint            6f47d832b2fc4d83cd2ad03943e919a183123ee2
+benchmark run                   40218677393 SUCCESS
+closeout workflow checkpoint    bcf339b5aa49cf66e8f19917bbb2c48ebc974c56
+closeout run                    40220923958 SUCCESS
+image                           79836 B
+normal RAM                      27792 B
+pool                           113000 B
+phase5_software_exit            pass
+hardware_margin_claim           none
 ```
 
-No production source change is authorized. Benchmark implementation is legal only after the contract-freeze gate is green.
+WP5.10 verification infrastructure did not change production firmware. `81d3464` remains the last target-validated production-code checkpoint.
 
-## Frozen WP5.10 workload
+## Accepted WP5.10 workload
 
-S1 must reach and retain exact mixed saturation:
+S1 reaches and retains exact mixed saturation:
 
 ```text
 8 logical tracks
@@ -55,14 +59,26 @@ S1 must reach and retain exact mixed saturation:
 
 S2 starts from the same 8+8 state and requires one 256-frame callback with queue depth 32 at entry and four audition voices, producing exactly 1024 audition `sine()` calls. It also repeats three times identically.
 
+The ordinary pinned target build remains exact WP5.9 footprint: 79,836 B image, 27,792 B normal RAM and 113,000 B pool.
+
 Host wall-clock data is informational only. Target TIMER4 runtime timing remains deferred until a reproducible execution-return path exists. Emulator timing is never a physical FM-1 margin claim.
+
+```text
+physical_audio_stability=unverified
+physical_cpu_headroom=unverified
+physical_free_ram_margin=unverified
+target_runtime_timing_gate=deferred_without_execution_path
+hardware_margin_claim=none
+```
 
 ## Exact next action
 
-1. get `tests/run_wp5_10_contract_freeze.sh` green in CI;
-2. implement S1/S2 with generated test-only wrappers/probes;
-3. add the final dual-engine realtime audit;
-4. run inherited WP5.9/D056/D055/all-8BIT regressions;
-5. run uninstrumented pinned-target resource closeout;
-6. open an optimization sub-contract only if accepted evidence proves it necessary;
-7. otherwise record Phase 5 software exit with physical validation debt explicit.
+Phase 6 - song/order/persistence - is the next planned phase. Do not start persistence production code from roadmap prose alone.
+
+First:
+
+1. audit the existing pattern, transport, engine-identity and storage surfaces;
+2. define the first bounded Phase 6 work package and tracking issue;
+3. freeze the project-format/versioning/migration/corruption-recovery contract before implementation;
+4. keep the format engine-agnostic so future virtual-analog/subtractive synthesis and drums/percussion remain representable;
+5. preserve eight logical tracks and deterministic bounded realtime behavior.
