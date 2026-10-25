@@ -98,6 +98,27 @@ all-8BIT WAV             WP5.0-identical
 
 The earlier run `40181832759` is deliberately not accepted as evidence because a historical D028 assertion failed inside a `| tee` pipeline and its exit status was masked. The strict gate was corrected before accepting the resolver slice.
 
+### Row-boundary FM patch snapshot slice
+
+```text
+head                     72ceb68d27e176ec42137af8ab826b2d7e1a4225
+production integration   d05e91ce505c8c014306bde9aaf31c48242f7645
+run                      40182540509 SUCCESS
+job                      121136449218 SUCCESS
+artifact                 wp5-8-row-snapshot-evidence / 12594144191
+artifact SHA-256         024ce2308961035d3caa2ead33792a98bc12e1074552b240beb66f070f0762f2
+current FM patch bank     224 B exact
+validity bank               8 B exact
+per-row patch cache         0 B
+store/lock traversal audio  0
+NOTE snapshot             bounded row-boundary compose
+TIE/EMPTY                 live patch update without reset
+RETRIG                    current row patch
+OFF/CUT                   row-resolved release patch
+FM p-lock mixed audio     deterministic; changes output
+all-8BIT WAV             WP5.0-identical
+```
+
 Frozen absolute package ceilings remain:
 
 ```text
@@ -110,8 +131,8 @@ D049-D055 synthesis/voice behavior remains frozen except for the bounded D056 ad
 
 ## Current exact action
 
-Integrate the accepted FM row publication at the bounded D055 row-event seam in `dinghy.c` without adding a per-track-per-row patch cache and without any `fmt_lock_*`/`fmt_store_*` traversal in audio. NOTE must snapshot the composed patch, TIE/EMPTY may update the live D055 patch without phase/envelope reset, RETRIG must reuse the current row patch, and OFF/CUT must apply row-resolved release controls before detach/release.
+Implement page-aware held-step FM editing through the existing generic lock editor. FM knob identity must come from the frozen seven-page D056 mapping, reference values must come from the resolved instrument's normalized base when a lock does not already exist, successful FM lock mutation/delete must refresh the common row snapshot plus the generalized engine-row publication for that one row, and 8BIT editor behavior must remain unchanged.
 
-Then add page-aware held-step FM editing through the existing generic lock editor, followed by target footprint and inherited D049-D055/8BIT regressions. Do not start WP5.9.
+Then add bounded mutable per-instrument FM base editing/API verification, target footprint and inherited D049-D055/8BIT regressions. Do not start WP5.9.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
