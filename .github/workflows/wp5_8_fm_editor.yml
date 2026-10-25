@@ -1,0 +1,37 @@
+name: WP5.8 D056 FM editor
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'firmware/src/dinghy.c'
+      - 'firmware/src/fmt_lock_editor.c'
+      - 'firmware/src/fmt_fm_linked_params.h'
+      - 'firmware/src/fmt_fm_linked_params.c'
+      - 'tests/test_fmt_fm_linked_editor.c'
+      - 'tests/test_fmt_fm_row_cache.c'
+      - 'tests/run_wp5_8_fm_editor_tests.sh'
+      - '.github/workflows/wp5_8_fm_editor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fm-editor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install inherited host dependency
+        run: python3 -m pip install pillow
+      - name: Verify D056 page-aware FM held-step editor
+        run: sh tests/run_wp5_8_fm_editor_tests.sh
+      - name: Upload FM editor evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-8-fm-editor-evidence
+          path: build/wp5_8_fm_editor
+          if-no-files-found: error
