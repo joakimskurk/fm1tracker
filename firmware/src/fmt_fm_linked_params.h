@@ -32,6 +32,13 @@ int fmt_fm_linked_params_set_base(uint32_t instrument,
                                   const FmtFmParamSet *base);
 const FmtFmParamSet *fmt_fm_linked_params_base(uint32_t instrument);
 
+/* Main-context store resolver. NOTE rows alone may change inherited instrument.
+ * Wrong-family IDs and raw values >255 are filtered, never truncated. Corrupt
+ * sparse-list structure publishes an empty fail-safe FM payload for FM rows. */
+void fmt_fm_linked_params_rebuild(void);
+int fmt_fm_linked_params_rebuild_track(uint32_t track);
+int fmt_fm_linked_params_refresh_track_row(uint32_t track, uint32_t row);
+
 /* Main-context publication. Input order may be arbitrary; successful publish
  * sorts ascending semantic ID, rejects duplicates/non-FM IDs, writes the
  * inactive low/high words, then flips exactly one byte of selector state. */
