@@ -21,7 +21,7 @@ The product direction includes, in the same tracker/project environment:
 - future virtual-analog / subtractive-style synthesis or an equivalent bounded synthesis family suited to the hardware;
 - drums / percussion.
 
-Future virtual-analog and drum implementations require their own CPU/RAM/parameter/license audit and frozen work-package contract before production code. Their exact DSP and allocation architecture is therefore intentionally not specified yet.
+Future virtual-analog and drum implementations require their own CPU/RAM/parameter/license audit and frozen work-package contract before production code. Their exact DSP and allocation architecture is intentionally not specified yet.
 
 ## Current status
 
@@ -38,8 +38,9 @@ Future virtual-analog and drum implementations require their own CPU/RAM/paramet
   - WP5.5 bounded feedback: COMPLETE
   - WP5.6 per-operator ADSR envelopes: COMPLETE
   - WP5.7 FM voice/router integration: COMPLETE
-  - WP5.8 FM parameter pages + p-lock mapping: IMPLEMENTED, CLOSEOUT ACTIVE
-  - WP5.9 mixed 8-BIT + FM4 validation: BLOCKED on WP5.8 closeout
+  - WP5.8 FM parameter pages + p-lock mapping: COMPLETE
+  - WP5.9 mixed 8-BIT + FM4 validation: NEXT
+  - WP5.10 worst-case mixed-engine benchmark + Phase 5 exit: PLANNED
 - live performance capture milestone: PLANNED after engine foundations
 - later engine-family expansion, including virtual-analog/subtractive and drums: PLANNED, contracts not yet frozen
 - Phase 6 song/order/persistence: PLANNED
@@ -47,34 +48,34 @@ Future virtual-analog and drum implementations require their own CPU/RAM/paramet
 - Phase 8 interoperability: PLANNED
 - Phase 9 optional extensions: DEFERRED
 
-## Architecture after D055/D056 implementation
+## Architecture after D056
 
 FM1Tracker is one engine-agnostic tracker/sequencer. Instruments own family + engine identity. D048 common routing is static/bounded. FM4 has eight family-local runtime voices using exact D043 ownership semantics. D056 extends the shared semantic parameter/p-lock path without introducing a parallel tracker model. The D046/WP5.0 all-8BIT configuration remains the exact regression baseline.
 
-WP5.7 target checkpoint:
+Accepted D056 target checkpoint:
 
 ```text
-image       77048 B
-normal RAM  20464 B
+image       79804 B
+normal RAM  27792 B
 pool       113000 B
 FM engine     788 B
 ```
+
+The target is 864 B below the frozen WP5.8 normal-RAM package ceiling. This is not a physical free-RAM claim, but it makes resource measurement a first-class constraint for WP5.9 and WP5.10.
 
 No active cross-track primary stealing is permitted.
 
 ## Phase 5 remaining work
 
-### WP5.8 - FM parameter pages + p-lock mapping
-
-Production implementation is complete through stable semantic IDs/pages, bounded mutable instrument bases, generalized row cache, store-backed row resolution, row-boundary patch snapshots and page-aware held-step editing. Final closeout is still active and must pass both host and pinned-target gates before this package is marked complete.
-
 ### WP5.9 - mixed 8-BIT + FM4 validation
 
-Simultaneous families and same-track family switches with exact all-8BIT regression equivalence.
+Validate the engines we already have under genuinely mixed use before worst-case benchmarking. Coverage must include simultaneous 8-BIT + FM4 tracks, same-track family switches, ownership/state cleanup, D056 p-lock behavior, deterministic repeat renders and exact all-8BIT equivalence. Audit and freeze the validation contract before implementation changes.
+
+WP5.9 is validation scope, not an engine-expansion package. It must not pull virtual-analog/subtractive or drum implementation forward.
 
 ### WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit
 
-Representative mixed workload, realtime audit, inherited regressions and exact target closeout.
+Representative worst-case mixed workload, realtime audit, inherited regressions and exact target closeout. Any resource conflict must become an explicit architecture decision; eight logical tracks may not be silently reduced.
 
 ## Mandatory core milestone - live performance capture + performance FX
 
@@ -112,6 +113,7 @@ Additional engines/features only after explicit CPU/RAM/parameter/license review
 - architecture decisions precede implementation;
 - one active package at a time;
 - physical claims require physical evidence;
-- roadmap order does not replace persistent product context.
+- roadmap order does not replace persistent product context;
+- substantive user decisions must be synchronized back into Git.
 
 `hardware_margin_claim=none` until physical hardware evidence exists.
