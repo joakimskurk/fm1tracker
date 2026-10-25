@@ -5,6 +5,10 @@
 #include "fmt_playback_params.h"
 #include "fmt_store.h"
 
+#define FMT_8BIT_LINKED_CONTEXT_INVALID 0u
+#define FMT_8BIT_LINKED_CONTEXT_8BIT    1u
+#define FMT_8BIT_LINKED_CONTEXT_OTHER   2u
+
 Fmt8BitParamSet fmt_8bit_instrument_base[FMT_INSTRUMENTS];
 /* D056: one generalized 8,704-byte physical allocation. The macro
  * fmt_8bit_row_param_cache aliases its first exact 2,048-byte legacy view. */
@@ -32,41 +36,45 @@ static uint8_t fmt_8bit_linked_row_context(const FmtSong *song,
     if (engine_out)
         *engine_out = FMT_8BIT_ENGINE_SAFE;
     if (!song || track >= FMT_TRACKS || target_row >= FMT_STEPS_PER_PATTERN)
-        return 0u;
+        return FMT_8BIT_LINKED_CONTEXT_INVALID;
 
     current = song->tracks[track].instrument;
     if (current >= FMT_INSTRUMENTS)
-        return 0u;
+        return FMT_8BIT_LINKED_CONTEXT_INVALID;
 
     for (row = 0u; row <= target_row; row++) {
         const FmtStep *step = fmt_store_step_const(FMT_PLAYBACK_PATTERN,
                                                    track,
                                                    row);
         if (!step)
-            return 0u;
+            return FMT_8BIT_LINKED_CONTEXT_INVALID;
         if (step->note <= FMT_NOTE_MAX) {
             if (step->instrument < FMT_INSTRUMENTS) {
                 current = step->instrument;
-            } else if (step->instrument != FMT_INSTRUMENT_INHERIT) {
-                if (row == target_row)
-                    return 0u;
+            } else if (step->instrument != FMT_INSTRUMENT_INHERIT &&
+                       row == target_row) {
+                if (current < FMT_INSTRUMENTS &&
+                    song->instruments[current].mode != FMT_MODE_8BIT)
+                    return FMT_8BIT_LINKED_CONTEXT_OTHER;
+                return FMT_8BIT_LINKED_CONTEXT_INVALID;
             }
         }
     }
 
     if (current >= FMT_INSTRUMENTS)
-        return 0u;
+        return FMT_8BIT_LINKED_CONTEXT_INVALID;
     {
         const FmtInstrumentHeader *header = &song->instruments[current];
-        if (header->mode != FMT_MODE_8BIT ||
-            !fmt_8bit_engine_supported(header->engine))
-            return 0u;
+        if (header->mode != FMT_MODE_8BIT)
+            return FMT_8BIT_LINKED_CONTEXT_OTHER;
+        if (!fmt_8bit_engine_supported(header->engine))
+            return FMT_8BIT_LINKED_CONTEXT_INVALID;
         if (instrument_out)
             *instrument_out = current;
         if (engine_out)
             *engine_out = header->engine;
     }
-    return 1u;
+    return FMT_8BIT_LINKED_CONTEXT_8BIT;
 }
 
 static uint32_t fmt_8bit_linked_resolve_row(const FmtSong *song,
@@ -159,10 +167,15 @@ int fmt_8bit_linked_params_rebuild_track(uint32_t track)
                 malformed_note = 1u;
         }
 
-        if (!malformed_note && current < FMT_INSTRUMENTS) {
+        if (current < FMT_INSTRUMENTS) {
             const FmtInstrumentHeader *header = &song->instruments[current];
-            if (header->mode == FMT_MODE_8BIT &&
-                fmt_8bit_engine_supported(header->engine)) {
+
+            /* D056 shares legacy.word with FM bank0-low. A row currently owned
+             * by another valid family must not be zeroed by an 8BIT rebuild. */
+            if (header->mode != FMT_MODE_8BIT)
+                continue;
+
+            if (!malformed_note && fmt_8bit_engine_supported(header->engine)) {
                 engine = header->engine;
                 word = fmt_8bit_linked_resolve_row(song,
                                                    track,
@@ -190,15 +203,19 @@ int fmt_8bit_linked_params_refresh_track_row(uint32_t track, uint32_t row)
     volatile uint32_t *slot = fmt_8bit_linked_slot(track, row);
     uint8_t instrument = FMT_INSTRUMENT_INHERIT;
     uint8_t engine = FMT_8BIT_ENGINE_SAFE;
+    uint8_t context;
 
     if (!song || !slot)
         return 0;
 
-    if (!fmt_8bit_linked_row_context(song,
-                                     track,
-                                     row,
-                                     &instrument,
-                                     &engine)) {
+    context = fmt_8bit_linked_row_context(song,
+                                          track,
+                                          row,
+                                          &instrument,
+                                          &engine);
+    if (context == FMT_8BIT_LINKED_CONTEXT_OTHER)
+        return 1;
+    if (context != FMT_8BIT_LINKED_CONTEXT_8BIT) {
         *slot = 0u;
         return 1;
     }
@@ -247,11 +264,11 @@ static int fmt_8bit_linked_editor_mapping(const FmtLockEditor *editor,
 
     if (!editor || !editor->active || knob >= FMT_8BIT_PAGE_SLOTS ||
         !song ||
-        !fmt_8bit_linked_row_context(song,
-                                     editor->track,
-                                     editor->step,
-                                     &instrument,
-                                     &engine))
+        fmt_8bit_linked_row_context(song,
+                                    editor->track,
+                                    editor->step,
+                                    &instrument,
+                                    &engine) != FMT_8BIT_LINKED_CONTEXT_8BIT)
         return 0;
 
     id = fmt_8bit_page_param(engine, (uint8_t)knob);
