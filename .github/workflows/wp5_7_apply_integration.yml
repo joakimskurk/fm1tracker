@@ -1,0 +1,58 @@
+name: WP5.7 one-time D048 FM integration apply
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-voice-integration
+    paths:
+      - tests/apply_wp5_7_dinghy_integration.py
+      - .github/workflows/wp5_7_apply_integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-prove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install host UI dependency
+        run: python3 -m pip install pillow
+      - name: Apply exact D055 dinghy transform
+        run: python3 tests/apply_wp5_7_dinghy_integration.py
+      - name: Prove transform boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff --name-only)" = 'firmware/src/dinghy.c'
+          git diff --check
+          grep -F '#include "fmt_fm_engine.c"' firmware/src/dinghy.c
+          grep -F 'FmtFmEngine fmt_fm_engine_runtime;' firmware/src/dinghy.c
+          grep -F 'fmt_fm_engine_note(&fmt_fm_engine_runtime,' firmware/src/dinghy.c
+          grep -F 'fmt_fm_engine_render(&fmt_fm_engine_runtime)' firmware/src/dinghy.c
+          grep -F 'fmt_fm_engine_quiet(&fmt_fm_engine_runtime)' firmware/src/dinghy.c
+      - name: Prove default all-8BIT app remains exact
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh tests/run_host.sh | tee build/wp5_7_apply_host.log
+          test "$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')" = '17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076'
+          python3 - <<'PY'
+          import wave
+          with wave.open('build/host/fm1tracker.wav','rb') as f:
+              assert f.getnframes() == 286464
+          print('WP5_7_APPLY_ALL8BIT_OK=1 wav=wp5_0_identical frames=286464')
+          PY
+      - name: Commit verified dinghy integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'joakimskurk'
+          git config user.email 'joakimhf@gmail.com'
+          git add firmware/src/dinghy.c
+          git commit -m 'feat(wp5.7): connect FM engine to D048 runtime'
+          git push origin HEAD:phase5/fm4-voice-integration
