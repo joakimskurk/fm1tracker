@@ -9,6 +9,9 @@ cc -std=c99 -O2 -Wall -Wextra -Werror \
     tests/test_fmt_fm_row_cache.c \
     firmware/src/fmt_fm_linked_params.c \
     firmware/src/fmt_fm_params.c \
+    firmware/src/fmt_store.c \
+    firmware/src/fmt_lock_store.c \
+    firmware/src/fmt_param_registry.c \
     -o build/host/test_fmt_fm_row_cache
 
 build/host/test_fmt_fm_row_cache | tee build/wp5_8_row_cache/row_cache.log
