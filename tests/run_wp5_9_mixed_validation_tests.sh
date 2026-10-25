@@ -4,15 +4,30 @@ set -eu
 cd "$(dirname "$0")/.."
 
 BASE=849c8b27d8c1afa09f9c093b695985c64e0c6013
+FIX=bcab28cb8e7f7d774114008eeba54c18837b9bb7
 OUT=build/wp5_9_mixed
 SRC="$OUT/src"
 mkdir -p "$OUT" "$SRC"
 rm -f "$OUT"/*.wav "$OUT"/*.log
 
-# WP5.9 is still validation-only. A failing fixture must not be hidden by a
-# production edit.
-git diff --exit-code "$BASE" -- firmware/src firmware/gen tools
-printf '%s\n' 'WP5_9_PRODUCTION_FREEZE_OK=1 production_delta=0 base=d056' > "$OUT/source.txt"
+# Defect 001 amended the original validation-only source freeze. Relative to
+# accepted D056 exactly dinghy.c may differ, and the current production tree
+# must remain byte-for-byte the accepted narrow fix checkpoint.
+actual="$(git diff --name-only "$BASE" "$FIX" -- firmware/src firmware/gen tools | sort)"
+test "$actual" = 'firmware/src/dinghy.c'
+git diff --exit-code "$FIX" -- firmware/src firmware/gen tools
+python3 - <<'PY' > build/wp5_9_mixed/source_static.txt
+from pathlib import Path
+s = Path('firmware/src/dinghy.c').read_text()
+assert s.count('WP5.9 Defect 001: NOTE_DELAY keeps the old route alive') == 1
+assert s.count('uint8_t fm_snapshot_valid =') == 1
+assert 'if (fm_snapshot_valid ||' in s
+assert '!row_event->pending_valid ||' in s
+assert 'FMT_ENGINE_FAMILY_FM)' in s
+print('WP5_9_DEFECT_001_SOURCE_OK=1 production_delta=dinghy_only delayed_patch_validity=preserved state_growth=0')
+PY
+cat "$OUT/source_static.txt"
+printf '%s\n' 'WP5_9_PRODUCTION_FIX_FREEZE_OK=1 base=d056 production_delta=dinghy_only fix=bcab28cb8e7f7d774114008eeba54c18837b9bb7' > "$OUT/source.txt"
 
 # Build a WP5.9-only host platform copy. The target tree stays untouched and
 # historical tests/host.c remains byte-for-byte unchanged. The generated host
@@ -78,6 +93,8 @@ prefix = r'''    fmt_playback_seed_proof_pattern();
             wp5_9_song->instruments[0].engine = FMT_FM_ENGINE_FM4;
             wp5_9_song->instruments[1].mode = FMT_MODE_8BIT;
             wp5_9_song->instruments[1].engine = FMT_8BIT_ENGINE_PULSE;
+            wp5_9_song->instruments[2].mode = FMT_MODE_16BIT;
+            wp5_9_song->instruments[2].engine = 99u;
 '''
 suffix = r'''        }
     }
@@ -128,8 +145,8 @@ def switch_body(with_retrig):
 write('switch_retrig', switch_body(True))
 write('switch_plain', switch_body(False))
 
-# Real delayed cross-family NOTE followed by a real FM NOTE CUT. Track 1 is an
-# unrelated active 8-BIT owner during the whole sequence.
+# Defect 001 successful direction: FM -> delayed 8-BIT, followed by a real FM
+# NOTE CUT. Track 1 remains an unrelated active 8-BIT owner throughout.
 d = ''
 d += step(0, 0, '60u', '0u')
 d += step(0, 1, '64u', '1u', 'FMT_TRACKER_EFFECT_NOTE_DELAY', '3u')
@@ -137,6 +154,23 @@ d += step(0, 2, '67u', '0u', 'FMT_TRACKER_EFFECT_NOTE_CUT', '3u')
 d += step(1, 0, '48u', '1u')
 d += fm_valid
 write('delayed_cut', d)
+
+# Reverse successful direction required by F05: 8-BIT -> delayed FM4.
+r = ''
+r += step(0, 0, '60u', '1u')
+r += step(0, 1, '64u', '0u', 'FMT_TRACKER_EFFECT_NOTE_DELAY', '3u')
+r += step(1, 0, '48u', '1u')
+r += lock(0, 1, 'FMT_PARAM_FM_INDEX', '255u')
+write('delayed_reverse', r)
+
+# Fail-to-silence timing required by F05: old FM survives until delay tick, then
+# delayed NOTE targets an FM-family instrument with an unsupported engine.
+bad = ''
+bad += step(0, 0, '60u', '0u')
+bad += step(0, 1, '64u', '2u', 'FMT_TRACKER_EFFECT_NOTE_DELAY', '3u')
+bad += step(1, 0, '48u', '1u')
+bad += fm_valid
+write('delayed_bad', bad)
 PY
 
 compile_fixture() {
@@ -147,7 +181,7 @@ compile_fixture() {
       -o "$OUT/$name" "$SRC/dinghy_$name.c"
 }
 
-for fixture in fm_base fm_valid fm_valid_wrong8 bit_base bit_valid bit_valid_wrongfm combined switch_retrig switch_plain delayed_cut; do
+for fixture in fm_base fm_valid fm_valid_wrong8 bit_base bit_valid bit_valid_wrongfm combined switch_retrig switch_plain delayed_cut delayed_reverse delayed_bad; do
     compile_fixture "$fixture"
 done
 
@@ -178,6 +212,12 @@ cat > "$OUT/delayed_cut.script" <<'EOF'
 340 probe
 500 end
 EOF
+cat > "$OUT/delayed_switch.script" <<'EOF'
+10 probe
+140 probe
+200 probe
+300 end
+EOF
 
 run_quiet() {
     exe="$1"
@@ -201,12 +241,18 @@ run_quiet bit_valid_wrongfm bit_valid_wrongfm
 "$OUT/switch_plain" "$OUT/switch_plain" "$OUT/switch.script" > "$OUT/switch_plain.log" 2>&1
 "$OUT/delayed_cut" "$OUT/delayed_cut_a" "$OUT/delayed_cut.script" > "$OUT/delayed_cut_a.log" 2>&1
 "$OUT/delayed_cut" "$OUT/delayed_cut_b" "$OUT/delayed_cut.script" > "$OUT/delayed_cut_b.log" 2>&1
+"$OUT/delayed_reverse" "$OUT/delayed_reverse_a" "$OUT/delayed_switch.script" > "$OUT/delayed_reverse_a.log" 2>&1
+"$OUT/delayed_reverse" "$OUT/delayed_reverse_b" "$OUT/delayed_switch.script" > "$OUT/delayed_reverse_b.log" 2>&1
+"$OUT/delayed_bad" "$OUT/delayed_bad_a" "$OUT/delayed_switch.script" > "$OUT/delayed_bad_a.log" 2>&1
+"$OUT/delayed_bad" "$OUT/delayed_bad_b" "$OUT/delayed_switch.script" > "$OUT/delayed_bad_b.log" 2>&1
 
 cmp -s "$OUT/fm_valid_a.wav" "$OUT/fm_valid_b.wav"
 cmp -s "$OUT/bit_valid_a.wav" "$OUT/bit_valid_b.wav"
 cmp -s "$OUT/combined_a.wav" "$OUT/combined_b.wav"
 cmp -s "$OUT/switch_a.wav" "$OUT/switch_b.wav"
 cmp -s "$OUT/delayed_cut_a.wav" "$OUT/delayed_cut_b.wav"
+cmp -s "$OUT/delayed_reverse_a.wav" "$OUT/delayed_reverse_b.wav"
+cmp -s "$OUT/delayed_bad_a.wav" "$OUT/delayed_bad_b.wav"
 
 python3 - <<'PY' > build/wp5_9_mixed/analysis.txt
 from pathlib import Path
@@ -308,8 +354,8 @@ assert wav('switch_a')[1] != wav('switch_plain')[1], 'integrated FM retrig did n
 print('WP5_9_REAL_SWITCH_OK=1 sequence=fm_to_8bit_to_fm tie=route_stable empty=route_stable off=route_clear unrelated_track=stable dual_owner=0')
 print('WP5_9_RETRIG_INTEGRATED_OK=1 family=fm route=stable audio_changed=1 deterministic=1')
 
-# Delayed real cross-family NOTE must leave FM active before tick 3, then commit
-# 8BIT. Row 2 immediately returns to FM and NOTE CUT clears it after tick 3.
+# Defect 001: FM -> delayed 8BIT keeps FM until tick 3, then commits 8BIT.
+# Row 2 immediately returns to FM and NOTE CUT clears it after tick 3.
 dc = mixed_rows('delayed_cut_a.log')
 owner(dc[10], 0, FM, False, True)
 owner(dc[140], 0, FM, False, True)
@@ -318,9 +364,28 @@ owner(dc[270], 0, FM, False, True)
 owner(dc[340], 0, 255, False, False)
 for t in (10, 140, 200, 270, 340):
     owner(dc[t], 1, BIT, True, False)
-print('WP5_9_DELAY_CUT_OK=1 delayed_note=normal_cross_family_route old_family_until_tick=1 cut=route_clear unrelated_track=stable')
+print('WP5_9_DELAY_CUT_OK=1 direction=fm_to_8bit old_family_until_tick=1 cut=route_clear unrelated_track=stable')
 
-print('WP5_9_MIXED_HOST_OK=1 simultaneous=real switch=real events=tie_empty_retrig_off_delay_cut plock_family_safe=1 production_delta=0 deterministic=1')
+# Reverse direction: 8BIT stays active until tick 3, then normal route commits FM.
+dr = mixed_rows('delayed_reverse_a.log')
+owner(dr[10], 0, BIT, True, False)
+owner(dr[140], 0, BIT, True, False)
+owner(dr[200], 0, FM, False, True)
+for t in (10, 140, 200):
+    owner(dr[t], 1, BIT, True, False)
+print('WP5_9_DELAY_REVERSE_OK=1 direction=8bit_to_fm old_family_until_tick=1 new_family_after_tick=1 unrelated_track=stable')
+
+# Unsupported delayed FM replacement: old FM stays alive until tick 3, then
+# normal note routing fails toward NONE/silence at the scheduled tick.
+db = mixed_rows('delayed_bad_a.log')
+owner(db[10], 0, FM, False, True)
+owner(db[140], 0, FM, False, True)
+owner(db[200], 0, NONE, False, False)
+for t in (10, 140, 200):
+    owner(db[t], 1, BIT, True, False)
+print('WP5_9_DELAY_UNSUPPORTED_OK=1 old_family_until_tick=1 unsupported_at_tick=route_none unrelated_track=stable')
+
+print('WP5_9_MIXED_HOST_OK=1 simultaneous=real switch=real events=tie_empty_retrig_off_delay_cut delayed_bidirectional=1 delayed_unsupported=1 plock_family_safe=1 production_delta=dinghy_fix deterministic=1')
 PY
 
 cat "$OUT/analysis.txt"
@@ -328,13 +393,16 @@ grep -F 'WP5_9_PLOCK_FAMILY_SAFE_OK=1 fm_lock=audible bit8_lock=audible wrong8_o
 grep -F 'WP5_9_SIMULTANEOUS_OWNERSHIP_OK=1 track0=fm track1=8bit dual_owner=0 active_cross_track_steals=0' "$OUT/analysis.txt"
 grep -F 'WP5_9_REAL_SWITCH_OK=1 sequence=fm_to_8bit_to_fm tie=route_stable empty=route_stable off=route_clear unrelated_track=stable dual_owner=0' "$OUT/analysis.txt"
 grep -F 'WP5_9_RETRIG_INTEGRATED_OK=1 family=fm route=stable audio_changed=1 deterministic=1' "$OUT/analysis.txt"
-grep -F 'WP5_9_DELAY_CUT_OK=1 delayed_note=normal_cross_family_route old_family_until_tick=1 cut=route_clear unrelated_track=stable' "$OUT/analysis.txt"
-grep -F 'WP5_9_MIXED_HOST_OK=1 simultaneous=real switch=real events=tie_empty_retrig_off_delay_cut plock_family_safe=1 production_delta=0 deterministic=1' "$OUT/analysis.txt"
+grep -F 'WP5_9_DELAY_CUT_OK=1 direction=fm_to_8bit old_family_until_tick=1 cut=route_clear unrelated_track=stable' "$OUT/analysis.txt"
+grep -F 'WP5_9_DELAY_REVERSE_OK=1 direction=8bit_to_fm old_family_until_tick=1 new_family_after_tick=1 unrelated_track=stable' "$OUT/analysis.txt"
+grep -F 'WP5_9_DELAY_UNSUPPORTED_OK=1 old_family_until_tick=1 unsupported_at_tick=route_none unrelated_track=stable' "$OUT/analysis.txt"
+grep -F 'WP5_9_MIXED_HOST_OK=1 simultaneous=real switch=real events=tie_empty_retrig_off_delay_cut delayed_bidirectional=1 delayed_unsupported=1 plock_family_safe=1 production_delta=dinghy_fix deterministic=1' "$OUT/analysis.txt"
 
-# Re-prove inherited D056 after the new WP5.9 host-only fixtures.
+# Re-prove inherited D056 behavior on the amended production seam. D049-D055,
+# D056 parameter/cache/editor behavior and exact all-8BIT WAV remain mandatory.
 sh tests/run_wp5_8_closeout_host.sh > "$OUT/inherited_d056.log" 2>&1
 cat "$OUT/inherited_d056.log"
 grep -F 'WP5_8_CLOSEOUT_HOST_OK=1 decision=D056 ids=27 pages=7 locks=4 cache=8704 base_bank=432 snapshot=232 editor=page_aware base_api=bounded d055=exact d054_d049=exact all8bit=wp5_0_identical realtime=pass hardware_margin_claim=none' "$OUT/inherited_d056.log"
 
-printf '%s\n' 'WP5_9_HOST_GATE_OK=1 production_delta=0 simultaneous=real saturated_sum=exact switch=real events=covered plock_family_safe=exact d056=exact all8bit=wp5_0_identical hardware_margin_claim=none' > "$OUT/summary.txt"
+printf '%s\n' 'WP5_9_HOST_GATE_OK=1 production_delta=dinghy_fix simultaneous=real saturated_sum=exact switch=real events=covered delayed_bidirectional=1 delayed_unsupported=1 plock_family_safe=exact d056=exact all8bit=wp5_0_identical hardware_margin_claim=none' > "$OUT/summary.txt"
 cat "$OUT/summary.txt"
