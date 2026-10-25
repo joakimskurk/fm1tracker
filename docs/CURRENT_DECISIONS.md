@@ -2,7 +2,7 @@
 
 Date: 2026-10-25
 
-`DECISIONS.md` remains the append-only historical decision log through D046. D047-D054 are accepted Phase 5 decisions.
+`DECISIONS.md` remains the append-only historical decision log through D046. D047-D055 are accepted/current Phase 5 decisions.
 
 ## D047 - mixed-engine instrument architecture
 
@@ -45,52 +45,47 @@ Status: **ACCEPTED, IMPLEMENTED, VERIFIED**
 Normative: `WP5_5_FM_FEEDBACK_CONTRACT.md`  
 Evidence: `WP5_5_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_5_VERIFICATION.md`
 
-D053 freezes one OP4 self-feedback edge, one-sample delay, 2 B history state, distinct FEEDBACK byte and bounded integer arithmetic. Final closeout run `40165352623` passed host and target.
-
 ## D054 - four independent FM4 ADSR envelopes
 
-Status: **ACCEPTED, IMPLEMENTED, VERIFIED AT TECHNICAL CHECKPOINT**  
+Status: **ACCEPTED, IMPLEMENTED, VERIFIED**  
 Normative: `WP5_6_FM_ENVELOPE_CONTRACT.md`  
-Audit: `WP5_6_PRECONTRACT_AUDIT.md`  
 Evidence: `WP5_6_PREIMPLEMENTATION_EVIDENCE.md`, `WP5_6_VERIFICATION.md`
 
-Frozen compatibility:
+Final closeout run `40168286355`, host `121093715194`, target `121093715000`.
 
-- four independent per-operator ADSR envelopes;
-- envelope scales each D052 Q15 LEVEL before D049 render;
-- exactly 20 B persistent envelope state per future FM voice;
-- exactly 16 B control model per FM instrument;
-- Q15.16 level state with full scale `0x7fff0000`;
-- stable OFF/ATTACK/DECAY/SUSTAIN/RELEASE IDs 0..4;
-- hard retrigger from zero;
-- release from current level;
-- true instant A/D/R when time control is 0;
-- controls 1..255 use one exact immutable 1,024 B time-step table;
-- SUSTAIN uses the D052 LEVEL mapping;
-- per-sample bounded update with no heap, runtime division/modulo, 64-bit integer or floating point;
-- D050 algorithm changes do not reset envelope state;
-- D049-D053 and `dinghy.c` unchanged;
-- production source remains isolated until WP5.7.
+## D055 - FM4 voice allocation and D048 integration
 
-Accepted source-absent gate: run `40167537148`, job `121091550742`.
+Status: **FROZEN BEFORE PRODUCTION INTEGRATION - SOURCE-ABSENT GATE PENDING**  
+Normative: `WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`  
+Audit: `WP5_7_PRECONTRACT_AUDIT.md`
 
-Canonical implementation verification: run `40167933064`, host `121092688126`, target `121092688295`.
+D055 freezes:
 
-Measured PI32v2 envelope object: 1,680 B text+rodata, including exactly 1,024 B immutable table. Object SHA `22fa7937d7776fea37c8e758ca83ee0a3f5d6c506ebd4661a8290a4516e048d1`.
+- eight family-local FM slots;
+- direct D043 allocator reuse;
+- no active cross-track primary stealing;
+- exact 92 B FM voice and 788 B FM engine targets;
+- immutable 28 B WP5.7 bridge patch in ROM;
+- no mutable FM instrument bank/page cache until WP5.8;
+- hard NOTE retrigger of D049/D053/D054;
+- detached OFF/CUT release tails;
+- one backward-compatible D050 OP4 composition seam;
+- D048 cross-family silence/clear/attempt/commit ordering;
+- +1024 B normal-RAM and +8192 B image ceilings for WP5.7;
+- exact default all-8BIT regression requirement.
 
-Formal package closeout still requires the same verification on the documentation closeout head.
+No production integration change is allowed until the D055 source-absent gate is green.
 
 ## Current precedence
 
-- D047 governs mixed-engine architecture.
-- D048 governs common family routing/ownership.
-- D049 governs one FM operator.
-- D050 governs four-operator connection/evaluation.
-- D051 governs base-pitch to operator-ratio mapping.
-- D052 governs operator LEVEL and global INDEX mapping.
-- D053 governs bounded one-sample OP4 feedback.
-- D054 governs isolated four-operator ADSR envelope semantics.
-
-D055 does not exist yet. WP5.7 / #50 must freeze it before FM voice/router integration changes.
+D047 -> architecture.  
+D048 -> family route.  
+D049 -> one FM operator.  
+D050 -> topology.  
+D051 -> ratios/pitch.  
+D052 -> LEVEL/INDEX.  
+D053 -> OP4 feedback.  
+D054 -> four envelopes.  
+D055 -> FM voice ownership/allocator/render composition and D048 integration.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.

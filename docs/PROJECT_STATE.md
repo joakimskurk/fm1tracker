@@ -8,16 +8,13 @@ Read `START_HERE.md` first.
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.5 complete; WP5.6 technical verification COMPLETE; closeout-head verification pending - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.6 complete; WP5.7 D055 contract freeze active - 2026-10-25**
 
-Current active package: **WP5.6 - bounded FM4 envelope strategy closeout**  
-Active issue: **#49**  
-Active branch: `phase5/fm4-envelope`  
-Next package after closeout: **WP5.7 - FM4 voice allocation and D048 router integration**  
-Next issue: **#50**  
-Expected next branch: `phase5/fm4-voice-integration`
+Current active package: **WP5.7 - FM4 voice allocation and D048 router integration**  
+Active issue: **#50**  
+Active branch: `phase5/fm4-voice-integration`
 
-Do not activate WP5.7 until the WP5.6 documentation closeout head has passed the same host/target verification and #49 is closed.
+Do not begin production FM voice/router integration until the D055 source-absent gate is green and durable.
 
 ## Completed Phase 5 baseline
 
@@ -27,79 +24,67 @@ Do not activate WP5.7 until the WP5.6 documentation closeout head has passed the
 - WP5.3 / D051 integer ratio/pitch mapping - COMPLETE.
 - WP5.4 / D052 operator level/modulation-index mapping - COMPLETE.
 - WP5.5 / D053 bounded OP4 feedback - COMPLETE.
-- WP5.6 / D054 four independent FM4 ADSR envelopes - TECHNICALLY COMPLETE, closeout-head rerun pending.
+- WP5.6 / D054 four independent FM4 ADSR envelopes - COMPLETE.
 
-## D054 canonical evidence
+WP5.6 final closeout:
 
-Normative contract: `docs/WP5_6_FM_ENVELOPE_CONTRACT.md`.  
-Preimplementation evidence: `docs/WP5_6_PREIMPLEMENTATION_EVIDENCE.md`.  
-Technical verification: `docs/WP5_6_VERIFICATION.md`.
+- head `886cb496f4e73a91c4ded16bf9e722b770a040f6`;
+- run `40168286355`;
+- host `121093715194` SUCCESS;
+- target `121093715000` SUCCESS;
+- full running application remains exact WP5.0.
 
-Source-absent gate:
+## WP5.7 D055 current contract candidate
 
-- head `151401f164a17c3459f965971f2855bb05831c4b`;
-- run `40167537148`;
-- job `121091550742` SUCCESS;
-- artifact ID `12588534519`, SHA `eaea6ae76ee55779f45b4e2692c226e0790e0ebeb22326a9e722359fe76eec36`.
+Normative contract: `docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md`.  
+Audit: `docs/WP5_7_PRECONTRACT_AUDIT.md`.
 
-Implementation verification:
-
-- head `401e666d21fa8290c7c622603e06e97b166c6b3e`;
-- run `40167933064`;
-- host `121092688126` SUCCESS;
-- target `121092688295` SUCCESS;
-- host artifact ID `12588901443`, SHA `4452eec3d50127a392dad79246b54cf93883837f9a02b2af64848d129c76a202`;
-- target artifact ID `12588804647`, SHA `c8eed7e762c3d58da18f0a3b5fbad28878b6da2e70181d22f2376ea7c3686f20`.
-
-Measured D054 cost:
+Frozen candidate architecture:
 
 ```text
-FmtFmEnvelopeState                 20 B per future FM voice
-FmtFmEnvelopeControls              16 B per FM instrument
-immutable time-step table        1024 B
-fmt_fm_envelope.o text+rodata    1680 B
-object ceiling                   2048 B
-object margin                     368 B
-object SHA 22fa7937d7776fea37c8e758ca83ee0a3f5d6c506ebd4661a8290a4516e048d1
+FM slots                     8
+FmtFmVoice                  92 B
+FmtVoiceAllocator           52 B
+FmtFmEngine                788 B
+immutable bridge patch      28 B ROM
+mutable FM instrument bank   0 B in WP5.7
 ```
 
-D050 + D053 + D054 synthesis state before allocator metadata is 38 B per future FM voice.
+Allocator policy is the existing D043 policy:
 
-## Frozen D054 compatibility
+- reuse own primary;
+- otherwise lowest idle;
+- otherwise oldest detached release tail;
+- never steal another track's active primary.
 
-- four independent per-operator ADSR envelopes;
-- 16 stable A/D/S/R control bytes total;
-- Q15.16 envelope state, full scale `0x7fff0000`;
-- envelope scales D052 Q15 LEVEL before D049 render;
-- per-sample bounded update;
-- hard retrigger from zero;
-- release from current level;
-- control 0 gives true instant A/D/R transitions;
-- A/D/R controls 1..255 use the exact immutable 1,024 B time-step table;
-- SUSTAIN uses the exact D052 LEVEL mapping;
-- D050 algorithm changes do not reset envelope state;
-- D049-D053 and `dinghy.c` remain unchanged;
-- production source is isolated from the running application.
+The bridge patch is only for WP5.7 integration. WP5.8 owns mutable FM parameter pages/p-lock storage.
 
-## Full target identity after D054
+D055 permits one narrow backward-compatible D050 composition seam so D053 can render OP4 before D050 renders the remaining topology. Existing D050 output must remain exact.
+
+## D055 resource ceilings
 
 ```text
-image       72792 B
-normal RAM  19676 B
-pool RAM   113000 B
-identity   FM-1_987
-BIN SHA    a2f0c2a1ce924e77f8b6818721ca30bec7dd55344564b87eac7fd784a91db125
-FWSC SHA   cab0d447fd6ef0c76e34e9b591ce6120517498dd0d10902d4300ee1594e8f073
+parent image          72792 B
+parent normal RAM     19676 B
+parent pool          113000 B
+
+FM engine target        788 B
+RAM increment max      1024 B
+total RAM max         20700 B
+image increment max    8192 B
+total image max       80984 B
+pool increment            0 B
+pool total           113000 B
 ```
 
 ## Current exact action
 
-1. commit the WP5.6 closeout documentation;
-2. require `.github/workflows/wp5_6_fm_envelope_verify.yml` to pass again on that exact closeout head;
-3. close #49 only after both host and target jobs are green;
-4. create `phase5/fm4-voice-integration` from the accepted closeout head;
-5. activate #50 and begin D055 voice/allocator/router audit contract-first.
+1. freeze D055 plus source-absent reference tests;
+2. prove production source is still exactly the WP5.6 closeout;
+3. run inherited D054/D053/.../WP5.0 host regressions;
+4. record durable preimplementation evidence;
+5. only then implement the FM engine, D050 composition seam and D048 FM dispatch.
 
-No WP5.7 integration change is allowed before D055 is frozen.
+No WP5.8 parameter-page/p-lock work is allowed in WP5.7.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

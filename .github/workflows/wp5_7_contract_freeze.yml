@@ -1,0 +1,47 @@
+name: WP5.7 D055 FM voice integration contract freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase5/fm4-voice-integration
+    paths:
+      - docs/WP5_7_PRECONTRACT_AUDIT.md
+      - docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md
+      - tests/wp5_7_reference.py
+      - tests/run_wp5_7_contract_freeze.sh
+      - .github/workflows/wp5_7_contract_freeze.yml
+
+permissions:
+  contents: read
+
+jobs:
+  contract-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install inherited host UI dependency
+        run: python3 -m pip install pillow
+
+      - name: Verify D055 source-absent FM voice integration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/wp5_7_contract
+          sh tests/run_wp5_7_contract_freeze.sh 2>&1 | tee build/wp5_7_contract/ci.log
+
+      - name: Upload D055 contract evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp5-7-d055-contract-freeze
+          path: |
+            docs/WP5_7_PRECONTRACT_AUDIT.md
+            docs/WP5_7_FM_VOICE_INTEGRATION_CONTRACT.md
+            tests/wp5_7_reference.py
+            build/wp5_7_contract/
+          if-no-files-found: warn
