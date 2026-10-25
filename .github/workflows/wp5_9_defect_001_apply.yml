@@ -1,0 +1,41 @@
+name: WP5.9 apply delayed cross-family fix
+
+on:
+  push:
+    branches:
+      - phase5/mixed-validation
+    paths:
+      - 'tests/wp5_9_apply_defect_001.py'
+      - '.github/workflows/wp5_9_defect_001_apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout FM1Tracker
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply exact authorized source change
+        run: python3 tests/wp5_9_apply_defect_001.py
+      - name: Verify source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          test "$changed" = 'firmware/src/dinghy.c'
+          git diff -- firmware/src/dinghy.c
+      - name: Commit authorized fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'FM1Tracker CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add firmware/src/dinghy.c
+          git commit -m 'fix(wp5.9): preserve FM patch until delayed family switch'
+          git push origin HEAD:phase5/mixed-validation
