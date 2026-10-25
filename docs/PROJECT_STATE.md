@@ -78,6 +78,26 @@ preemption model         deterministic inactive-write then selector flip
 all-8BIT WAV             WP5.0-identical
 ```
 
+### Store-backed FM resolver slice
+
+```text
+head                     e466bcfde685a61f9c35721a2e10c1be62cad795
+run                      40182000455 SUCCESS
+job                      121134811500 SUCCESS
+artifact                 wp5-8-store-resolver-evidence / 12594586077
+artifact SHA-256         356a92107083fb906e7dd4e9d84144a031ea2de7b60f340477e2aa6235f3d10d
+NOTE instrument inherit  exact
+max locks per step         4 exact; fifth STEP_FULL
+uint16 FM value filter   >255 ignored without truncation
+wrong-family IDs         preserved in D028, ignored by FM payload
+malformed sparse state   empty fail-safe publication
+shared bank0/8BIT word   protected across family-specific refresh
+D028 regression          exact and fail-closed
+all-8BIT WAV             WP5.0-identical
+```
+
+The earlier run `40181832759` is deliberately not accepted as evidence because a historical D028 assertion failed inside a `| tee` pipeline and its exit status was masked. The strict gate was corrected before accepting the resolver slice.
+
 Frozen absolute package ceilings remain:
 
 ```text
@@ -90,8 +110,8 @@ D049-D055 synthesis/voice behavior remains frozen except for the bounded D056 ad
 
 ## Current exact action
 
-Implement the store-backed FM row resolver in `fmt_fm_linked_params.*` using the existing D028 sparse lock store. It must reconstruct NOTE-only instrument inheritance, publish only FM-family rows, preserve the four-lock step limit, reject malformed/duplicate state fail-safe, ignore wrong-family IDs, reject raw stored values greater than 255 without truncation, and publish sorted FM overrides through the accepted double-buffer cache.
+Integrate the accepted FM row publication at the bounded D055 row-event seam in `dinghy.c` without adding a per-track-per-row patch cache and without any `fmt_lock_*`/`fmt_store_*` traversal in audio. NOTE must snapshot the composed patch, TIE/EMPTY may update the live D055 patch without phase/envelope reset, RETRIG must reuse the current row patch, and OFF/CUT must apply row-resolved release controls before detach/release.
 
-Then integrate bounded base/editor refresh and D055 row-boundary patch composition. Do not start WP5.9.
+Then add page-aware held-step FM editing through the existing generic lock editor, followed by target footprint and inherited D049-D055/8BIT regressions. Do not start WP5.9.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.
