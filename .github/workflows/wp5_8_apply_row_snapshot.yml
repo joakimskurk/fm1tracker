@@ -1,0 +1,36 @@
+name: WP5.8 apply row snapshot
+
+on:
+  push:
+    branches:
+      - phase5/fm4-parameters
+    paths:
+      - 'tests/wp5_8_apply_dinghy_row_snapshot.py'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply guarded D056 row-snapshot patch
+        run: python3 tests/wp5_8_apply_dinghy_row_snapshot.py
+      - name: Check patch shape
+        run: git diff --check -- firmware/src/dinghy.c
+      - name: Prove default all-8BIT stream before commit
+        run: |
+          python3 -m pip install pillow
+          sh tests/run_host.sh
+          test "$(sha256sum build/host/fm1tracker.wav | awk '{print $1}')" = "17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505c27c86a1076"
+      - name: Commit guarded production patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add firmware/src/dinghy.c
+          git diff --cached --quiet && exit 0
+          git commit -m "feat(wp5.8): integrate FM row patch snapshots"
+          git push origin HEAD:phase5/fm4-parameters
