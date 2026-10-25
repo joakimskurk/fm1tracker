@@ -6,16 +6,18 @@ Read in this order:
 
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/PROJECT_STATE.md`
-3. `docs/WP5_9_PRECONTRACT_AUDIT.md`
-4. `docs/WP5_8_CLOSEOUT_EVIDENCE.md`
-5. `docs/CURRENT_DECISIONS.md`
-6. `docs/WORK_PACKAGES.md`
-7. `docs/EXECUTION_PROTOCOL.md`
-8. `docs/CURRENT_TEST_STATE.md`
-9. `docs/TEST_MATRIX.md`
-10. `docs/ROADMAP.md`
-11. active WP5.9 contract/evidence as it is created
-12. `THIRD_PARTY.md`
+3. `docs/WP5_9_CLOSEOUT_EVIDENCE.md`
+4. `docs/WP5_9_DEFECT_001_DELAYED_CROSS_FAMILY.md`
+5. `docs/WP5_9_DEFECT_001_FIX_CONTRACT.md`
+6. `docs/WP5_8_CLOSEOUT_EVIDENCE.md`
+7. `docs/CURRENT_DECISIONS.md`
+8. `docs/WORK_PACKAGES.md`
+9. `docs/EXECUTION_PROTOCOL.md`
+10. `docs/CURRENT_TEST_STATE.md`
+11. `docs/TEST_MATRIX.md`
+12. `docs/ROADMAP.md`
+13. active WP5.10 audit/contract as it is created
+14. `THIRD_PARTY.md`
 
 ## Product context first
 
@@ -25,34 +27,33 @@ FM1Tracker is one engine-agnostic hardware tracker/sequencer, not an FM-only pro
 
 ## Current execution
 
-**WP5.9 - mixed 8-BIT + FM4 validation is ACTIVE.**
+**WP5.9 - mixed 8-BIT + FM4 validation is CLOSED.**
 
 ```text
-issue       #52
-branch      phase5/mixed-validation
-audit       docs/WP5_9_PRECONTRACT_AUDIT.md
-mode        contract-first, validation-only unless a real defect is exposed
+issue                         #52
+closeout branch               phase5/mixed-validation
+last target-validated code    81d3464059270130747e26fcc950b7a2e1bb03e1
+closeout run                  40210173573 SUCCESS
+target                        121219510315 SUCCESS
+host                          121219510342 SUCCESS
+image                         79836 B
+normal RAM                    27792 B
+pool                         113000 B
+D056 -> WP5.9 delta           +32 B image / +0 B RAM / +0 B pool
+hardware_margin_claim         none
 ```
 
-The precontract audit is complete. Its key finding is that the repository has strong routing, FM-engine and p-lock evidence, but no direct proof of **real simultaneous FM4 + 8-BIT audio on different tracks**.
+Full evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`.
 
-Why:
+The audit began as validation-only. A new delayed cross-family fixture exposed a real target cleanup defect. The defect was documented before repair, and `docs/WP5_9_DEFECT_001_FIX_CONTRACT.md` then allowed only the narrow correction in `firmware/src/dinghy.c`. The final +32 B image delta is within the frozen +1024 B cap; normal RAM and pool are unchanged.
 
-- D048 cross-track coexistence uses a stub second family;
-- WP5.7 uses the real FM engine but its proof pattern contains notes only on track 0, so FM -> 8-BIT -> FM happens sequentially on one track;
-- D056's real FM p-lock fixture uses the same one-track shape;
-- production already renders the real 8-BIT and FM engines once each per sample and saturating-sums them, but that path has not yet been isolated and proved under concurrent real-family ownership.
+`81d3464` remains the last target-validated production-code checkpoint. Documentation-only closeout/handoff commits after it are not new firmware validation checkpoints.
 
-No production defect has been identified by the audit.
+## Parent resource baseline
 
-## Parent checkpoint
-
-WP5.8 / D056 is COMPLETE.
+WP5.8 / D056 remains the frozen parent resource reference:
 
 ```text
-accepted run               40203483720 SUCCESS
-host                       121199398344 SUCCESS
-target                     121199398538 SUCCESS
 image                       79804 B
 normal RAM                  27792 B
 pool                       113000 B
@@ -61,22 +62,20 @@ all-8BIT WAV sha256        17fa5ce1759cb728e152d1d3d417a51a13d358908bdcc2dc2e505
 hardware_margin_claim      none
 ```
 
-Full evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md`.
-
-The 27,792 B normal-RAM result is 864 B below the deliberately frozen D056 package ceiling. It is not a physical-free-RAM claim, but it remains mandatory planning context.
-
 ## Exact next action
 
-1. freeze the WP5.9 mixed-validation contract from the completed audit;
-2. prove that contract with a fail-closed preimplementation CI gate;
-3. keep `firmware/src/**` and `firmware/gen/**` frozen while implementing the validation harness;
-4. add mixed-engine-aware host observability only where required;
-5. implement real simultaneous-family, same-track-switch and event-semantics fixtures;
-6. preserve exact all-8BIT, D055 default/no-lock FM and D056 locked-FM behavior;
-7. measure the pinned target and record exact resource deltas before closeout.
+Per `docs/WORK_PACKAGES.md`, activate **WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit** only after the WP5.9 closeout is durable and issue #52 is closed.
 
-If a validation fixture exposes a target-firmware defect, stop, document the defect and amend/freeze the contract before changing production code.
+WP5.10 must then:
 
-WP5.9 does not implement future VA/subtractive or drum engines. Those remain explicit product directions and must survive the handoff.
+1. run a precontract audit before implementation changes;
+2. freeze a reproducible realistic worst-case mixed-engine benchmark/load definition;
+3. preserve all eight logical tracker tracks;
+4. measure target/resource effects against the frozen D056/WP5.9 baseline;
+5. distinguish measured target/resource evidence from physical-audio stability;
+6. optimize production code only if the frozen benchmark demonstrates a real measured constraint;
+7. record a Phase 5 exit decision.
+
+WP5.10 does not implement future VA/subtractive or drum engines. Those remain explicit product directions and must survive the handoff.
 
 No physical FM-1 is available. `hardware_margin_claim=none`.

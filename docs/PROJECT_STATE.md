@@ -6,18 +6,21 @@ This is the **single source of truth for current execution state**. Read `START_
 
 **Phase 5 - mixed-engine routing + FM4**
 
-State: **IN PROGRESS - WP5.0 through WP5.8 complete; WP5.9 active - 2026-10-25**
+State: **IN PROGRESS - WP5.0 through WP5.9 complete; WP5.10 next - 2026-10-25**
 
-Current active package: **WP5.9 - mixed 8-BIT + FM4 validation**  
-Active issue: **#52**  
-Current branch: `phase5/mixed-validation`  
-Precontract audit: `docs/WP5_9_PRECONTRACT_AUDIT.md`
+Last closed package: **WP5.9 - mixed 8-BIT + FM4 validation**  
+Closed issue: **#52**  
+Closeout branch: `phase5/mixed-validation`  
+Precontract audit: `docs/WP5_9_PRECONTRACT_AUDIT.md`  
+Closeout evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`
+
+Next package: **WP5.10 - worst-case mixed-engine benchmark + Phase 5 exit**. WP5.10 is not implementation-active until its precontract audit and benchmark contract are frozen according to `docs/EXECUTION_PROTOCOL.md`.
 
 ## Persistent product direction
 
 FM1Tracker remains one coherent engine-agnostic tracker with 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same project environment. Future VA/drum DSP and resource architecture are not frozen yet and must receive their own audits/contracts. See `PROJECT_CONTEXT.md`.
 
-## Completed Phase 5 foundation
+## Completed Phase 5 packages
 
 - WP5.0 / D048 mixed-engine routing - COMPLETE.
 - WP5.1 / D049 fixed-point FM operator - COMPLETE.
@@ -28,8 +31,9 @@ FM1Tracker remains one coherent engine-agnostic tracker with 8-BIT, FM, future v
 - WP5.6 / D054 four independent FM4 ADSR envelopes - COMPLETE.
 - WP5.7 / D055 FM voice allocation and D048 integration - COMPLETE.
 - WP5.8 / D056 FM parameter pages and p-lock mapping - COMPLETE.
+- WP5.9 mixed 8-BIT + FM4 validation - COMPLETE.
 
-## Accepted WP5.8 parent checkpoint
+## Accepted WP5.8 parent baseline
 
 ```text
 head                     849c8b27d8c1afa09f9c093b695985c64e0c6013
@@ -46,45 +50,48 @@ hardware_margin_claim    none
 
 Full evidence: `docs/WP5_8_CLOSEOUT_EVIDENCE.md`.
 
-The accepted D056 target is 864 B below the deliberately frozen WP5.8 normal-RAM package ceiling. This is not a physical free-RAM claim, but resource growth must remain explicit through WP5.9/WP5.10.
+## Accepted WP5.9 closeout
 
-## WP5.9 audit findings
+The WP5.9 audit began as a validation-gap package. Its new delayed cross-family fixture exposed a real target cleanup defect. The defect was documented before repair, then a separate frozen fix contract authorized only the narrow `firmware/src/dinghy.c` correction.
 
-The precontract audit found a **validation gap, not a proven production defect**.
+Final accepted production checkpoint and closeout:
 
-Existing evidence is split:
+```text
+code checkpoint          81d3464059270130747e26fcc950b7a2e1bb03e1
+run                      40210173573 SUCCESS
+target                   121219510315 SUCCESS
+host                     121219510342 SUCCESS
+image                    79836 B
+normal RAM               27792 B
+pool                    113000 B
+D056 -> WP5.9 image      +32 B
+D056 -> WP5.9 RAM        +0 B
+D056 -> WP5.9 pool       +0 B
+hardware_margin_claim    none
+```
 
-- D048 proves cross-track family coexistence and route semantics with a stub second family;
-- WP5.7 proves the real FM4 engine, D043 ownership semantics and deterministic real FM -> 8-BIT -> FM switching on track 0;
-- D056 proves real FM p-lock/row-snapshot behavior, again using a one-track mixed fixture;
-- the production proof pattern seeds notes only on `FMT_PLAYBACK_TRACK`, so existing real-engine mixed fixtures never directly prove simultaneous FM4 and 8-BIT voices on different tracks;
-- production `app_audio()` already renders both family engines once per frame and saturating-sums them;
-- no production code defect has yet been identified.
+Full evidence: `docs/WP5_9_CLOSEOUT_EVIDENCE.md`.
 
-The generic host harness is also 8-BIT-centric: its probes and linked-cache fixture refreshes do not expose FM/router state. That is a test-harness limitation and can be corrected without changing target firmware behavior or target RAM.
+`81d3464059270130747e26fcc950b7a2e1bb03e1` remains the last target-validated WP5.9 production-code checkpoint. Documentation/handoff commits after it do not supersede it as firmware validation evidence.
 
-## Frozen direction before implementation
+## WP5.10 frozen direction before implementation
 
-WP5.9 should remain **validation-only** unless a new fixture exposes an actual firmware defect.
+WP5.10 is the Phase 5 exit package. Per `docs/WORK_PACKAGES.md`, it must:
 
-Expected allowed changes before such a defect exists:
+- begin with a precontract audit;
+- freeze a realistic worst-case mixed-engine benchmark/load definition before optimization;
+- preserve all eight logical tracker tracks;
+- measure target/resource effects against the frozen D056/WP5.9 baseline;
+- distinguish target/resource evidence from physical-audio stability;
+- permit optimization only if the frozen benchmark exposes a real measured constraint;
+- record an explicit Phase 5 exit decision.
 
-- host test harness observability/fixture support;
-- WP5.9 tests/reference analysis;
-- WP5.9 CI;
-- documentation/evidence.
-
-Any change under `firmware/src/**` or `firmware/gen/**` must stop this path and trigger an explicit contract amendment explaining the discovered defect before implementation.
+No physical FM-1 is available. `hardware_margin_claim=none`.
 
 ## Exact next action
 
-1. freeze `docs/WP5_9_MIXED_VALIDATION_CONTRACT.md` from the completed audit;
-2. add a fail-closed contract-freeze CI gate;
-3. prove the freeze before test-harness implementation;
-4. then add real simultaneous-family overlap, strengthened same-track switch and event-semantics fixtures;
-5. retain exact all-8BIT, D055 default/no-lock FM and D056 locked-FM regressions;
-6. close with host + pinned-target evidence on one checkpoint.
-
-The simultaneous-family oracle should use real FM-only, 8-BIT-only and combined renders and require the combined PCM to equal the firmware's exact saturated sum of the isolated streams during a window where both isolated streams are nonzero.
-
-No physical FM-1 is available. `hardware_margin_claim=none`.
+1. close WP5.9 issue `#52` with `docs/WP5_9_CLOSEOUT_EVIDENCE.md` as durable evidence;
+2. create/activate WP5.10 from this documentation-only handoff;
+3. perform the WP5.10 precontract audit before implementation changes;
+4. freeze its benchmark/load contract and fail-closed verification path;
+5. only then implement the benchmark and evaluate whether any production optimization is justified.
