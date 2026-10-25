@@ -83,7 +83,31 @@ static const char *fmt_lock_editor_param_short(FmtParamId param_id)
         return "WIDTH";
     case FMT_PARAM_BIT8_WAVETABLE:
         return "TABLE";
+    case FMT_PARAM_FM_ALGORITHM:
+        return "ALG";
+    case FMT_PARAM_FM_INDEX:
+        return "INDEX";
+    case FMT_PARAM_FM_FEEDBACK:
+        return "FDBK";
     default:
+        if (param_id >= FMT_PARAM_FM_OP1_RATIO &&
+            param_id <= FMT_PARAM_FM_OP4_RATIO)
+            return "RATIO";
+        if (param_id >= FMT_PARAM_FM_OP1_LEVEL &&
+            param_id <= FMT_PARAM_FM_OP4_LEVEL)
+            return "LEVEL";
+        if (param_id >= FMT_PARAM_FM_OP1_ATTACK &&
+            param_id <= FMT_PARAM_FM_OP4_ATTACK)
+            return "ATTACK";
+        if (param_id >= FMT_PARAM_FM_OP1_DECAY &&
+            param_id <= FMT_PARAM_FM_OP4_DECAY)
+            return "DECAY";
+        if (param_id >= FMT_PARAM_FM_OP1_SUSTAIN &&
+            param_id <= FMT_PARAM_FM_OP4_SUSTAIN)
+            return "SUSTAIN";
+        if (param_id >= FMT_PARAM_FM_OP1_RELEASE &&
+            param_id <= FMT_PARAM_FM_OP4_RELEASE)
+            return "RELEASE";
         return "?";
     }
 }
@@ -109,7 +133,31 @@ static uint8_t fmt_lock_editor_param_knob(FmtParamId param_id)
         return 3u;
     case FMT_PARAM_BIT8_RELEASE:
         return 4u;
+    case FMT_PARAM_FM_ALGORITHM:
+        return 1u;
+    case FMT_PARAM_FM_INDEX:
+        return 2u;
+    case FMT_PARAM_FM_FEEDBACK:
+        return 3u;
     default:
+        if (param_id >= FMT_PARAM_FM_OP1_RATIO &&
+            param_id <= FMT_PARAM_FM_OP4_RATIO)
+            return (uint8_t)(param_id - FMT_PARAM_FM_OP1_RATIO + 1u);
+        if (param_id >= FMT_PARAM_FM_OP1_LEVEL &&
+            param_id <= FMT_PARAM_FM_OP4_LEVEL)
+            return (uint8_t)(param_id - FMT_PARAM_FM_OP1_LEVEL + 1u);
+        if (param_id >= FMT_PARAM_FM_OP1_ATTACK &&
+            param_id <= FMT_PARAM_FM_OP4_ATTACK)
+            return (uint8_t)(param_id - FMT_PARAM_FM_OP1_ATTACK + 1u);
+        if (param_id >= FMT_PARAM_FM_OP1_DECAY &&
+            param_id <= FMT_PARAM_FM_OP4_DECAY)
+            return (uint8_t)(param_id - FMT_PARAM_FM_OP1_DECAY + 1u);
+        if (param_id >= FMT_PARAM_FM_OP1_SUSTAIN &&
+            param_id <= FMT_PARAM_FM_OP4_SUSTAIN)
+            return (uint8_t)(param_id - FMT_PARAM_FM_OP1_SUSTAIN + 1u);
+        if (param_id >= FMT_PARAM_FM_OP1_RELEASE &&
+            param_id <= FMT_PARAM_FM_OP4_RELEASE)
+            return (uint8_t)(param_id - FMT_PARAM_FM_OP1_RELEASE + 1u);
         return 0u;
     }
 }

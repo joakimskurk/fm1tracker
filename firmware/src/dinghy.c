@@ -96,6 +96,8 @@ static uint8_t tracker_current_instrument[FMT_TRACKS];
 static uint8_t tracker_note_instrument[FMT_TRACKS];
 static FmtFmPatch tracker_fm_row_patch[FMT_TRACKS];
 static uint8_t tracker_fm_row_patch_valid[FMT_TRACKS];
+/* D056 main/UI-only provisional page selection. It never enters audio. */
+static uint8_t tracker_fm_lock_page;
 
 static const uint32_t INC_C9[12] = {            /* MIDI 120..131 (C9..B9); lower octaves shift right */
     815363807u, 863847862u, 915214929u, 969636441u, 1027294024u, 1088380105u,
@@ -1020,6 +1022,7 @@ static void app_main(void)
     fmt_step_record_reset(&fmt_step_record_runtime);
     fmt_tracker_screen_reset(&fmt_tracker_screen_runtime);
     fmt_lock_editor_reset(&fmt_lock_editor_runtime);
+    tracker_fm_lock_page = FMT_FM_PAGE_CORE;
     tracker_play_requested = 1u;
     tracker_transport_stopped = 1u;
     tracker_ready = 1u;
@@ -1161,7 +1164,10 @@ static void app_main(void)
             !lock_began && !lock_ended) {
             if (delete_was_armed && fmt_lock_editor_runtime.delete_armed &&
                 (b & (1u << BTN_SEL))) {
-                if (fmt_8bit_linked_editor_confirm_delete(&fmt_lock_editor_runtime)) {
+                int handled = fmt_fm_linked_editor_is_fm(&fmt_lock_editor_runtime)
+                            ? fmt_fm_linked_editor_confirm_delete(&fmt_lock_editor_runtime)
+                            : fmt_8bit_linked_editor_confirm_delete(&fmt_lock_editor_runtime);
+                if (handled) {
                     delete_activity = 1;
                     tracker_footer_dirty();
                 }
@@ -1171,6 +1177,22 @@ static void app_main(void)
                     delete_activity = 1;
                     tracker_footer_dirty();
                 }
+            }
+        }
+
+        /* D056 provisional FM page gesture. During a held-step edit OCT-/OCT+
+         * were already suppressed from ordinary pattern-page navigation. Reuse
+         * them only for valid FM rows; 8BIT held-step behavior is unchanged. */
+        if (fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            !lock_began && !lock_ended && !delete_was_armed && !delete_activity &&
+            fmt_fm_linked_editor_is_fm(&fmt_lock_editor_runtime)) {
+            if ((b & (1u << BTN_OCT_DOWN)) && tracker_fm_lock_page > 0u) {
+                tracker_fm_lock_page--;
+                tracker_footer_dirty();
+            } else if ((b & (1u << BTN_OCT_UP)) &&
+                       tracker_fm_lock_page + 1u < FMT_FM_PAGE_COUNT) {
+                tracker_fm_lock_page++;
+                tracker_footer_dirty();
             }
         }
 
@@ -1245,12 +1267,22 @@ static void app_main(void)
                                        lock_select_delta))
                 tracker_footer_dirty();
 
-            for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++) {
-                if (lock_delta[k] != 0 &&
-                    fmt_8bit_linked_editor_apply_delta(&fmt_lock_editor_runtime,
-                                                       k,
-                                                       lock_delta[k])) {
-                    tracker_footer_dirty();
+            {
+                int fm_editor = fmt_fm_linked_editor_is_fm(&fmt_lock_editor_runtime);
+                for (k = 0u; k < FMT_LOCK_EDITOR_KNOBS; k++) {
+                    int handled = 0;
+                    if (lock_delta[k] != 0) {
+                        handled = fm_editor
+                            ? fmt_fm_linked_editor_apply_delta(&fmt_lock_editor_runtime,
+                                                              tracker_fm_lock_page,
+                                                              k,
+                                                              lock_delta[k])
+                            : fmt_8bit_linked_editor_apply_delta(&fmt_lock_editor_runtime,
+                                                                k,
+                                                                lock_delta[k]);
+                    }
+                    if (handled)
+                        tracker_footer_dirty();
                 }
             }
         }
@@ -1286,8 +1318,15 @@ static void app_main(void)
         fm1_led_key(BTN_REC, step_rec_mode);
         fm1_led_key(BTN_FX, step_rec_mode && fmt_step_record_runtime.fx_pending);
         fm1_led_key(BTN_EDIT, pattern_mode && !step_rec_mode && fmt_lock_editor_runtime.delete_armed);
-        fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
-        fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
+        if (pattern_mode && !step_rec_mode &&
+            fmt_lock_editor_is_active(&fmt_lock_editor_runtime) &&
+            fmt_fm_linked_editor_is_fm(&fmt_lock_editor_runtime)) {
+            fm1_led_key(BTN_OCT_DOWN, tracker_fm_lock_page > 0u);
+            fm1_led_key(BTN_OCT_UP, tracker_fm_lock_page + 1u < FMT_FM_PAGE_COUNT);
+        } else {
+            fm1_led_key(BTN_OCT_DOWN, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page > 0u : set.oct < 0);
+            fm1_led_key(BTN_OCT_UP, pattern_mode && !step_rec_mode ? fmt_pattern_input_runtime.page + 1u < FMT_PATTERN_INPUT_PAGE_COUNT : set.oct > 0);
+        }
 
         /* D026 screen ownership. Tracker drawing is strictly main-loop work and
          * at most two of the ten bounded regions can be blitted per poll. */
