@@ -23,54 +23,39 @@ Read in this order:
 
 ## Current handoff
 
-WP5.0/D048 through WP5.4/D052 are complete.
+WP5.0/D048 through WP5.4/D052 are complete. WP5.5 / #48 is ACTIVE.
 
-WP5.4 canonical verification:
+Active branch: `phase5/fm4-feedback`  
+Parent closeout: `d3501eca952f3e903d4dcc4faab2851d439f7ad0`
 
-- implementation head `8a283c9216e7f72bab0770f5b1a8a0255f9bd54d`
-- run `40143482844`
-- host job `121019875458`
-- target job `121019875309`
-- host artifact ID `12579074081`, SHA `8f98edfc38e09a1972f5ca168ad3b8690508782ca14b31179496ec4edb27de2c`
-- target artifact ID `12579672157`, SHA `7b4d5e9d76555998ba3d099090f1e5ef592f775e25338f19b4c09de30b6bc01f`
-- PI32v2 `fmt_fm_controls.o` 108 B, SHA `05867ebe120829d1e3b8bf6f0504f29d63e9643e4fa5eede4c6d858d31d25059`
-- full target remains exact WP5.0
-- evidence `docs/WP5_4_VERIFICATION.md`
+WP5.4 final closeout-head verification:
 
-D052 source-absent proof remains canonical at run `40140119411`, job `121009903030`.
+- run `40163616219`
+- host job `121080077905` - SUCCESS
+- target job `121080077699` - SUCCESS
+- host artifact ID `12587775120`, SHA `1aa8c6f6bc33580fe4cfabb30bc4882207abdab2b73e37c7ec2f04ea92a13f8b`
+- target artifact ID `12586739798`, SHA `fe83801b6ed68e1409019a8c18b5dc2a164405e1a5c19ad16386333b81a6fe20`
 
-## Frozen D052 core
+Canonical WP5.4 implementation evidence remains in `docs/WP5_4_VERIFICATION.md`.
 
-- four LEVEL bytes plus one global INDEX byte, all 0..255;
-- LEVEL -> Q15 by `(v << 7) | (v >> 1)`;
-- INDEX -> Q14 by `(v << 6) | (v >> 2)`;
-- scalar malformed values saturate at 255;
-- null LEVEL input maps to silence;
-- mapped transient struct is exactly 10 B;
-- no persistent D052 state;
-- all 65,536 legal LEVEL x INDEX edge combinations are signed-32 safe;
-- D052 remains isolated from `dinghy.c` and audible FM production.
-
-## Next package
+## Active package
 
 **WP5.5 - bounded deterministic FM4 feedback**, issue #48.
 
-Expected branch: `phase5/fm4-feedback`.
-
-D053 does **not** exist yet. Begin contract-first.
+D053 does **not** exist yet. Begin with actual D049/D050/D052 source audit. Do not create production feedback source before D053 is frozen and a source-absent gate passes.
 
 Exact first actions:
 
-1. branch from the WP5.4 closeout checkpoint;
-2. make #48 ACTIVE only after #47 is closed;
-3. inspect D049 phase modulation and D050 fixed evaluation order for the smallest feedback insertion point;
-4. choose one bounded V1 feedback topology and fixed history ownership;
-5. freeze feedback control domain, zero/nominal/max, clamp/rounding and malformed-input behavior;
-6. freeze reset and algorithm-switch history semantics;
-7. prove arithmetic safety against D051 ratio extremes and D052 max LEVEL/INDEX;
-8. define deterministic vectors, switch/reset fixtures and long stress;
-9. freeze state/object ceilings and D053 before production feedback source;
-10. pass a source-absent gate before implementation.
+1. inspect D049 phase modulation arithmetic and D050 fixed OP4 -> OP3 -> OP2 -> OP1 evaluation;
+2. identify the smallest feedback insertion point with no graph traversal or unbounded history;
+3. choose one bounded V1 feedback topology;
+4. freeze feedback control range and exact integer transform;
+5. freeze one-sample history ownership, reset and algorithm-switch semantics;
+6. prove worst-case arithmetic using D051 ratios and D052 maximum LEVEL/INDEX;
+7. define deterministic vectors, reset/switch fixtures and long stress;
+8. freeze state/object/realtime ceilings in D053;
+9. pass a source-absent D053 gate;
+10. only then implement.
 
 Do not pull envelopes, voice allocation/router integration, tracker-facing p-lock IDs/pages or audible mixed FM playback into WP5.5.
 
