@@ -10,6 +10,8 @@ The goal is one coherent instrument with tracker depth underneath and immediate 
 
 FM1Tracker is **not** intended to become an FM-only tracker.
 
+The refinement target is now also explicit: **playable first, characterful immediately, deep when opened**. The functioning tracker/engine skeleton should be sharpened into a stronger instrument rather than expanded by feature count alone. See `PRODUCT_REFINEMENT_DIRECTION.md`.
+
 ## Intended engine families
 
 The product direction includes, in the same tracker environment:
@@ -35,6 +37,32 @@ The instrument should feel playable before it feels editable.
 
 Live performance capture is a mandatory core milestone, including transport-safe recording, track switching without misrouted writes, playable/capturable drums, metronome sync and bounded tracker-editable automation.
 
+The current inherited HOME/sine-audition surface is a development scaffold, not the final product experience. Future HOME/performance work must use the actual selected instrument through the common engine architecture and should provide compact selected-instrument identity, eight-track activity/active-note feedback and a bounded Furnace-inspired spectrum visualization.
+
+## Instrument and drum direction
+
+A coherent instrument editor is a first-class product surface. It should expose musical instrument identity and engine-specific controls while keeping persistent base parameters distinct from tracker row overrides.
+
+A Furnace-style drum keyboard map is now an explicit product requirement. The intended general model is:
+
+```text
+KEY / NOTE -> SOUND SLOT -> SOURCE
+```
+
+The source may later be sample-backed or synthesized under an explicit drum-engine contract. Tracker lanes remain generic: a normal tracker note plus instrument identity is resolved by the drum instrument's note map rather than by hard-coded drum-track types.
+
+## Sonic baseline
+
+Existing synthesis engines must be demonstrated through a deliberately curated, musically convincing factory bank. Engine primitives and development defaults alone are not an acceptable final sonic starting point.
+
+The 8-BIT and FM4 families should be pushed musically before adding new synthesis families solely to increase feature count. Factory instruments should use the same deterministic parameter/persistence architecture as user instruments where practical.
+
+## Phase 6 format consequence
+
+Phase 6 remains the next implementation phase, but its format audit/contract must preserve the accepted refinement direction before persistence is frozen.
+
+The future project format must be able to represent versioned/extensible instrument identity, human-readable instrument names, engine-specific payloads, future drum NOTE MAP data and stable future asset/sample references without raw runtime pointers or hard-coded host file paths. This requirement does not itself implement PCM/sample playback or the final UI.
+
 ## Non-negotiable product rules
 
 - one coherent tracker/sequencer, not separate engine-specific apps;
@@ -44,7 +72,10 @@ Live performance capture is a mandatory core milestone, including transport-safe
 - eight logical tracks are never silently reduced;
 - new engine families require explicit CPU/RAM/parameter/license review;
 - architecture decisions precede implementation;
-- physical hardware claims require physical evidence.
+- physical hardware claims require physical evidence;
+- HOME/performance must eventually represent the real selected instrument, not a legacy test voice;
+- future drum support must preserve arbitrary note-to-sound mapping without hard-coded drum tracks;
+- product refinement favors musical usefulness and coherence over feature count.
 
 ## Documentation rule
 
