@@ -1,30 +1,33 @@
 # FM1Tracker - Start Here
 
-Repository state is authoritative, but roadmap order is not the whole project memory. Read persistent product context before reducing the project to the next work package.
+Repository state is authoritative. Do not reconstruct project state from old chat context when the repository is available.
 
-Read in this order:
+For a new chat, read in this order:
 
-1. `docs/PROJECT_CONTEXT.md`
-2. `docs/PRODUCT_REFINEMENT_DIRECTION.md`
-3. `docs/POLYPHONY_EDITOR_DIRECTION.md`
-4. `docs/CHIP_SOUND_DIRECTION.md`
-5. `docs/PROJECT_STATE.md`
-6. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
-7. `docs/CURRENT_DECISIONS.md`
-8. `docs/WORK_PACKAGES.md`
-9. `docs/EXECUTION_PROTOCOL.md`
-10. `docs/CURRENT_TEST_STATE.md`
-11. `docs/TEST_MATRIX.md`
-12. `docs/ROADMAP.md`
-13. `docs/WP5_10_PRECONTRACT_AUDIT.md`
-14. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
-15. `THIRD_PARTY.md`
+1. `docs/NEXT_CHAT_HANDOFF.md`
+2. `docs/PROJECT_CONTEXT.md`
+3. `docs/PRODUCT_REFINEMENT_DIRECTION.md`
+4. `docs/POLYPHONY_EDITOR_DIRECTION.md`
+5. `docs/CHIP_SOUND_DIRECTION.md`
+6. `docs/PROJECT_STATE.md`
+7. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
+8. `docs/CURRENT_DECISIONS.md`
+9. `docs/WORK_PACKAGES.md`
+10. `docs/EXECUTION_PROTOCOL.md`
+11. `docs/CURRENT_TEST_STATE.md`
+12. `docs/TEST_MATRIX.md`
+13. `docs/ROADMAP.md`
+14. `docs/WP5_10_PRECONTRACT_AUDIT.md`
+15. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
+16. `THIRD_PARTY.md`
+
+Before changing anything, verify the current HEAD of branch `phase5/worst-case-benchmark`.
 
 ## Product context first
 
 FM1Tracker is one engine-agnostic hardware tracker/sequencer. The product direction includes 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same tracker environment. Future engine families require their own audits/contracts.
 
-The accepted refinement direction is now explicit: the existing working skeleton must be sharpened into a more immediate musical instrument. HOME/performance must eventually audition the real selected instrument rather than the legacy sine scaffold, expose compact eight-track activity plus a bounded spectrum visualization, and gain a coherent instrument-editor surface. Drum instruments must support arbitrary note-to-sound mapping through a future NOTE MAP architecture.
+The accepted refinement direction is explicit: the existing working skeleton must be sharpened into a more immediate musical instrument. HOME/performance must eventually audition the real selected instrument rather than the legacy sine scaffold, expose compact eight-track activity plus a bounded spectrum visualization, and gain a coherent instrument-editor surface. Drum instruments must support arbitrary note-to-sound mapping through a future NOTE MAP architecture.
 
 Polyphony is also explicit product direction: one logical track may contain several note lanes rather than consuming neighboring tracker tracks. The preferred first bounded editor target is four visible note lanes, with sparse/versioned extension storage rather than blindly widening every `FmtStep`. See `POLYPHONY_EDITOR_DIRECTION.md`.
 
@@ -51,7 +54,7 @@ phase5_software_exit            pass
 hardware_margin_claim           none
 ```
 
-WP5.10 verification infrastructure did not change production firmware. `81d3464` remains the last target-validated production-code checkpoint.
+WP5.10 verification infrastructure did not change production firmware. `81d3464` remains the last target-validated production-code checkpoint. Later commits on the branch may update documentation/product direction without changing that production checkpoint.
 
 ## Accepted WP5.10 workload
 
@@ -82,15 +85,20 @@ hardware_margin_claim=none
 
 ## Exact next action
 
-Phase 6 - song/order/persistence - is the next planned phase. Do not start persistence production code from roadmap prose alone.
+**Phase 6 - song/order/persistence - is next. The next step is precontract/audit work, not production persistence implementation.**
 
-First:
+The next chat must:
 
-1. audit the existing pattern, transport, engine-identity and storage surfaces;
-2. define the first bounded Phase 6 work package and tracking issue;
-3. freeze the project-format/versioning/migration/corruption-recovery contract before implementation;
-4. keep the format engine-agnostic so future virtual-analog/subtractive synthesis and drums/percussion remain representable;
-5. explicitly preserve extensible instrument identity/name, engine-specific payloads, future drum NOTE MAP data, future chip filter/drive/FX parameters and stable future sample/asset references without hard-coded host paths;
-6. explicitly preserve an optional bounded multi-note/poly-row extension so monophonic rows remain compact while one logical track can later store several note lanes;
-7. preserve eight logical tracks and deterministic bounded realtime behavior;
-8. do not treat the refinement requirements as permission to implement PCM, poly playback, spectrum UI, chip filter/FX or a final instrument editor before their own bounded contracts exist.
+1. audit the existing pattern/song/order/runtime/storage surfaces;
+2. identify assumptions that could block versioning, migration, corruption recovery, optional poly-row extension storage, instrument payload growth, future drum NOTE MAPs or stable asset references;
+3. define the first bounded Phase 6 work package and tracking issue;
+4. freeze the project-format/versioning/migration/corruption-recovery contract before implementation;
+5. keep the format engine-agnostic and preserve extensible instrument identity/name and per-engine payloads;
+6. preserve optional bounded multi-note/poly-row extension capability so monophonic rows remain compact and one logical track can later store several note lanes;
+7. preserve future chip filter/drive/FX parameters and stable future sample/asset references without raw host paths or runtime pointers;
+8. preserve eight logical tracks and deterministic bounded realtime behavior;
+9. do not implement PCM, poly playback/editor code, SID/chip filter/FX DSP, HOME spectrum UI, final instrument editor or live capture as part of the first Phase 6 contract package.
+
+No D057 has been accepted yet. Assign it only when the first real Phase 6 architecture contract is accepted.
+
+For the concise continuation prompt and boundary conditions, use `docs/NEXT_CHAT_HANDOFF.md`.
