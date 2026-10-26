@@ -6,23 +6,29 @@ Read in this order:
 
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/PRODUCT_REFINEMENT_DIRECTION.md`
-3. `docs/PROJECT_STATE.md`
-4. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
-5. `docs/CURRENT_DECISIONS.md`
-6. `docs/WORK_PACKAGES.md`
-7. `docs/EXECUTION_PROTOCOL.md`
-8. `docs/CURRENT_TEST_STATE.md`
-9. `docs/TEST_MATRIX.md`
-10. `docs/ROADMAP.md`
-11. `docs/WP5_10_PRECONTRACT_AUDIT.md`
-12. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
-13. `THIRD_PARTY.md`
+3. `docs/POLYPHONY_EDITOR_DIRECTION.md`
+4. `docs/CHIP_SOUND_DIRECTION.md`
+5. `docs/PROJECT_STATE.md`
+6. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
+7. `docs/CURRENT_DECISIONS.md`
+8. `docs/WORK_PACKAGES.md`
+9. `docs/EXECUTION_PROTOCOL.md`
+10. `docs/CURRENT_TEST_STATE.md`
+11. `docs/TEST_MATRIX.md`
+12. `docs/ROADMAP.md`
+13. `docs/WP5_10_PRECONTRACT_AUDIT.md`
+14. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
+15. `THIRD_PARTY.md`
 
 ## Product context first
 
 FM1Tracker is one engine-agnostic hardware tracker/sequencer. The product direction includes 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same tracker environment. Future engine families require their own audits/contracts.
 
-The accepted refinement direction is now explicit: the existing working skeleton must be sharpened into a more immediate musical instrument. HOME/performance must eventually audition the real selected instrument rather than the legacy sine scaffold, expose compact eight-track activity plus a bounded spectrum visualization, and gain a coherent instrument-editor surface. Drum instruments must support arbitrary note-to-sound mapping through a future NOTE MAP architecture. Existing 8-BIT/FM4 engines should receive a musically strong factory bank before feature count is expanded for its own sake.
+The accepted refinement direction is now explicit: the existing working skeleton must be sharpened into a more immediate musical instrument. HOME/performance must eventually audition the real selected instrument rather than the legacy sine scaffold, expose compact eight-track activity plus a bounded spectrum visualization, and gain a coherent instrument-editor surface. Drum instruments must support arbitrary note-to-sound mapping through a future NOTE MAP architecture.
+
+Polyphony is also explicit product direction: one logical track may contain several note lanes rather than consuming neighboring tracker tracks. The preferred first bounded editor target is four visible note lanes, with sparse/versioned extension storage rather than blindly widening every `FmtStep`. See `POLYPHONY_EDITOR_DIRECTION.md`.
+
+The existing 8-BIT family must also be sharpened sonically. The accepted target is SID-inspired rather than SID-clone: stronger pulse/chip character, a bounded character filter, drive/non-linearity and coherent modern channel/global FX around the chip source. See `CHIP_SOUND_DIRECTION.md`.
 
 ## Current execution
 
@@ -84,6 +90,7 @@ First:
 2. define the first bounded Phase 6 work package and tracking issue;
 3. freeze the project-format/versioning/migration/corruption-recovery contract before implementation;
 4. keep the format engine-agnostic so future virtual-analog/subtractive synthesis and drums/percussion remain representable;
-5. explicitly preserve extensible instrument identity/name, engine-specific payloads, future drum NOTE MAP data and stable future sample/asset references without hard-coded host paths;
-6. preserve eight logical tracks and deterministic bounded realtime behavior;
-7. do not treat the refinement requirements as permission to implement PCM, spectrum UI or a final instrument editor before their own bounded contracts exist.
+5. explicitly preserve extensible instrument identity/name, engine-specific payloads, future drum NOTE MAP data, future chip filter/drive/FX parameters and stable future sample/asset references without hard-coded host paths;
+6. explicitly preserve an optional bounded multi-note/poly-row extension so monophonic rows remain compact while one logical track can later store several note lanes;
+7. preserve eight logical tracks and deterministic bounded realtime behavior;
+8. do not treat the refinement requirements as permission to implement PCM, poly playback, spectrum UI, chip filter/FX or a final instrument editor before their own bounded contracts exist.
