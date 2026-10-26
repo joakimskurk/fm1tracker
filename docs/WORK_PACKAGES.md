@@ -12,6 +12,7 @@
 6. Eight logical tracks may not be silently reduced.
 7. Roadmap focus must not erase persistent product directions such as future virtual-analog/subtractive synthesis or drums/percussion.
 8. Substantive user decisions are synchronized back into Git according to `EXECUTION_PROTOCOL.md`.
+9. Pre-Phase-6 product constraints in `PRODUCT_REFINEMENT_DIRECTION.md`, `POLYPHONY_EDITOR_DIRECTION.md` and `CHIP_SOUND_DIRECTION.md` must be considered when freezing persistence, but do not themselves authorize later DSP/UI features.
 
 ## Phase 1-4 - COMPLETE
 
@@ -99,8 +100,8 @@ phase5 software exit      121252369061 SUCCESS
 AC79 SDK                   d179b4484759423312073f5fbb232501aa491047
 production checkpoint     81d3464059270130747e26fcc950b7a2e1bb03e1
 image                     79836 B
-normal RAM                27792 B
-pool                     113000 B
+normal RAM                 27792 B
+pool                      113000 B
 production delta          0
 ```
 
@@ -127,9 +128,34 @@ PLANNED after engine foundations. Reference `LIVE_PERFORMANCE_CAPTURE_VISION.md`
 
 Virtual-analog/subtractive synthesis and drums/percussion are explicit FM1Tracker product directions in the same tracker environment. They require dedicated CPU/RAM/parameter/license audits and frozen work packages before production implementation.
 
-## Phase 6 - song/order/persistence - PLANNED
+## Phase 6 - song/order/persistence - NEXT, PRECONTRACT REQUIRED
 
-No Phase 6 production code is authorized by the Phase 5 closeout. The first Phase 6 package must begin with an audit and frozen contract covering order/pattern semantics, versioned project representation, engine identity, save/load, CRC, corruption recovery and migration.
+No Phase 6 production code is authorized by the Phase 5 closeout.
+
+The first Phase 6 package must be a bounded audit/precontract package. It must inspect existing tracker/pattern/song/order/runtime/storage assumptions and freeze a versioned project representation before implementation.
+
+The contract must cover at minimum:
+
+- order/pattern semantics and deterministic bounds;
+- explicit project-format identity and versioning;
+- migration and unknown/newer-block behavior;
+- validation, CRC/checksums and corruption recovery/failure behavior;
+- save/load boundaries and failure atomicity appropriate to available storage;
+- preservation of per-instrument engine family + engine identity;
+- human-readable instrument names and extensible per-engine payloads;
+- optional bounded multi-note/poly-row extension representation while ordinary mono rows stay compact;
+- future four-lane poly editor semantics without implementing poly playback yet;
+- future drum NOTE MAP representation;
+- stable future sample/asset references without raw host paths or runtime pointers;
+- room for future chip character-filter/drive/FX parameters without freezing the current minimal 8-BIT payload forever;
+- factory instruments fitting the same versioned model where practical;
+- preservation of all eight logical tracks and bounded realtime behavior.
+
+The first Phase 6 package must explicitly exclude implementation of PCM/sample playback, drum DSP, poly playback/editor code, SID/chip filter/FX DSP, HOME spectrum UI, final instrument editor and live performance capture.
+
+No D057 is accepted yet. The first Phase 6 architecture decision receives the next number only after the audit/contract is accepted.
+
+Reference handoff: `NEXT_CHAT_HANDOFF.md`.
 
 ## Phase 7 - physical hardware UX freeze - BLOCKED
 ## Phase 8 - interoperability - PLANNED
