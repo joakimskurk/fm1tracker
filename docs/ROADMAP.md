@@ -2,7 +2,7 @@
 
 FM1Tracker is a hardware-first tracker/sequencer firmware for the M-VAVE FM-1.
 
-`PROJECT_CONTEXT.md` defines persistent product intent. `PROJECT_STATE.md` defines current execution. `WORK_PACKAGES.md` defines bounded scope. This file defines phase/product direction.
+`PROJECT_CONTEXT.md` defines persistent product intent. `PRODUCT_REFINEMENT_DIRECTION.md` defines the accepted sharpening direction. `PROJECT_STATE.md` defines current execution. `WORK_PACKAGES.md` defines bounded scope. This file defines phase/product direction.
 
 ## Product north star
 
@@ -11,6 +11,12 @@ FM1Tracker is a hardware-first tracker/sequencer firmware for the M-VAVE FM-1.
 The instrument should feel playable before it feels editable. Tracker data remains the source of truth, timing stays deterministic, realtime work stays bounded, and eight logical tracks are never silently reduced.
 
 FM1Tracker is one engine-agnostic tracker environment. It is not intended to become an FM-only tracker.
+
+The product-refinement target is now also explicit:
+
+**Playable first, characterful immediately, deep when opened.**
+
+Feature count is not the goal. Existing foundations should first become a stronger musical instrument through real selected-instrument audition, coherent instrument editing, strong factory sounds, informative HOME feedback and deliberate drum/percussion workflows.
 
 ## Intended engine families
 
@@ -41,9 +47,11 @@ Future virtual-analog and drum implementations require their own CPU/RAM/paramet
   - WP5.8 FM parameter pages + p-lock mapping: COMPLETE
   - WP5.9 mixed 8-BIT + FM4 validation: COMPLETE
   - WP5.10 worst-case mixed-engine benchmark + Phase 5 exit: COMPLETE
+- product-refinement direction: ACCEPTED before Phase 6 format freeze
 - live performance capture milestone: PLANNED after engine foundations
 - later engine-family expansion, including virtual-analog/subtractive and drums: PLANNED, contracts not yet frozen
 - Phase 6 song/order/persistence: PLANNED - next phase
+- focused product-refinement work packages: PLANNED after dependencies/contracts are ready
 - Phase 7 physical hardware UX freeze: BLOCKED until physical FM-1
 - Phase 8 interoperability: PLANNED
 - Phase 9 optional extensions: DEFERRED
@@ -87,6 +95,25 @@ Phase 5 delivered the common mixed-engine routing foundation and integrated FM4 
 
 Physical audio stability, callback/CPU headroom and physical free-RAM margin remain intentionally unverified until hardware exists.
 
+## Accepted product-refinement direction
+
+Reference: `PRODUCT_REFINEMENT_DIRECTION.md`.
+
+The working skeleton is now mature enough that product coherence and musical usefulness become explicit priorities.
+
+Future bounded work must include:
+
+- replacing the inherited sine-only HOME audition scaffold with the actual selected instrument through the common engine architecture;
+- a compact HOME/performance identity surface showing selected track/instrument/engine;
+- simple activity/current-note feedback for all eight logical tracks;
+- a bounded Furnace-inspired HOME spectrum visualization implemented outside the audio ISR;
+- a common instrument-editor shell with focused engine-specific pages;
+- a deliberately curated factory bank that pushes the existing 8-BIT and FM4 engines musically;
+- a drum-instrument NOTE MAP architecture based on `KEY / NOTE -> SOUND SLOT -> SOURCE`;
+- a dedicated sample/asset audit before any PCM implementation.
+
+These are accepted product requirements, not authorization to bypass resource audits or the active phase sequence.
+
 ## Mandatory core milestone - live performance capture + performance FX
 
 PLAY continues while performing, REC arms/disarms capture without stopping transport, track switching cannot misroute writes, drums are playable/capturable, metronome is transport-locked, and CHANNEL/GLOBAL automation remains bounded and tracker-editable.
@@ -97,11 +124,38 @@ Reference: `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
 After the mixed-engine/FM foundation, additional bounded engine families can be introduced through the same common tracker architecture. Virtual-analog/subtractive synthesis and drums/percussion are explicit product directions, not separate applications. Each receives its own preimplementation audit and work package before code is added.
 
+The drum direction now includes arbitrary note-to-sound mapping at instrument level. The tracker remains generic: ordinary note events plus instrument identity are resolved through the drum instrument NOTE MAP rather than through hard-coded drum track types.
+
 ## Phase 6 - song/order/persistence
 
 Order list, pattern switching, repeats/loops, versioned binary format, save/load/CRC, corruption recovery and migration. Persistence must encode D047/D048 per-instrument engine identity so future engine families remain representable without a parallel project format.
 
+The Phase 6 format audit/contract must now also preserve the accepted refinement direction before the format freezes. It must be able to evolve toward:
+
+- human-readable instrument names/identity;
+- versioned/extensible per-engine instrument payloads;
+- future drum NOTE MAP data;
+- stable future sample/asset identifiers without raw host-path coupling;
+- explicit migration/unknown-block/corruption behavior;
+- factory instruments using the same persistent model where practical.
+
 Phase 6 is the next planned phase. Its first implementation package must be preceded by an audit and frozen contract. Do not infer a storage format directly from roadmap prose.
+
+## Focused product-refinement milestone
+
+After dependencies are available, bounded work packages must sharpen the user-facing instrument without destabilizing tracker/realtime guarantees.
+
+Candidate package areas are:
+
+1. real selected-instrument HOME audition;
+2. eight-track activity publication/display;
+3. bounded spectrum analysis/display;
+4. common instrument editor;
+5. factory sound bank and musical-default review;
+6. drum-engine preimplementation audit + NOTE MAP contract;
+7. sample/asset architecture audit before PCM.
+
+Exact numbering and placement must be decided from the then-current repository state. This section is product direction, not permission to skip Phase 6 or combine unrelated implementation into one oversized package.
 
 ## Phase 7 - physical hardware UX freeze
 
@@ -126,6 +180,9 @@ Additional engines/features only after explicit CPU/RAM/parameter/license review
 - one active package at a time;
 - physical claims require physical evidence;
 - roadmap order does not replace persistent product context;
-- substantive user decisions must be synchronized back into Git.
+- substantive user decisions must be synchronized back into Git;
+- product refinement favors musical usefulness/coherence over feature count;
+- future HOME audition must represent the real selected instrument rather than a legacy test voice;
+- future drum support must allow arbitrary instrument-level note-to-sound mapping.
 
 `hardware_margin_claim=none` until physical hardware evidence exists.
