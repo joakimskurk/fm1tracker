@@ -1,6 +1,6 @@
 # FM1Tracker Project State
 
-This is the **single source of truth for current execution state**. Read `START_HERE.md` and `docs/PROJECT_CONTEXT.md` first so roadmap order is not mistaken for the whole product.
+This is the **single source of truth for current execution state**. Read `START_HERE.md`, `docs/NEXT_CHAT_HANDOFF.md` and `docs/PROJECT_CONTEXT.md` first so roadmap order is not mistaken for the whole product.
 
 ## Current phase
 
@@ -20,9 +20,23 @@ The last target-validated production-code checkpoint remains:
 
 `81d3464059270130747e26fcc950b7a2e1bb03e1`
 
+Post-closeout documentation/product-direction commits do not change that production checkpoint.
+
 ## Persistent product direction
 
 FM1Tracker remains one coherent engine-agnostic tracker with 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same project environment. Future VA/drum DSP and resource architecture are not frozen yet and must receive their own audits/contracts. See `PROJECT_CONTEXT.md`.
+
+The accepted pre-Phase-6 refinement constraints also include:
+
+- polyphony stays inside one logical track rather than consuming neighboring tracker tracks;
+- four visible note lanes are the preferred first bounded poly editor target;
+- monophonic rows should remain compact, with optional bounded/versioned poly-row extension storage rather than blindly widening every `FmtStep`;
+- future drum instruments require NOTE MAP representation (`KEY / NOTE -> SOUND SLOT -> SOURCE`);
+- future project persistence must preserve human-readable instrument names, extensible per-engine payloads and stable asset/sample references;
+- the 8-BIT family is intended to evolve in a SID-inspired, non-clone direction with character filter, drive/non-linearity and coherent modern FX under later bounded contracts;
+- none of those product directions authorize their implementation during the first Phase 6 persistence contract package.
+
+References: `PRODUCT_REFINEMENT_DIRECTION.md`, `POLYPHONY_EDITOR_DIRECTION.md`, `CHIP_SOUND_DIRECTION.md`, `LIVE_PERFORMANCE_CAPTURE_VISION.md`.
 
 ## Completed Phase 5 packages
 
@@ -115,12 +129,18 @@ Host timing is informational only. No physical FM-1 exists for the required phys
 
 ## Exact next action
 
-Phase 5 is closed. Phase 6 - song/order/persistence - is the next planned phase, but no Phase 6 production implementation is authorized by this closeout.
+Phase 5 is closed. **Phase 6 - song/order/persistence - is the next planned phase, but no Phase 6 production implementation is authorized yet.**
 
-Before implementation:
+The next work must be a bounded Phase 6 precontract/audit step:
 
-1. audit the existing tracker/pattern/runtime/persistence surfaces against the Phase 6 roadmap;
-2. define the first bounded Phase 6 work package and tracking issue;
-3. freeze its data-format/migration/corruption-recovery contract before production changes;
-4. preserve per-instrument engine identity and the common multi-engine tracker model;
-5. keep future virtual-analog/subtractive synthesis and drums/percussion representable rather than hard-coding an FM-only project format.
+1. audit the existing tracker/pattern/song/order/runtime/storage surfaces against the Phase 6 roadmap and current product-direction documents;
+2. identify assumptions that could block explicit versioning, migration, corruption recovery, future poly-row extensions, instrument payload growth, NOTE MAPs or stable asset references;
+3. define the first bounded Phase 6 work package and tracking issue;
+4. freeze the project-format/versioning/migration/corruption-recovery contract before production changes;
+5. keep the format engine-agnostic and preserve per-instrument engine identity;
+6. preserve optional bounded multi-note/poly-row extension capability while keeping ordinary monophonic rows compact;
+7. preserve extensible instrument names/payloads, future drum NOTE MAPs, future chip filter/drive/FX parameters and stable future sample/asset references without raw host paths or runtime pointers;
+8. preserve all eight logical tracks and deterministic bounded realtime behavior;
+9. do not implement PCM, poly playback/editor code, SID/chip filter/FX DSP, HOME spectrum UI, final instrument editor or live capture as part of the format precontract package.
+
+No D057 has been accepted yet. The next decision number belongs to the first accepted Phase 6 architecture contract, not to roadmap prose alone.
