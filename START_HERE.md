@@ -5,21 +5,24 @@ Repository state is authoritative, but roadmap order is not the whole project me
 Read in this order:
 
 1. `docs/PROJECT_CONTEXT.md`
-2. `docs/PROJECT_STATE.md`
-3. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
-4. `docs/CURRENT_DECISIONS.md`
-5. `docs/WORK_PACKAGES.md`
-6. `docs/EXECUTION_PROTOCOL.md`
-7. `docs/CURRENT_TEST_STATE.md`
-8. `docs/TEST_MATRIX.md`
-9. `docs/ROADMAP.md`
-10. `docs/WP5_10_PRECONTRACT_AUDIT.md`
-11. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
-12. `THIRD_PARTY.md`
+2. `docs/PRODUCT_REFINEMENT_DIRECTION.md`
+3. `docs/PROJECT_STATE.md`
+4. `docs/WP5_10_CLOSEOUT_EVIDENCE.md`
+5. `docs/CURRENT_DECISIONS.md`
+6. `docs/WORK_PACKAGES.md`
+7. `docs/EXECUTION_PROTOCOL.md`
+8. `docs/CURRENT_TEST_STATE.md`
+9. `docs/TEST_MATRIX.md`
+10. `docs/ROADMAP.md`
+11. `docs/WP5_10_PRECONTRACT_AUDIT.md`
+12. `docs/WP5_10_WORST_CASE_MIXED_BENCHMARK_CONTRACT.md`
+13. `THIRD_PARTY.md`
 
 ## Product context first
 
 FM1Tracker is one engine-agnostic hardware tracker/sequencer. The product direction includes 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion in the same tracker environment. Future engine families require their own audits/contracts.
+
+The accepted refinement direction is now explicit: the existing working skeleton must be sharpened into a more immediate musical instrument. HOME/performance must eventually audition the real selected instrument rather than the legacy sine scaffold, expose compact eight-track activity plus a bounded spectrum visualization, and gain a coherent instrument-editor surface. Drum instruments must support arbitrary note-to-sound mapping through a future NOTE MAP architecture. Existing 8-BIT/FM4 engines should receive a musically strong factory bank before feature count is expanded for its own sake.
 
 ## Current execution
 
@@ -81,4 +84,6 @@ First:
 2. define the first bounded Phase 6 work package and tracking issue;
 3. freeze the project-format/versioning/migration/corruption-recovery contract before implementation;
 4. keep the format engine-agnostic so future virtual-analog/subtractive synthesis and drums/percussion remain representable;
-5. preserve eight logical tracks and deterministic bounded realtime behavior.
+5. explicitly preserve extensible instrument identity/name, engine-specific payloads, future drum NOTE MAP data and stable future sample/asset references without hard-coded host paths;
+6. preserve eight logical tracks and deterministic bounded realtime behavior;
+7. do not treat the refinement requirements as permission to implement PCM, spectrum UI or a final instrument editor before their own bounded contracts exist.
