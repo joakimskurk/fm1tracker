@@ -1,6 +1,6 @@
 # FM1Tracker Current Decision Index
 
-Date: 2026-10-25
+Date: 2026-10-26
 
 `DECISIONS.md` remains the append-only historical decision log through D046. D047-D056 are accepted/current Phase 5 decisions. Persistent product direction is additionally summarized in `PROJECT_CONTEXT.md` so future work-package focus cannot erase intended engine families.
 
@@ -101,6 +101,8 @@ The frozen D056 normal-RAM ceiling is 28,656 B, so the accepted target is 864 B 
 
 The active work package never implicitly removes future product directions. `PROJECT_CONTEXT.md` explicitly preserves 8-BIT, FM, future virtual-analog/subtractive synthesis and drums/percussion as intended families in one tracker environment. Future families require their own resource/architecture decisions before implementation.
 
+Accepted pre-Phase-6 product constraints are also recorded in `PRODUCT_REFINEMENT_DIRECTION.md`, `POLYPHONY_EDITOR_DIRECTION.md` and `CHIP_SOUND_DIRECTION.md`. These constrain the future format and work packages, but they are not numbered implementation decisions and do not authorize production DSP/UI work by themselves.
+
 Substantive user decisions and product clarifications are synchronized into Git under `EXECUTION_PROTOCOL.md`; roadmap order alone is not project memory.
 
 ## Current precedence
@@ -116,6 +118,6 @@ D054 -> four envelopes.
 D055 -> FM voice ownership/allocator/render composition and D048 integration.  
 D056 -> tracker-facing FM parameter identity/pages, mutable base storage, row publication and editor integration.
 
-No D057 has been accepted yet. WP5.9 must audit and freeze its validation contract before assigning any new architecture decision.
+Phase 5 is closed at software level. No D057 has been accepted yet. The next numbered architecture decision must come from the first accepted Phase 6 audit/contract; do not assign D057 merely from roadmap prose or the product-direction documents.
 
 No physical timing/audio-quality claim is permitted without physical FM-1 evidence.
